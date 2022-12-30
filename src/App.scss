@@ -1,0 +1,43 @@
+.Link {
+    text-decoration: none;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+        monospace;
+}
+
+.AnimalImage {
+    filter: invert(1) brightness(80%);
+}
+
+/*
+
+MANTINE VARIABLES BASED ON THEME
+
+--mantine-color-white
+--mantine-color-black
+--mantine-transition-timing-function
+--mantine-line-height
+--mantine-font-family
+--mantine-font-family-monospace
+--mantine-font-family-headings
+--mantine-heading-font-weight
+--mantine-shadow-{size}, e.g. --mantine-shadow-sm, --mantine-shadow-xl
+--mantine-radius-{size}, e.g. --mantine-radius-sm, --mantine-radius-xl
+--mantine-spacing-{size}, e.g. --mantine-spacing-sm, --mantine-spacing-xl
+--mantine-font-size-{size}, e.g. --mantine-font-size-sm, --mantine-font-size-xl
+--mantine-color-{color}-{shade}, e.g. --mantine-color-blue-6, --mantine-color-gray-0
+--mantine-{heading}-font-size, e.g. --mantine-h1-font-size
+--mantine-{heading}-line-height, e.g, --mantine-h3-line-height
+
+*/
