@@ -1,8 +1,8 @@
 import Message from "common/Message";
 import Player from "common/Player";
 
-const port = process.env.wsport || 3001;
-const url = process.env.wsurl || "localhost";
+const port = process.env.NODE_ENV === "development" ? 3001 : process.env.PORT;
+const url: string = process.env.NODE_ENV === "development" ? "localhost" : "node-rest.onrender.com";
 const verbose = false;
 
 console.log(process.env)
