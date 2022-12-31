@@ -1,7 +1,7 @@
 import Message from "common/Message";
 import Player from "common/Player";
 
-const port = process.env.NODE_ENV === "development" ? 3001 : 100000;
+const port: string = process.env.NODE_ENV === "development" ? ":3001" : "";
 const url: string = process.env.NODE_ENV === "development" ? "localhost" : "node-rest.onrender.com";
 const verbose = false;
 
@@ -32,7 +32,7 @@ export default class Socket {
         this.roomcode = roomcode;
 
         console.log("[Socket] Connecting...")
-        this.socket = new WebSocket(`ws://${url}:${port}/`);
+        this.socket = new WebSocket(`ws://${url}${port}/`);
         this.socket.onerror = (ev: Event) => {
             console.log('[Socket] Could not connect to game ' + this.gamename)
             console.log(ev)
