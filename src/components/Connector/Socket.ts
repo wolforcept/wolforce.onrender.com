@@ -5,6 +5,8 @@ const port = process.env.wsport || 3001;
 const url = process.env.wsurl || "localhost";
 const verbose = false;
 
+console.log(process.env)
+
 export default class Socket {
 
     public player: Player | null = null;
