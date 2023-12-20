@@ -1,10 +1,9 @@
 import Message from "common/Message";
 import Player from "common/Player";
 
-// const port: string = process.env.NODE_ENV === "development" ? ":3001" : "";
-const port: string = "";
-// const url: string = process.env.NODE_ENV === "development" ? "localhost" : "node-rest.onrender.com";
-const url: string = "node-rest.onrender.com";
+const testRender = false;
+const port: string = process.env.NODE_ENV === "development" && !testRender ? ":3001" : "";
+const url: string = process.env.NODE_ENV === "development" && !testRender ? "localhost" : "node-rest.onrender.com";
 const verbose = false;
 
 console.log(process.env)

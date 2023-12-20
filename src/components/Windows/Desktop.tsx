@@ -8,8 +8,10 @@ interface WindowsProps {
 
 export const DesktopFunctions = {
     bringToFront: (_: any) => { },
-    openApp: (_: WindowInitProps, __: () => ReactElement) => { },
+    openApp: (_: WindowInitProps | undefined, __: () => ReactElement) => { },
     closeApp: (_: number) => { },
+    getAllIds: () => [] as number[],
+    closeAppsFiltered: (_: (x: ReactElement) => boolean) => { }
 }
 
 class Prompt extends React.Component<{ dataUnsaved: boolean }> {
@@ -34,7 +36,7 @@ class Prompt extends React.Component<{ dataUnsaved: boolean }> {
     }
 }
 
-const Desktop: FC<WindowsProps> = function ({ children }) {
+const Desktop: FC<WindowsProps> = function ({ children: desktopIcons }) {
 
     const [size, setSize] = useState(undefined as ({ w: number, h: number } | undefined));
     const [nextId, setNextId] = useState(0);
@@ -50,11 +52,17 @@ const Desktop: FC<WindowsProps> = function ({ children }) {
         setWindows(windows.filter(x => x.props.id !== id));
     }
 
+    DesktopFunctions.closeAppsFiltered = (filter) => {
+        setWindows(windows.filter(x => !filter(x)));
+    }
+
+    DesktopFunctions.getAllIds = () => windows.map(x => x.props.id)
+
     return (
-        <div className='windowsContainer' ref={(node) => { if (node && size === undefined) setSize({ w: node.offsetHeight, h: node.offsetHeight }) }}>
-            {children}
+        <div className='Container' ref={(node) => { if (node && size === undefined) setSize({ w: node.offsetHeight, h: node.offsetHeight }) }}>
+            {desktopIcons}
             {windows}
-            <div className='windowsTaskbar'></div>
+            {<div className='Taskbar'></div>}
             <Prompt dataUnsaved={windows.length > 0} />
         </div>
     )

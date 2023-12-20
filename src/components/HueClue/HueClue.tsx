@@ -1,5 +1,5 @@
 import { ActionIcon, Button, Container, CopyButton, Space, Text, TextInput, Tooltip } from '@mantine/core';
-import Connector from 'components/Connector/Connector';
+import Connector from 'components/Connector/WebSocketConnector';
 import Socket from 'components/Connector/Socket';
 import { ReactElement, useState } from 'react';
 import HueClueState from "common/hueclue/HueClueState";
@@ -12,7 +12,7 @@ import AnimalImage from 'components/AnimalImage/AnimalImage';
 import Canvas from 'components/Canvas/Canvas';
 import HueCueColors from 'common/hueclue/HueClueColors'
 import { getAnimalSrc } from 'assets/Animal';
-import HueClueColors from 'common/hueclue/HueClueColors';
+import ConnectionFooter from 'components/Windows/ConnectionFooter';
 
 const verbose = false;
 
@@ -317,19 +317,7 @@ function HueClue() {
                     </div>
                 </div>
             </div>
-            <div className="footer">
-                <Text className='roomcodeLabel'>Room Code: </Text>
-                <Text>{socket.roomcode ?? ""}</Text>
-                <CopyButton value={socket.roomcode ?? ""} timeout={2000}>
-                    {({ copied, copy }) => (
-                        <Tooltip label={copied ? 'Copied' : 'Copy'} withArrow position="bottom">
-                            <ActionIcon className='copyIcon' color={copied ? 'teal' : 'gray'} onClick={copy}>
-                                {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-                            </ActionIcon>
-                        </Tooltip>
-                    )}
-                </CopyButton>
-            </div>
+            <ConnectionFooter roomcode={socket.roomcode ?? ''} />
         </div>
     )
 }
