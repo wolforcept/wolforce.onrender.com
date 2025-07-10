@@ -10,9 +10,8 @@ import Player from 'common/Player';
 import { IconZoomQuestion, IconArrowRight, IconCheck, IconCopy } from '@tabler/icons';
 import AnimalImage from 'components/AnimalImage/AnimalImage';
 import Canvas from 'components/Canvas/Canvas';
-import HueCueColors from 'common/hueclue/HueClueColors'
+import HueClueColors from 'common/hueclue/HueClueColors'
 import { getAnimalSrc } from 'assets/Animal';
-import HueClueColors from 'common/hueclue/HueClueColors';
 
 const verbose = false;
 
@@ -61,19 +60,19 @@ function HueClue() {
 
     function onCanvasMouseMove(x: number, y: number) {
         if (colorIsHeld && state?.type === 'vote')
-            setColor({ color: HueCueColors.colors[x][y], x, y })
+            setColor({ color: HueClueColors.colors[x][y], x, y })
     }
 
     function createColorTable(): ReactElement {
 
-        const w = HueCueColors.canvasWidth;
-        const h = HueCueColors.canvasHeight;
+        const w = HueClueColors.canvasWidth;
+        const h = HueClueColors.canvasHeight;
 
         return <Canvas w={w} h={h} onMouseDown={onCanvasMouseDown} onMouseMove={onCanvasMouseMove} onMouseUp={onCanvasMouseUp} draw={
             (ctx: CanvasRenderingContext2D) => {
                 for (var x = 0; x < w; x++) {
                     for (var y = 0; y < h; y++) {
-                        ctx.fillStyle = HueCueColors.colors[x][y];
+                        ctx.fillStyle = HueClueColors.colors[x][y];
                         ctx.fillRect(x, y, 1, 1);
                     }
                 }
@@ -131,7 +130,7 @@ function HueClue() {
                         animal: players?.find(x => x.username === username)?.animal ?? ""
                     },
                     color,
-                    x, HueCueColors.canvasHeight - y,
+                    x, HueClueColors.canvasHeight - y,
                     socket.player?.username === username
                 )
             })
@@ -140,7 +139,7 @@ function HueClue() {
     }
 
     function createColorMarker(color: string, x: number, y: number, guessingColor: boolean = false, ownColor: boolean = false): ReactElement {
-        const dx = -HueCueColors.canvasWidth + x - 25;
+        const dx = -HueClueColors.canvasWidth + x - 25;
         const dy = y - 45;
         return <svg key={"color" + color + x + y} className='colorMarker' style={{ zIndex: guessingColor ? 10 : 9, position: 'absolute', transform: `translate(${dx}px, ${dy}px)` }} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke={guessingColor ? "white" : "black"} fill={color} stroke-linecap="round">
             <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"></path>
