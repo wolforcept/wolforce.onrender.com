@@ -25,3 +25,5 @@ yarn-error.log*
 /publicold
 package-lock.json
 /unused
+/node_modules
+client/node_modules
