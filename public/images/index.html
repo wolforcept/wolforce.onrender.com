@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Simple Image Gallery</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            display: flex;
+            height: 100vh;
+            background-color: #222223;
+        }
+
+        #sidebar {
+            width: 25%;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-flow: wrap;
+            gap: 10px;
+        }
+
+        .imgHolder {
+            cursor: pointer;
+            border: 1px solid #b0bcc955;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        /*
+            MAIN
+        */
+
+        #preview {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #main-image {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .subText {
+            color: #b0bcc9;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .copyText {
+            color: #b0bcc9;
+            text-decoration: none;
+            border: 1px solid #b0bcc9;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        /*
+        TREE
+        */
+
+        .treeFolder {
+            color: white;
+            border-left: 1px solid #ffffff55;
+            border-bottom: 1px solid #ffffff55;
+            margin-bottom: 4px;
+            padding: 10px 10px 10px 10px;
+        }
+
+        .treeFolderChildren {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .treeFile {
+            color: rgb(190, 190, 190);
+            padding: 1px;
+            cursor: pointer;
+
+            width: 64px;
+            height: 64px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+
+        }
+
+        .treeFile:hover {
+            color: white;
+        }
+
+        .treeText {
+            color: #b0bcc9;
+            text-decoration: none;
+        }
+
+        .treeImg {
+            color: #b0bcc9;
+            text-decoration: none;
+
+            max-width: 64px;
+            max-height: 64px;
+        }
+
+        /*
+        SCROLLBAR
+        */
+        
+        #sidebar::-webkit-scrollbar {
+            width: 12px;
+        }
+        
+        #sidebar::-webkit-scrollbar-track {
+            border-radius: 8px;
+            background-color: #00000055;
+            border: 1px solid #00000055;
+            box-shadow: inset 0 0 6px rgba(0, 0, 0, .3);
+        }
+        
+        #sidebar::-webkit-scrollbar-thumb {
+            border-radius: 8px;
+            background-color: #363636;
+        }
+        /*        ScrollBar 3    */
+        
+        #scrollbar3::-webkit-scrollbar {
+            width: 12px;
+        }
+
+    </style>
+
+    <script src="../lib/jquery.min.js"></script>
+
+</head>
+
+<body>
+    <div id="sidebar">
+    </div>
+    <div id="preview">
+    </div>
+
+    <script>
+
+        // function buildFileTree(paths) {
+        //     const root = [];
+
+        //     function findOrCreateFolder(arr, folderName) {
+        //         for (const item of arr) {
+        //             if (Array.isArray(item) && item[0] === folderName) {
+        //                 return item;
+        //             }
+        //         }
+        //         const newFolder = [folderName];
+        //         arr.push(newFolder);
+        //         return newFolder;
+        //     }
+
+        //     for (const path of paths) {
+        //         const parts = path.split('/');
+        //         let current = root;
+
+        //         for (let i = 0; i < parts.length; i++) {
+        //             const part = parts[i];
+
+        //             if (i === parts.length - 1) {
+        //                 // File
+        //                 current.push(part);
+        //             } else {
+        //                 // Folder
+        //                 current = findOrCreateFolder(current, part);
+        //             }
+        //         }
+        //     }
+
+        //     return root;
+        // }
+
+        function buildFileTree(paths) {
+            const root = ["root"];
+
+            function findOrCreateFolder(arr, folderName) {
+                for (const item of arr) {
+                    if (Array.isArray(item) && item[0] === folderName) {
+                        return item;
+                    }
+                }
+                const newFolder = [folderName];
+                arr.push(newFolder);
+                return newFolder;
+            }
+
+            function sortFolder(folder) {
+                const [name, ...contents] = folder;
+                contents.sort((a, b) => {
+                    const aIsFolder = Array.isArray(a);
+                    const bIsFolder = Array.isArray(b);
+
+                    if (aIsFolder && !bIsFolder) return -1;
+                    if (!aIsFolder && bIsFolder) return 1;
+
+                    const aName = aIsFolder ? a[0] : a;
+                    const bName = bIsFolder ? b[0] : b;
+
+                    return aName.localeCompare(bName);
+                });
+
+                // Recursively sort subfolders
+                for (const item of contents) {
+                    if (Array.isArray(item)) {
+                        sortFolder(item);
+                    }
+                }
+
+                // Reconstruct the folder array
+                folder.length = 1; // Keep only the folder name
+                folder.push(...contents);
+            }
+
+            for (const path of paths) {
+                const parts = path.split('/');
+                let current = root;
+
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+
+                    if (i === parts.length - 1) {
+                        current.push(part);
+                    } else {
+                        current = findOrCreateFolder(current, part);
+                    }
+                }
+            }
+
+            sortFolder(root);
+            return root;
+        }
+
+        function makeFolder(parent, tree, fullpath) {
+
+            if (tree.constructor === Array) {
+
+                const div = $(`<div class="treeFolder">${tree[0]}<div>`)
+                const children = $(`<div class="treeFolderChildren"><div>`)
+                parent.append(div)
+                div.append(children)
+                tree.forEach((t, i) => {
+                    if (i !== 0)
+                        makeFolder(children, t, fullpath + "/" + tree[0])
+                })
+
+
+            } else {
+
+                const img = $(`<img class="treeImg" src="${fullpath}/${tree}" >`)
+                const text = $(`<div class="treeText">${tree}</div>`)
+
+                const div = $(`<div class="treeFile"><div>`)
+                div.append(img);
+                // div.append(text)
+                div.on('click', () => {
+                    show(fullpath + "/" + tree)
+                })
+                parent.append(div)
+            }
+        }
+
+        function show(path) {
+
+            console.log(path);
+
+            const fullPath = `https://raw.githubusercontent.com/wolforcept/wolforcept.github.io/refs/heads/master${path}`;
+            // const name = path.substring(7);
+
+            const img = $(`<img src="${fullPath}" >`)
+
+            const copyButton = $(`<div class="copyText">copy</div>`);
+            copyButton.on('copy', () => navigator.clipboard.writeText(fullPath))
+
+            const link = $(`<div><a class="subText" href="${fullPath}">https://raw.githubusercontent.com/wolforcept/wolforcept.github.io/refs/heads/master/${path}</a></div>`)
+
+            const shown = $('#preview');
+
+            shown.empty()
+            shown.append(img)
+            shown.append(link)
+            shown.append(copyButton)
+
+        }
+
+        var selectedFirst = false;
+        fetch('https://raw.githubusercontent.com/wolforcept/wolforcept.github.io/refs/heads/master/image-list.json')
+            .then(res => res.json())
+            .then(images => {
+                const sidebar = $('#sidebar');
+                let lastCategory = null;
+
+                const fileTree = buildFileTree(images)[1];
+                // console.log(JSON.stringify(fileTree, null, 3))
+                makeFolder(sidebar, fileTree, "")
+
+                images.forEach(path => {
+
+                    // const div = $(`<div class="imgHolder"></div>`);
+                    // const img2 = $(`<div class="wrapper"><img src="${fullPath}"></div>`);
+                    // div.append(img2)
+
+                    // function show() {
+
+                    //     const copyButton = $(`<div class="copyText">copy</div>`);
+                    //     copyButton.on('copy', () => {
+                    //         navigator.clipboard.writeText()
+                    //     })
+
+                    //     const link = $(`<div><a class="subText" href="${fullPath}">https://raw.githubusercontent.com/wolforcept/wolforcept.github.io/refs/heads/master/${path}</a></div>`)
+
+                    //     shown.empty()
+                    //     shown.append(img)
+                    //     shown.append(link)
+                    //     shown.append(copyButton)
+
+                    // }
+
+                    // div.on('click', () => {
+                    //     show()
+                    // })
+                    // if (!selectedFirst) {
+                    //     show()
+                    //     selectedFirst = true;
+                    // }
+                });
+            });
+    </script>
+
+</body>
+
+</html>

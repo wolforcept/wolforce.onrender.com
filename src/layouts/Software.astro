@@ -1,0 +1,96 @@
+---
+const { title, image, downloadUrl, screenshots } = Astro.props.content as {
+    title: string,
+    image: string,
+    downloadUrl: string,
+    screenshots: string[],
+};
+---
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>{title}</title>
+        <style>
+            body {
+                background-color: #0f1b26;
+                color: white;
+                font-family: sans-serif;
+                margin: 2rem;
+            }
+
+            .layout {
+                display: grid;
+                grid-template-columns: 1fr auto;
+                gap: 1rem;
+            }
+
+            .main-content {
+                grid-column: 1 / -1;
+            }
+
+            .title {
+                font-size: 2rem;
+                font-weight: bold;
+            }
+
+            .download-button {
+                background-color: #2e3b4e;
+                border: none;
+                border-radius: 9999px;
+                padding: 0.6rem 1.2rem;
+                color: white;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+
+            .download-button:hover {
+                background-color: #3f4f63;
+            }
+
+            .screenshot-box {
+                margin-top: 2rem;
+                height: 300px;
+            }
+
+            img.icon {
+                max-width: 100px;
+                height: auto;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="layout">
+            <div>
+                <div class="title">{title}</div>
+                <div class="main-content">
+                    <slot />
+                </div>
+            </div>
+            <div style="text-align: center;">
+                {
+                    image && (
+                        <img src={image} alt={title + " icon"} class="icon" />
+                    )
+                }
+                {
+                    downloadUrl && (
+                        <a href={downloadUrl}>
+                            <button class="download-button">Download</button>
+                        </a>
+                    )
+                }
+            </div>
+            <div class="screenshot-box">
+                {
+                    screenshots &&
+                        screenshots.map((src: string) => (
+                            <img src={src} alt="Screenshot" />
+                        ))
+                }
+            </div>
+        </div>
+    </body>
+</html>
