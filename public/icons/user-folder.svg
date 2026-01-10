@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Folder back -->
+  <path d="M2 8 L2 26 L30 26 L30 10 L14 10 L12 8 Z" fill="#ffcc00" stroke="#996600" stroke-width="1"/>
+  
+  <!-- Folder front -->
+  <rect x="2" y="12" width="28" height="14" rx="1" fill="#ffdd44" stroke="#996600" stroke-width="1"/>
+  
+  <!-- User silhouette -->
+  <circle cx="16" cy="17" r="3" fill="#996600"/>
+  <path d="M11 24 Q11 20 16 20 Q21 20 21 24" fill="#996600"/>
+</svg>
+
