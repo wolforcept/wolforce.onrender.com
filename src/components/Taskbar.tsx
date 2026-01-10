@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Data from "../Data";
-import type { LinkApp, DesktopActions, Window } from "./Interfaces";
+import type { LinkApp, DesktopActions, WindowData } from "./Interfaces";
 import StartMenu from "./StartMenu";
 
 const styles: { [key: string]: CSSProperties } = {
@@ -14,6 +14,7 @@ const styles: { [key: string]: CSSProperties } = {
         display: "flex",
         flexDirection: "row",
         cursor: "pointer",
+        zIndex: 99999999,
     },
     button: {
         display: "flex",
@@ -46,14 +47,14 @@ const styles: { [key: string]: CSSProperties } = {
 }
 
 interface TaskbarProps {
+    linkApps: LinkApp[],
     isStartMenuVisible: boolean
     desktopActions: DesktopActions,
-    openedWindows: Window[]
+    openedWindows: WindowData[]
 }
 
-export default function Taskbar({ isStartMenuVisible, desktopActions, openedWindows }: TaskbarProps) {
+export default function Taskbar({ linkApps, isStartMenuVisible, desktopActions, openedWindows }: TaskbarProps) {
 
-    const [items, setItems] = useState<LinkApp[]>([]);
 
     const buttonRef = useRef<HTMLDivElement>(null);
     const startMenuRef = useRef<HTMLDivElement>(null);
@@ -63,9 +64,6 @@ export default function Taskbar({ isStartMenuVisible, desktopActions, openedWind
             startMenuRef.current.focus();
     }, [isStartMenuVisible, startMenuRef])
 
-    useEffect(() => {
-        Data.fetchExternalItems().then(items => setItems(items))
-    }, [])
 
     const handleOnBlur = () => {
         setTimeout(() => {
@@ -92,11 +90,10 @@ export default function Taskbar({ isStartMenuVisible, desktopActions, openedWind
                 </div>
             </div>
             <div style={{ visibility: isStartMenuVisible ? "visible" : "hidden", userSelect: "none" }}>
-                <StartMenu ref={startMenuRef} onBlur={handleOnBlur} items={items} desktopActions={desktopActions} />
+                <StartMenu ref={startMenuRef} onBlur={handleOnBlur} linkApps={linkApps} desktopActions={desktopActions} />
             </div>
             {openedWindows.map(win => {
-
-                return (<div style={styles.taskbarWindow}>{win.title}</div>)
+                return (<div key={win.id} style={styles.taskbarWindow}>{win.title}</div>)
             })}
         </div >
     );

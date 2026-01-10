@@ -1,4 +1,5 @@
 ---
+layout: ../../layouts/Software.astro
 title: Mini Timer
 description: asdasd
 downloadUrl: /downloads/cool-tool.zip

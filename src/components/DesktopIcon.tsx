@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Pos } from "./Interfaces";
+import type { Ico, Pos } from "./Interfaces";
 
 const style: React.CSSProperties = {
     position: "fixed",
@@ -14,15 +14,16 @@ const style: React.CSSProperties = {
 }
 
 interface DesktopIconProps {
-    doAction: () => void
+    doAction: (linkApp: Ico) => void
     getPosition: () => Pos
     setPosition: (pos: Pos) => void
-    icon: any
+    ico: Ico
     altText?: string
     getOthers: () => Pos[]
+    image: string
 }
 
-export default function DesktopIcon({ doAction, getPosition, setPosition, icon, altText, getOthers }: DesktopIconProps) {
+export default function DesktopIcon({ doAction, getPosition, setPosition, ico, altText, getOthers, image }: DesktopIconProps) {
 
     const boxRef = useRef<HTMLDivElement>(null)
     const [lastPosition, setLastPosition] = useState<Pos>({ ...getPosition() })
@@ -61,7 +62,7 @@ export default function DesktopIcon({ doAction, getPosition, setPosition, icon, 
             const now = Date.now();
             console.log(now - lastClick.current)
             if (now - lastClick.current < 300)
-                doAction();
+                doAction(ico);
             lastClick.current = now;
         }
         if (offset) {
@@ -106,7 +107,7 @@ export default function DesktopIcon({ doAction, getPosition, setPosition, icon, 
                 top: pos.y, left: pos.x,
                 border: isHovered ? "1px solid #FFFFFF44" : "1px solid transparent"
             }}>
-            <img src={icon} alt={altText} style={{ width: 64, height: 64, filter: "drop-shadow(2px 3px 2px #00000055)" }} />
+            <img src={image} alt={altText} style={{ width: 64, height: 64, filter: "drop-shadow(2px 3px 2px #00000055)" }} />
             <img src="https://i.imgur.com/rVcbILM.png" style={{ position: "absolute", left: 0, bottom: 0 }} />
         </div>
     );

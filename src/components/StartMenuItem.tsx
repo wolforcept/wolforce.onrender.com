@@ -2,14 +2,14 @@ import { useState } from "react";
 import type { LinkApp, DesktopActions } from "./Interfaces";
 
 interface StartMenuItemProps {
-    item: LinkApp;
+    linkApp: LinkApp;
     desktopActions: DesktopActions
 }
 
-export default function StartMenuItem({ item, desktopActions }: StartMenuItemProps) {
+export default function StartMenuItem({ linkApp, desktopActions }: StartMenuItemProps) {
     const [open, setOpen] = useState(false);
 
-    const hasChildren = item.children && item.children.length > 0;
+    const hasChildren = linkApp.children && linkApp.children.length > 0;
 
     return (
         <div
@@ -27,14 +27,15 @@ export default function StartMenuItem({ item, desktopActions }: StartMenuItemPro
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={() => setOpen(false)}
             onClick={(e) => {
-                if (!hasChildren && item.link) {
-                    desktopActions.openLink(item.link);
+                if (!hasChildren && linkApp.link) {
+                    desktopActions.openLink(linkApp);
                     desktopActions.hideStartMenu();
                 }
                 e.stopPropagation();
             }}
         >
-            <span>{item.name}</span>
+            {linkApp.image && <img src={linkApp.image} height={16}></img>}
+            <span>{(linkApp.link?.startsWith("external://") ? "🗗 " : "") + linkApp.title}</span>
             {hasChildren && <span style={{ marginLeft: "8px" }}>▶</span>}
             {hasChildren && open && (
                 <div
@@ -49,8 +50,8 @@ export default function StartMenuItem({ item, desktopActions }: StartMenuItemPro
                         zIndex: 100,
                     }}
                 >
-                    {item.children!.map((child: any, i: number) => (
-                        <StartMenuItem key={i} item={child} desktopActions={desktopActions} />
+                    {linkApp.children!.map((child: any, i: number) => (
+                        <StartMenuItem key={i} linkApp={child} desktopActions={desktopActions} />
                     ))}
                 </div>
             )}

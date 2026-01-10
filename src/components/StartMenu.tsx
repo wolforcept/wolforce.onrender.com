@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import StartMenuItem from "./StartMenuItem";
 import type { LinkApp, DesktopActions } from "./Interfaces";
-
+import { Util } from "../utils/Util";
 
 const styles: { [key: string]: CSSProperties } = {
     menu: {
-        position: "absolute",
+        position: "fixed",
         bottom: "40px",
         left: 0,
         backgroundColor: "#c0c0c0",
@@ -28,30 +28,14 @@ const styles: { [key: string]: CSSProperties } = {
     }
 };
 
-function flattenMenuItems(items: LinkApp[]): LinkApp[] {
-    const result: LinkApp[] = [];
-
-    const traverse = (itemList: LinkApp[]) => {
-        for (const item of itemList) {
-            result.push(item);
-            if (item.children) {
-                traverse(item.children);
-            }
-        }
-    };
-
-    traverse(items);
-    return result;
-}
-
 interface StartMenuProps {
     ref: RefObject<HTMLDivElement | null>
     onBlur: () => void
-    items: LinkApp[];
+    linkApps: LinkApp[];
     desktopActions: DesktopActions
 }
 
-export default function StartMenu({ ref, onBlur, items, desktopActions }: StartMenuProps) {
+export default function StartMenu({ ref, onBlur, linkApps: items, desktopActions }: StartMenuProps) {
 
     const [searchValue, setSearchValue] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
@@ -76,10 +60,10 @@ export default function StartMenu({ ref, onBlur, items, desktopActions }: StartM
         >
             {
                 (searchValue ?
-                    flattenMenuItems(items).filter(x => x.name?.toLowerCase().includes(searchValue.toLowerCase())) :
+                    Util.flattenMenuItems(items).filter(x => x.title?.toLowerCase().includes(searchValue.toLowerCase())) :
                     items
                 ).map((item, i) => (
-                    <StartMenuItem key={i} item={item} desktopActions={desktopActions} />
+                    <StartMenuItem key={i} linkApp={item} desktopActions={desktopActions} />
                 ))}
             <input
                 style={styles.input}

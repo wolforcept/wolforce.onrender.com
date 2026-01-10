@@ -1,218 +1,211 @@
 [
     {
-        "name": "Programs",
+        "title": "Web Games",
         "children": [
             {
-                "name": "Accessories",
-                "children": [
-                    {
-                        "name": "Notepad",
-                        "link": "external://http://www.google.com"
-                    },
-                    {
-                        "name": "Paint"
-                    }
-                ]
-            },
-            {
-                "name": "Games",
-                "children": [
-                    {
-                        "name": "Minesweeper"
-                    },
-                    {
-                        "name": "Solitaire"
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        "name": "Web Games",
-        "children": [
-            {
-                "name": "Seedmix2",
+                "title": "Seedmix2",
                 "link": "https://seedmix2.onrender.com",
                 "pixelated": true,
                 "image": "./images/webgames/seedmix2.png",
-                "width": 200,
-                "height": 200
+                "width": 400,
+                "height": 800
             },
             {
-                "name": "PokeGene 2",
+                "title": "PokeGene 2",
                 "link": "https://pokegene2.onrender.com",
                 "image": "./images/webgames/pokegene.png"
             },
             {
-                "name": "PokeIdler",
-                "link": "./pokeidler",
+                "title": "PokeIdler",
+                "link": "https://wolforcept.github.io/pokeidler/",
                 "pixelated": true,
                 "image": "./images/webgames/pokeball.png"
             },
             {
-                "name": "Elemental Pixel",
+                "title": "Elemental Pixel",
                 "link": "https://elementalpixel.onrender.com",
                 "image": "./images/webgames/elementalpixel.png"
             },
             {
-                "name": "Concept",
+                "title": "Concept",
                 "link": "./concept/",
                 "image": "./images/webgames/concept2.png"
             },
             {
-                "name": "Angels vs Demons",
+                "title": "Angels vs Demons",
                 "link": "https://angelsvsdemons.onrender.com",
                 "image": "./images/webgames/avd.png"
             },
             {
-                "name": "LoL Blurs",
+                "title": "LoL Blurs",
                 "link": "./blurs/lol",
                 "image": "./images/webgames/lolblurs128.png"
             },
             {
-                "name": "LoL Quiz",
+                "title": "LoL Quiz",
                 "link": "./lolquiz",
                 "image": "./images/webgames/lolquiz.png"
             },
             {
-                "name": "Poke Blurs",
+                "title": "Poke Blurs",
                 "link": "./blurs/pokemon",
                 "image": "./images/webgames/pokeblurs.png"
             },
             {
-                "name": "WordDish",
+                "title": "WordDish",
                 "link": "https://worddish.onrender.com",
                 "image": "./images/webgames/worddish.png",
                 "width": 600,
                 "height": 600
             },
             {
-                "name": "Cobra 2",
+                "title": "Cobra 2",
                 "link": "./Cobra2",
                 "pixelated": true,
                 "image": "./images/webgames/cobra2.png"
             },
             {
-                "name": "Mover",
+                "title": "Mover",
                 "link": "./mover",
                 "image": "./mover/icon.png"
             },
             {
-                "name": "Ecogenesis",
+                "title": "Ecogenesis",
                 "link": "https://ecogenesis-app.onrender.com",
                 "image": "./images/webgames/ecogenesis.png"
             },
             {
-                "name": "Project Elite",
+                "title": "Project Elite",
                 "link": "https://project-elite-companion.onrender.com",
                 "image": "https://project-elite-companion.onrender.com/assets/images/title2.svg"
             },
             {
-                "name": "Cryptid",
+                "title": "Cryptid",
                 "link": "https://cryptid-companion-app.onrender.com",
                 "image": "./images/webgames/cryptid.png"
             },
             {
-                "name": "Space Captain",
+                "title": "Space Captain",
                 "link": "https://spacecaptain.onrender.com",
                 "image": "./images/webgames/spacecaptain.png"
             },
             {
-                "name": "Wordaria",
-                "link": "external://https://play.google.com/store/apps/details?id=wolforce.games.wordaria",
-                "image": "./images/mobile/wordaria.png"
+                "title": "Wordaria",
+                "oldlink": "https://play.google.com/store/apps/details?id=wolforce.games.wordaria",
+                "link": "https://apkpure.com/wordaria/wolforce.games.wordaria",
+                "image": "/images/mobile/wordaria/wordaria64.png"
             }
         ]
     },
     {
-        "name": "Software",
+        "title": "Software",
         "children": [
             {
-                "name": "aTV",
+                "title": "aTV",
                 "url": "#software-atv",
                 "image": "./images/software/atv.png"
             },
             {
-                "name": "Folder Saver",
+                "title": "Folder Saver",
                 "url": "#software-foldersaver",
                 "image": "./images/software/foldersaver.png"
             },
             {
-                "name": "MFT",
+                "title": "MFT",
                 "url": "#software-mft",
                 "image": "./images/software/mft.png"
             },
             {
-                "name": "Muted Tray",
+                "title": "Muted Tray",
                 "url": "#software-mutedtray",
                 "image": "./images/software/mutedtray.png"
             },
             {
-                "name": "Net Blocker",
+                "title": "Net Blocker",
                 "url": "#software-netblocker",
                 "image": "./images/software/netblocker.png"
             },
             {
-                "name": "Mini Timer",
+                "title": "Mini Timer",
                 "url": "#software-minitimer",
                 "image": "./images/software/minitimer.png"
             },
             {
                 "id": "autoep",
-                "name": "AutoEP",
+                "title": "AutoEP",
                 "description": "",
-                "url": "external://https://github.com/wolforcept/AutoEP",
+                "url": "https://github.com/wolforcept/AutoEP",
                 "image": "./images/webgames/autoep400.png"
             },
             {
-                "name": "Folder Saver",
+                "title": "Folder Saver",
                 "description": "A small app to save and load the current opened folders and its locations on the screen.<br>You can have multiple independent saves and load them at any time to reopen the folders<br>exactly where you left them. Right click for options. Double click to exit.",
                 "image": "./images/software/foldersaver.png",
                 "download": "./downloads/foldersaver/FolderSaver.zip"
             },
             {
-                "name": "MFT",
+                "title": "MFT",
                 "description": "MFT (multi file templates) is a small app to generate files according to some variables.<br>\n                <br>\n                When editing, you can add templates, edit the template files and add and edit variables.<br>\n                Then, after pressing 'run' or exporting as a runnable, you can edit the variables<br>\n                that you want to run the template with, then run the template once or multiple times,<br>\n                choosing where the files are saved individually.<br>\n                You can have variables not only in the template text, but also on the individual and<br>\n                global file paths.",
                 "image": "./images/software/mft.png",
                 "download": "./downloads/mft/MFT.zip"
             },
             {
-                "name": "Muted Tray",
+                "title": "Muted Tray",
                 "description": "A small app to display the muted state of your current microphone.<br>\n                You may also use it to mute/unmute your microphone with right click.<br>\n                Double click to exit.",
                 "image": "./images/software/mutedtray.png",
                 "download": "./downloads/mutedtray/mutedtray.zip"
             },
             {
-                "name": "Net Blocker",
+                "title": "Net Blocker",
                 "description": "A small app to add application rules to the firewall.",
                 "image": "./images/software/netblocker.png",
                 "download": "./downloads/netblocker/netblocker.zip"
             },
             {
-                "name": "Auto Clicker",
+                "title": "Auto Clicker",
                 "link": "/software/autoclicker",
                 "image": "./images/software/autoclicker.png",
                 "download": "./downloads/autoclicker/autoclicker.jar"
             },
             {
-                "name": "Mini Timer",
+                "title": "Mini Timer",
                 "image": "./images/software/minitimer.png",
                 "download": "./downloads/minitimer/MiniTimer.exe"
             }
         ]
     },
     {
-        "name": "Settings",
+        "title": "Minecraft Mods",
         "children": [
             {
-                "name": "Restore Default Icons",
-                "link": "desktopAction://restoreDefaultIcons:"
+                "title": "Hearthwell",
+                "image": "./images/minecraft/hearthwell/hearthwell.png",
+                "link": "https://apkpure.com/wordaria/wolforce.games.wordaria"
             }
         ]
     },
     {
-        "name": "Shut Down...",
-        "link": "/software/atv",
-        "width": 200
+        "title": "Other",
+        "children": [
+            {
+                "title": "Images",
+                "image": "./images.png",
+                "link": "/images"
+            },
+            {
+                "title": "Thaumcraft Helper",
+                "image": "https://thaumcrafthelper.onrender.com/logo.png",
+                "link": "https://thaumcrafthelper.onrender.com"
+            }
+        ]
+    },
+    {
+        "title": "Settings",
+        "children": [
+            {
+                "title": "Restore Default Icons",
+                "link": "desktopAction://restoreDefaultIcons:"
+            }
+        ]
     }
 ]

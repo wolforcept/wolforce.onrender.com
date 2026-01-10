@@ -9,17 +9,16 @@ export interface Dim {
     h: number
 }
 
-export interface Icon {
+export interface Ico {
     x: number
     y: number
     id: string
-    link?: string;
-    image?: string;
 }
 
-export interface Window {
+export interface WindowData {
     id: number;
     title: string;
+    link: string;
     content: React.ReactNode;
     initialWidth: number;
     initialHeight: number;
@@ -27,16 +26,18 @@ export interface Window {
 
 export interface LinkApp {
     id: string;
-    name?: string;
-    image?: string;
+    title?: string;
     link?: string;
+    image?: string;
+    width?: number;
+    height?: number;
     children?: LinkApp[]
 }
 
 export interface DesktopActions {
-    openLink(link: string): void
+    openLink(link: LinkApp): void
     toggleStartMenu(): void
     hideStartMenu(): void
-    openNewWindow(link: string, width?: number, height?: number): void
+    openNewWindow(link: LinkApp): void
     restoreDefaultIcons(): void
 }

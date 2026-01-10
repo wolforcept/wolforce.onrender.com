@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import Data from "./../Data";
-import type { Icon, Pos, Window, DesktopActions } from "./Interfaces";
+import type { Pos, WindowData, DesktopActions, LinkApp, Ico } from "./Interfaces";
 import DesktopIcon from "./DesktopIcon";
 import DesktopWindow from "./DesktopWindow";
 import Taskbar from "./Taskbar";
+import { Util } from "../utils/Util";
 
 const styles: { [key: string]: CSSProperties } = {
     desktop: {
@@ -12,27 +13,36 @@ const styles: { [key: string]: CSSProperties } = {
     }
 }
 
-const defaultIcons: Icon[] = [
-    {
-        x: 1 * 64,
-        y: 2 * 64,
-        id: "hearthwell",
-        link: "/games/hearthwell",
-        image: "/images/mods/hearthwell/hearthwell64.png"
-    },
-    {
-        x: 3 * 64,
-        y: 4 * 64,
-        id: "wordaria",
-        link: "/games/wordaria",
-        image: "/images/mobile/wordaria/wordaria64.png"
-    },
-];
+export default function Desktop() {
 
-interface DesktopProps {
-}
+    const [linkApps, internalSetLinkApps] = useState<LinkApp[]>([]);
+    const [flattenedLinkApps, setFlattenedLinkApps] = useState<LinkApp[]>([]);
 
-export default function Desktop({ }: DesktopProps) {
+    const setLinkApps = (linkApps: LinkApp[]) => {
+        setFlattenedLinkApps(Util.flattenMenuItems(linkApps));
+        internalSetLinkApps(linkApps);
+    }
+
+    useEffect(() => {
+        Data.fetchExternalItems().then(linkApps => {
+            setLinkApps(linkApps);
+
+            const storedIcons = Data.loadLocal<Ico[]>("desktop_icons")
+            if (storedIcons) setIcons(storedIcons)
+            else setIcons(defaultIcons(linkApps));
+        })
+    }, [])
+
+    const defaultIcons = (linkApps: LinkApp[]) => {
+
+        const flattenedLinkApps = Util.flattenMenuItems(linkApps);
+
+        return [
+            { x: 1 * 64, y: 2 * 64, id: "hearthwell" },
+            { x: 3 * 64, y: 4 * 64, id: "wordaria" },
+            { x: 6 * 64, y: 4 * 64, id: "images" },
+        ]
+    };
 
     const afterRenderQueue = useRef<(() => void)[]>([]);
 
@@ -46,13 +56,19 @@ export default function Desktop({ }: DesktopProps) {
     }
 
     //#region WINDOW DATA
-    const [windows, setWindows] = useState<Window[]>([]);
+    const [windows, setWindows] = useState<WindowData[]>([]);
+    const [focusedWindow, setFocusedWindow] = useState<number | null>(null);
 
-    const openNewWindow = (link: string, width?: number, height?: number) => {
+    const openNewWindow = (linkApp: LinkApp) => {
+
+        const { link, width, height, title } = linkApp;
+
+        if (!link) return;
+
         const id = Date.now();
         const iframe = (
             <iframe
-                src={link}
+                src={linkApp.link}
                 style={{ width: "100%", height: "100%" }}
                 onLoad={() => console.log("loaded")}
             >
@@ -63,16 +79,21 @@ export default function Desktop({ }: DesktopProps) {
             ...prev,
             {
                 id,
-                title: "New Window",
+                link,
+                title: title ?? "New Window",
                 content: iframe,
                 initialWidth: width || 500,
                 initialHeight: height || 500,
             }
         ]);
 
-        runAfterNextRender(() => {
-            windows[id]
-        });
+        // runAfterNextRender(() => {
+        // windows[id]
+        // console.log("test")
+
+        // });
+
+        setFocusedWindow(id);
 
     };
 
@@ -83,9 +104,9 @@ export default function Desktop({ }: DesktopProps) {
 
     //#region ICON DATA
 
-    const [icons, setInternalIcons] = useState<Icon[]>([])
+    const [icons, setInternalIcons] = useState<Ico[]>([])
 
-    const setIcons = (icons: Icon[]) => {
+    const setIcons = (icons: Ico[]) => {
         setInternalIcons(icons)
         Data.saveLocal("desktop_icons", icons)
     }
@@ -97,21 +118,31 @@ export default function Desktop({ }: DesktopProps) {
         setIcons(newIcons)
     }
 
-    useEffect(() => {
-        const storedIcons = Data.loadLocal<Icon[]>("desktop_icons")
-        if (storedIcons)
-            setIcons(storedIcons)
-        else
-            setIcons(defaultIcons)
-    }, []);
+    const openIco = (linkApp: LinkApp) => {
+
+    }
+
+    const getIcoImg = (ico: Ico) => {
+        const linkApp = flattenedLinkApps.find(x => x.title?.toLowerCase() === ico.id);
+        if (linkApp && linkApp.image) return linkApp.image;
+        return "./images/transparent.png"
+    }
 
     //#endregion
 
     //#region START MENU DATA
-    const [isStartMenuVisible, setIsStartMenuVisible] = useState(false);
+    const [isStartMenuVisible, _setIsStartMenuVisible] = useState(false);
+    const setIsStartMenuVisible = (b: boolean) => {
+        if (b) setFocusedWindow(null);
+        _setIsStartMenuVisible(b);
+    }
     //#endregion
 
-    const openLink = (link: string) => {
+    const openLink = (linkApp: LinkApp) => {
+        const { link } = linkApp;
+
+        if (!link) return;
+
         if (link.startsWith("desktopAction://")) {
             const actionName = link.substring(16).split(":")[0];
             const actionArgs = link.substring(16).split(":")[1].split(",");
@@ -119,7 +150,7 @@ export default function Desktop({ }: DesktopProps) {
         } else if (link.startsWith("external://")) {
             window.open(link.substring(11), "_blank", "noreferrer");
         } else {
-            openNewWindow(link)
+            openNewWindow(linkApp)
         }
     }
 
@@ -127,20 +158,23 @@ export default function Desktop({ }: DesktopProps) {
         openNewWindow,
         hideStartMenu: () => setIsStartMenuVisible(false),
         toggleStartMenu: () => setIsStartMenuVisible(!isStartMenuVisible),
-        restoreDefaultIcons: () => setIcons([...defaultIcons]),
+        restoreDefaultIcons: () => setIcons([...defaultIcons(linkApps)]),
         openLink
     }
 
     return (
         <div style={styles.desktop}>
 
-            {icons.map((icon, index) => (
+            <Taskbar linkApps={linkApps} desktopActions={desktopActions} isStartMenuVisible={isStartMenuVisible} openedWindows={windows} />
+
+            {icons.map((ico, index) => (
                 <DesktopIcon
                     key={index}
                     getPosition={() => icons[index]}
                     setPosition={(pos) => setIconPosition(index, pos)}
-                    doAction={() => icon.link && openLink(icon.link)}
-                    icon={icon.image}
+                    doAction={openIco}
+                    ico={ico}
+                    image={getIcoImg(ico)}
                     getOthers={() =>
                         icons.filter(x => x !== null).filter((_, i) => i !== index)
                     }
@@ -149,18 +183,17 @@ export default function Desktop({ }: DesktopProps) {
 
             {windows.map(win => (
                 <DesktopWindow
-                    title={win.title}
                     key={win.id}
-                    initialWidth={win.initialWidth}
-                    initialHeight={win.initialHeight}
-                    onClose={() => removeWindow(win.id)}
+                    win={win}
                     id={win.id}
+                    onClose={() => removeWindow(win.id)}
+                    isFocused={focusedWindow === win.id}
+                    setFocused={(id) => setFocusedWindow(id)}
                 >
                     {win.content}
                 </DesktopWindow>
             ))}
 
-            <Taskbar desktopActions={desktopActions} isStartMenuVisible={isStartMenuVisible} openedWindows={windows} />
         </div>
     );
 

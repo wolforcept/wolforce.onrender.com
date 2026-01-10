@@ -1,0 +1,84 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Image Gallery</title>
+        <style>
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .grid img {
+                width: 100%;
+                height: auto;
+                object-fit: cover;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+                transition: transform 0.2s ease;
+            }
+
+            .grid img:hover {
+                transform: scale(1.05);
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>Image Gallery</h1>
+        <div class="grid"></div>
+        <script async defer>
+            function renderImageGrid(containerId, images) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+
+                // Add grid styles
+                container.style.display = "grid";
+                container.style.gridTemplateColumns =
+                    "repeat(auto-fill, minmax(150px, 1fr))";
+                container.style.gap = "1rem";
+                container.style.padding = "1rem";
+
+                images.forEach((src) => {
+                    const img = document.createElement("img");
+                    img.src = src;
+                    img.alt = "Gallery image";
+                    img.style.width = "100%";
+                    img.style.height = "auto";
+                    img.style.objectFit = "cover";
+                    img.style.borderRadius = "8px";
+                    img.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
+                    img.style.transition = "transform 0.2s ease";
+                    img.addEventListener(
+                        "mouseenter",
+                        () => (img.style.transform = "scale(1.05)"),
+                    );
+                    img.addEventListener(
+                        "mouseleave",
+                        () => (img.style.transform = "scale(1)"),
+                    );
+                    container.appendChild(img);
+                });
+            }
+
+            async function loadImageList() {
+                try {
+                    const response = await fetch("images.json");
+                    if (!response.ok)
+                        throw new Error(
+                            `Failed to fetch: ${response.status} ${response.statusText}`,
+                        );
+                    return await response.json();
+                } catch (error) {
+                    console.error("Error fetching external items:", error);
+                    return [];
+                }
+            }
+
+            loadImageList()
+                .then((images) => renderImageGrid("grid", images))
+                .catch((e) => console.log(e));
+        </script>
+    </body>
+</html>
