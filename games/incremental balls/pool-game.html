@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Drift Pool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      width:100%; height:100%;
+      overflow:hidden;
+      touch-action:none;
+      background:#1a1228;
+      font-family: system-ui, sans-serif;
+      user-select:none; -webkit-user-select:none;
+    }
+    #game-container { position:fixed; inset:0; }
+    #game-container canvas { display:block; position:absolute; top:0; left:0; touch-action:none; }
+
+    /* ── Top buttons ── */
+    .top-btn {
+      position:fixed; top:14px; z-index:30;
+      background:rgba(255,255,255,0.10);
+      border:1px solid rgba(255,255,255,0.22);
+      color:rgba(255,255,255,0.75);
+      font-size:12px; letter-spacing:0.08em;
+      padding:7px 14px; border-radius:20px;
+      cursor:pointer; backdrop-filter:blur(6px);
+      transition:background 0.2s, color 0.2s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .top-btn:active { background:rgba(255,255,255,0.2); }
+    .top-btn.active {
+      background:rgba(200,160,255,0.22);
+      border-color:rgba(200,160,255,0.55);
+      color:rgba(230,210,255,0.95);
+    }
+    #btn-settings { left:14px; }
+    #btn-edit     { right:14px; }
+
+    /* ── Settings modal ── */
+    #modal-backdrop {
+      position:fixed; inset:0; z-index:50;
+      background:rgba(8,4,18,0.72);
+      backdrop-filter:blur(8px);
+      display:none; align-items:center; justify-content:center;
+    }
+    #modal-backdrop.visible { display:flex; }
+    #settings-modal {
+      background:rgba(22,12,42,0.97);
+      border:1px solid rgba(200,160,255,0.25);
+      border-radius:20px;
+      padding:24px 24px 20px;
+      width:min(92vw, 420px);
+      max-height:88vh;
+      overflow-y:auto;
+      display:flex; flex-direction:column; gap:18px;
+      box-shadow:0 0 60px rgba(140,80,255,0.18);
+    }
+    .modal-title {
+      color:rgba(230,210,255,0.9);
+      font-size:15px; font-weight:600; letter-spacing:0.1em;
+      text-transform:uppercase; text-align:center;
+    }
+    .modal-close {
+      position:absolute; top:14px; right:18px;
+      background:none; border:none;
+      color:rgba(255,255,255,0.4); font-size:20px;
+      cursor:pointer; line-height:1;
+      -webkit-tap-highlight-color:transparent;
+    }
+    #settings-modal { position:relative; }
+    .s-section {
+      display:flex; flex-direction:column; gap:10px;
+    }
+    .s-label {
+      color:rgba(200,180,240,0.55);
+      font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    }
+    .s-row {
+      display:flex; align-items:center; gap:10px;
+    }
+    .s-row-label {
+      color:rgba(220,205,255,0.75);
+      font-size:12px; min-width:110px;
+    }
+    .s-val {
+      color:rgba(230,215,255,0.9);
+      font-size:12px; min-width:36px; text-align:right;
+    }
+    input[type=range] {
+      flex:1; accent-color:#c084fc;
+      height:4px; cursor:pointer;
+    }
+    /* Toggle */
+    .s-toggle {
+      display:flex; align-items:center; gap:10px; cursor:pointer;
+    }
+    .toggle-track {
+      width:40px; height:22px; border-radius:11px;
+      background:rgba(255,255,255,0.12);
+      border:1px solid rgba(255,255,255,0.18);
+      position:relative; transition:background 0.2s;
+      flex-shrink:0; cursor:pointer;
+    }
+    .toggle-track.on { background:rgba(180,120,255,0.55); border-color:rgba(200,150,255,0.5); }
+    .toggle-thumb {
+      width:16px; height:16px; border-radius:50%;
+      background:rgba(255,255,255,0.85);
+      position:absolute; top:2px; left:2px;
+      transition:transform 0.2s;
+    }
+    .toggle-track.on .toggle-thumb { transform:translateX(18px); }
+    .toggle-label { color:rgba(220,205,255,0.75); font-size:12px; }
+    /* Reset button */
+    .reset-btn {
+      align-self:center;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.15);
+      color:rgba(200,180,240,0.6);
+      font-size:11px; letter-spacing:0.08em;
+      padding:6px 16px; border-radius:12px;
+      cursor:pointer; margin-top:4px;
+    }
+    .reset-btn:active { background:rgba(255,255,255,0.14); }
+    /* Divider */
+    .s-divider { border:none; border-top:1px solid rgba(255,255,255,0.07); margin:2px 0; }
+
+    /* ── Shelf action bar ── */
+    #shelf-actions {
+      position:fixed; bottom:0; left:0; right:0; z-index:20;
+      display:none; justify-content:center; align-items:center;
+      gap:8px; padding:10px 12px 18px; flex-wrap:wrap;
+      background:linear-gradient(to top, rgba(15,8,30,0.95) 65%, transparent);
+      pointer-events:none;
+    }
+    #shelf-actions.visible { display:flex; pointer-events:auto; }
+    .sa-btn {
+      background:rgba(255,255,255,0.10);
+      border:1px solid rgba(255,255,255,0.18);
+      color:rgba(255,255,255,0.82);
+      font-size:13px; border-radius:10px;
+      padding:8px 14px; cursor:pointer;
+      backdrop-filter:blur(4px);
+      transition:background 0.15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .sa-btn:active { background:rgba(255,255,255,0.22); }
+    .sa-btn.danger { border-color:rgba(255,120,120,0.35); color:rgba(255,160,160,0.9); }
+    .sa-btn.accent { border-color:rgba(180,140,255,0.45); color:rgba(210,190,255,0.9); }
+
+    /* ── Ball row (canvas-drawn; this div is just a hit-test spacer) ── */
+    #ball-row-spacer {
+      position:fixed; bottom:0; left:0; right:0;
+      height:52px; z-index:14; pointer-events:none;
+    }
+
+    /* ── Edit shop bar (top, shown in edit mode) ── */
+    #edit-shop {
+      position:fixed; top:10px; left:50%; transform:translateX(-50%);
+      z-index:30;
+      display:none; align-items:center; justify-content:center;
+      gap:10px; padding:8px 16px; flex-wrap:wrap;
+      background:rgba(14,8,28,0.82);
+      border:1px solid rgba(255,200,50,0.25);
+      border-radius:22px;
+      backdrop-filter:blur(8px);
+      pointer-events:none;
+      white-space:nowrap;
+    }
+    #edit-shop.visible { display:flex; pointer-events:auto; }
+    .shop-card {
+      display:flex; flex-direction:row; align-items:center; gap:6px;
+      background:rgba(255,200,50,0.10);
+      border:1px solid rgba(255,200,50,0.35);
+      border-radius:12px; padding:5px 12px;
+      cursor:pointer;
+      transition:background 0.15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .shop-card:active { background:rgba(255,200,50,0.22); }
+    .shop-card:disabled, .shop-card.disabled { opacity:0.38; cursor:default; pointer-events:none; }
+    .shop-card-name {
+      color:rgba(255,220,80,0.95);
+      font-size:12px; font-weight:600; letter-spacing:0.05em;
+    }
+    .shop-card-cost {
+      color:rgba(255,200,50,0.7);
+      font-size:10px; letter-spacing:0.05em;
+    }
+
+    /* ── Top info bar ── */
+    #top-bar {
+      position:fixed; top:10px; left:50%; transform:translateX(-50%);
+      z-index:30;
+      display:flex; align-items:center; gap:10px;
+      background:rgba(14,8,28,0.72);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:22px; padding:6px 14px;
+      backdrop-filter:blur(8px);
+      white-space:nowrap;
+      pointer-events:auto;
+    }
+    #money-display {
+      color:rgba(250,230,100,0.95);
+      font-size:13px; font-weight:600; letter-spacing:0.04em;
+      min-width:54px;
+    }
+    .top-bar-sep {
+      width:1px; height:16px;
+      background:rgba(255,255,255,0.12);
+    }
+    .buy-btn {
+      background:rgba(180,120,255,0.18);
+      border:1px solid rgba(180,120,255,0.4);
+      color:rgba(220,200,255,0.9);
+      font-size:11px; font-weight:500; letter-spacing:0.05em;
+      padding:4px 10px; border-radius:12px;
+      cursor:pointer;
+      transition:background 0.15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .buy-btn:active { background:rgba(180,120,255,0.38); }
+    .buy-btn:disabled { opacity:0.35; cursor:default; }
+  </style>
+</head>
+<body>
+<div id="game-container"></div>
+
+<button class="top-btn" id="btn-settings">⚙</button>
+<button class="top-btn" id="btn-edit">✦</button>
+
+<!-- Settings modal -->
+<div id="modal-backdrop">
+  <div id="settings-modal">
+    <button class="modal-close" id="btn-modal-close">✕</button>
+    <div class="modal-title">Settings</div>
+
+    <div class="s-section">
+      <div class="s-label">Physics</div>
+      <div class="s-row">
+        <span class="s-row-label">Gravity down</span>
+        <input type="range" id="sl-gravity-y" min="0.01" max="0.40" step="0.01">
+        <span class="s-val" id="val-gravity-y"></span>
+      </div>
+      <div class="s-row">
+        <span class="s-row-label">Gravity sideways</span>
+        <input type="range" id="sl-gravity-x" min="-0.010" max="0.010" step="0.0005">
+        <span class="s-val" id="val-gravity-x"></span>
+      </div>
+      <div class="s-row">
+        <span class="s-row-label">Air friction</span>
+        <input type="range" id="sl-air" min="0.001" max="0.04" step="0.001">
+        <span class="s-val" id="val-air"></span>
+      </div>
+      <div class="s-row">
+        <span class="s-row-label">Bounciness</span>
+        <input type="range" id="sl-restitution" min="0.1" max="0.95" step="0.05">
+        <span class="s-val" id="val-restitution"></span>
+      </div>
+      <div class="s-row">
+        <span class="s-row-label">Shot power</span>
+        <input type="range" id="sl-power" min="0.05" max="0.40" step="0.01">
+        <span class="s-val" id="val-power"></span>
+      </div>
+    </div>
+
+    <button class="reset-btn" id="btn-reset-settings">Reset to defaults</button>
+    <button class="reset-btn" id="btn-fullscreen" style="margin-top:0">⛶ Fullscreen</button>
+    <button class="reset-btn" id="btn-clear-data" style="margin-top:0; border-color:rgba(255,100,100,0.3); color:rgba(255,140,140,0.7);">🗑 Clear all saved data</button>
+  </div>
+</div>
+
+<!-- Top info bar (hidden in edit mode) -->
+<div id="top-bar">
+  <span id="money-display">$100</span>
+  <div class="top-bar-sep"></div>
+  <button class="buy-btn" id="btn-buy-basic">+ Basic $1</button>
+</div>
+
+<!-- Edit mode platform shop (shown instead of top-bar in edit mode) -->
+<div id="edit-shop">
+  <span id="edit-money-display" style="color:rgba(250,230,100,0.95);font-size:13px;font-weight:600;letter-spacing:0.04em;min-width:54px;">$0</span>
+  <div class="top-bar-sep"></div>
+  <button class="shop-card" id="btn-buy-bumper">
+    <span class="shop-card-name">◉ Bumper</span>
+    <span class="shop-card-cost">$100</span>
+  </button>
+  <button class="shop-card" id="btn-buy-shelf">
+    <span class="shop-card-name">▬ Shelf</span>
+    <span class="shop-card-cost">$10</span>
+  </button>
+</div>
+
+<!-- Shelf rotate actions (edit mode, shown when shelf selected) -->
+<div id="shelf-actions">
+  <button class="sa-btn" id="sa-rot-left">↺</button>
+  <button class="sa-btn" id="sa-rot-right">↻</button>
+</div>
+
+<!-- Ball row spacer (actual balls drawn on canvas) -->
+<div id="ball-row-spacer"></div>
+
+<script>
+'use strict';
+const { Engine, Bodies, Body, World, Events } = Matter;
+
+// ── Storage keys ──────────────────────────────────────────────────────────────
+const LS_SHELVES   = 'driftpool_shelves_v3';  // bumped — new platform system
+const LS_SETTINGS  = 'driftpool_settings_v2';
+const LS_INVENTORY = 'driftpool_inventory_v1';
+const LS_MONEY     = 'driftpool_money_v1';
+const LS_MAX_BALLS = 'driftpool_maxballs_v1';
+
+// ── Ball type registry ────────────────────────────────────────────────────────
+const BALL_TYPES = {
+  basic: { label: 'Basic', cost: 1, paletteIdx: 0 },
+};
+function getBallPalette(type) {
+  const def = BALL_TYPES[type];
+  return ALL_PALETTES[def ? def.paletteIdx : 0];
+}
+
+// ── Platform type registry ────────────────────────────────────────────────────
+// Each entry: { label, cost, restitution, friction }
+// 'bumper'  — static circle, very high restitution, earns $10 per ball hit
+// 'basic'   — static rectangle shelf, moderate restitution
+const PLATFORM_TYPES = {
+  bumper: {
+    label:       'Bumper',
+    cost:        100,
+    restitution: 0.98,
+    friction:    0.0,
+  },
+  basic: {
+    label:       'Shelf',
+    cost:        10,
+    width:       0.18,        // fraction of W
+    restitution: 0.65,
+    friction:    0.35,
+  },
+};
+
+// ── Default settings ──────────────────────────────────────────────────────────
+const DEFAULT_SETTINGS = {
+  gravityY:     0.10,
+  gravityX:     0.0003,
+  airFriction:  0.008,
+  restitution:  0.55,
+  powerMult:    0.16,
+};
+
+// ── Default shelf layout ──────────────────────────────────────────────────────
+// No default platforms — players buy them in edit mode.
+const DEFAULT_SHELVES = [
+  { fx:0.35, fy:0.65, fw:0.20, a:-3, platformType:'basic'  },
+  { fx:0.65, fy:0.45, fw:0.08, a: 0, platformType:'bumper' },
+];
+
+// ── 8 player palettes ─────────────────────────────────────────────────────────
+const ALL_PALETTES = [
+  ['#fda4c4','#f472b6','#e879f9'], // 1 pink→fuchsia
+  ['#93d9fc','#38bdf8','#6366f1'], // 2 sky→indigo
+  ['#86efac','#34d399','#06b6d4'], // 3 green→teal
+  ['#fde68a','#fbbf24','#f97316'], // 4 amber→orange
+  ['#c4b5fd','#a78bfa','#7c3aed'], // 5 lavender→violet
+  ['#fca5a5','#f87171','#e11d48'], // 6 red→rose
+  ['#5eead4','#2dd4bf','#0891b2'], // 7 teal→cyan
+  ['#fcd34d','#a3e635','#4ade80'], // 8 yellow→lime
+];
+
+// ── Physics constants ─────────────────────────────────────────────────────────
+const ROT_STEP   = 3;    // degrees
+const WIDTH_STEP = 0.02; // fraction of W
+const MIN_FW     = 0.07;
+const MAX_FW     = 0.38;
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function hexA(hex, a) {
+  hex = hex.replace('#','');
+  return `rgba(${parseInt(hex.slice(0,2),16)},${parseInt(hex.slice(2,4),16)},${parseInt(hex.slice(4,6),16)},${a})`;
+}
+function fin(v, fb=0) { return (isFinite(v) && !isNaN(v)) ? v : fb; }
+
+// ── Persistence ───────────────────────────────────────────────────────────────
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(LS_SETTINGS);
+    if (raw) return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(raw));
+  } catch(e) {}
+  return Object.assign({}, DEFAULT_SETTINGS);
+}
+function saveSettings(s) {
+  try { localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); } catch(e) {}
+}
+function loadShelfDefs() {
+  try {
+    const raw = localStorage.getItem(LS_SHELVES);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch(e) {}
+  return DEFAULT_SHELVES.map(d => ({...d}));
+}
+function saveShelfDefs(defs) {
+  try { localStorage.setItem(LS_SHELVES, JSON.stringify(defs)); } catch(e) {}
+}
+function loadInventory() {
+  try {
+    const raw = localStorage.getItem(LS_INVENTORY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch(e) {}
+  // Default starting inventory: no balls
+  return [];
+}
+function saveInventory(inv) {
+  try { localStorage.setItem(LS_INVENTORY, JSON.stringify(inv)); } catch(e) {}
+}
+function loadMoney() {
+  try {
+    const raw = localStorage.getItem(LS_MONEY);
+    if (raw !== null) return parseInt(raw, 10) || 0;
+  } catch(e) {}
+  return 50; // starting money
+}
+function saveMoney(m) {
+  try { localStorage.setItem(LS_MONEY, String(m)); } catch(e) {}
+}
+function loadMaxBalls() {
+  try {
+    const raw = localStorage.getItem(LS_MAX_BALLS);
+    if (raw !== null) return parseInt(raw, 10) || 5;
+  } catch(e) {}
+  return 5;
+}
+function saveMaxBalls(n) {
+  try { localStorage.setItem(LS_MAX_BALLS, String(n)); } catch(e) {}
+}
+
+// ── p5 sketch ─────────────────────────────────────────────────────────────────
+new p5(function(p) {
+
+  // Live settings object
+  let cfg = loadSettings();
+
+  // Dimensions
+  let W, H, FLOOR_Y, LAUNCH_H, BR;
+
+  // Physics
+  let engine, world;
+
+  // Game objects
+  let balls   = [];  // {body, palette}  — in-flight physics balls
+  let shelves = [];  // {body, fw(px), def{fx,fy,fw,a}}
+
+  // ── Incremental game state ────────────────────────────────────────────────────
+  // inventory: array of BallDef objects { type: string }
+  // The first element is the next ball to be thrown.
+  let inventory = loadInventory();
+  let money     = loadMoney();
+  let maxBalls  = loadMaxBalls();
+
+  // ── 3D gun state ─────────────────────────────────────────────────────────────
+  let _gunRenderer = null; // THREE.WebGLRenderer  (offscreen, never in DOM)
+  let _gunScene    = null; // THREE.Scene
+  let _gunCamera   = null; // THREE.OrthographicCamera
+  let _gunModel    = null; // loaded gltf.scene
+  let _gunReady    = false; // true once GLB loaded OK
+  let _gunFailed   = false; // true once load has definitively failed (skip retries)
+
+  // Visuals
+  let bgGfx;
+
+  // Aiming
+  let aiming = false;
+  let startX=0, startY=0, curX=0, curY=0;
+
+  // Edit mode
+  let editMode      = false;
+  let selectedShelf = null;
+  let dragShelf     = null;
+
+  // Modal pause
+  let paused = false;
+
+  // ── DOM refs ────────────────────────────────────────────────────────────────
+  const btnSettings   = document.getElementById('btn-settings');
+  const btnEdit       = document.getElementById('btn-edit');
+  const modalBackdrop = document.getElementById('modal-backdrop');
+  const btnModalClose = document.getElementById('btn-modal-close');
+  const shelfActions  = document.getElementById('shelf-actions');
+  const topBar        = document.getElementById('top-bar');
+  const editShop      = document.getElementById('edit-shop');
+  const moneyDisplay  = document.getElementById('money-display');
+
+  // ── Setup ───────────────────────────────────────────────────────────────────
+  p.setup = function() {
+    const cnv = p.createCanvas(window.innerWidth, window.innerHeight);
+    cnv.parent('game-container');
+    cnv.elt.addEventListener('contextmenu', e => e.preventDefault());
+    cnv.elt.addEventListener('touchstart',  e => { e.preventDefault(); onTouchStart(e);   }, {passive:false});
+    cnv.elt.addEventListener('touchmove',   e => { e.preventDefault(); onTouchMove(e);    }, {passive:false});
+    cnv.elt.addEventListener('touchend',    e => { e.preventDefault(); onTouchEnd(e);     }, {passive:false});
+    cnv.elt.addEventListener('touchcancel', e => { e.preventDefault(); resetInteraction();}, {passive:false});
+
+    buildSettingsUI();
+    wireUI();
+    initAll();
+    initGun(); // non-blocking — falls back to procedural stick if GLB missing
+  };
+
+  p.windowResized = function() {
+    p.resizeCanvas(window.innerWidth, window.innerHeight);
+    rebuildAfterResize();
+  };
+
+  // ── Init / rebuild ───────────────────────────────────────────────────────────
+  function initAll() {
+    W = p.width; H = p.height;
+    LAUNCH_H = Math.round(H * 0.25);
+    FLOOR_Y  = H - LAUNCH_H;
+    BR = Math.round(p.constrain(W * 0.027, 10, 18));
+
+    resetInteraction();
+
+    if (engine) { World.clear(world); Engine.clear(engine); }
+    balls = []; shelves = [];
+
+    engine = Engine.create();
+    engine.gravity.x = cfg.gravityX;
+    engine.gravity.y = cfg.gravityY;
+    world  = engine.world;
+
+    Events.on(engine, 'afterUpdate', handleFallOff);
+    Events.on(engine, 'collisionStart', handleBumperCollision);
+
+    const wo = {isStatic:true, friction:0.1, restitution:0.45};
+    World.add(world, [
+      Bodies.rectangle(-25,   H/2,   50,  H*2, wo), // left
+      Bodies.rectangle(W+25,  H/2,   50,  H*2, wo), // right
+      Bodies.rectangle(W/2,  -25,   W*2,   50, wo), // top
+    ]);
+
+    const defs = loadShelfDefs();
+    for (const d of defs) spawnShelf(d);
+
+    buildBg();
+    updateMoneyDisplay();
+    updateBallRow();
+  }
+
+  function rebuildAfterResize() {
+    const defs = shelves.map(s => s.def);
+    saveShelfDefs(defs);
+
+    W = p.width; H = p.height;
+    LAUNCH_H = Math.round(H * 0.25);
+    FLOOR_Y  = H - LAUNCH_H;
+    BR = Math.round(p.constrain(W * 0.027, 10, 18));
+    resetInteraction();
+
+    World.clear(world); Engine.clear(engine);
+    balls = []; shelves = [];
+
+    engine = Engine.create();
+    engine.gravity.x = cfg.gravityX;
+    engine.gravity.y = cfg.gravityY;
+    world  = engine.world;
+    Events.on(engine, 'afterUpdate', handleFallOff);
+    Events.on(engine, 'collisionStart', handleBumperCollision);
+
+    const wo = {isStatic:true, friction:0.1, restitution:0.45};
+    World.add(world, [
+      Bodies.rectangle(-25,   H/2,   50,  H*2, wo), // left
+      Bodies.rectangle(W+25,  H/2,   50,  H*2, wo), // right
+      Bodies.rectangle(W/2,  -25,   W*2,   50, wo), // top
+    ]);
+    for (const d of defs) spawnShelf(d);
+    buildBg();
+  }
+
+  function spawnShelf(def) {
+    const sx = def.fx * W, sy = def.fy * H;
+    const pt = def.platformType || 'basic';
+    let body, fw;
+
+    if (pt === 'bumper') {
+      const pd = PLATFORM_TYPES.bumper;
+      const radius = BR; // exactly the same size as thrown balls
+      fw = radius * 2;
+      body = Bodies.circle(sx, sy, radius, {
+        isStatic: true, friction: pd.friction, restitution: pd.restitution,
+        label: 'bumper',
+      });
+    } else {
+      // 'basic' (and any future rect types)
+      const pd = PLATFORM_TYPES[pt] || PLATFORM_TYPES.basic;
+      fw = (def.fw || pd.width) * W;
+      body = Bodies.rectangle(sx, sy, fw, 10, {
+        isStatic: true, friction: pd.friction, restitution: pd.restitution,
+        label: pt,
+      });
+      Body.setAngle(body, (def.a || 0) * Math.PI / 180);
+    }
+
+    World.add(world, body);
+    shelves.push({
+      body,
+      fw,
+      platformType: pt,
+      def: { ...def, fw: fw / W, platformType: pt },
+    });
+  }
+
+  function syncDef(idx) {
+    const s = shelves[idx];
+    s.def.fx = s.body.position.x / W;
+    s.def.fy = s.body.position.y / H;
+    s.def.fw = s.fw / W;
+    s.def.a  = s.body.angle * 180 / Math.PI;
+    s.def.platformType = s.platformType;
+    saveAllDefs();
+  }
+  function saveAllDefs() { saveShelfDefs(shelves.map(s => s.def)); }
+
+  // ── Background ──────────────────────────────────────────────────────────────
+  function buildBg() {
+    if (bgGfx) bgGfx.remove();
+    bgGfx = p.createGraphics(W, H);
+    for (let y=0; y<H; y++) {
+      const t=y/H;
+      bgGfx.stroke(p.lerp(20,38,t), p.lerp(14,22,t), p.lerp(40,58,t));
+      bgGfx.line(0,y,W,y);
+    }
+    bgGfx.noStroke();
+    const cr=Math.min(W,H)*0.55;
+    for (let r=cr; r>0; r-=5) {
+      bgGfx.fill(110,70,175, p.map(r,0,cr,14,0));
+      bgGfx.ellipse(W/2, H*0.42, r*2, r*1.5);
+    }
+    for (let y=FLOOR_Y; y<H; y++) {
+      const t=(y-FLOOR_Y)/LAUNCH_H;
+      bgGfx.stroke(65,30,120, p.lerp(0,90,t));
+      bgGfx.line(0,y,W,y);
+    }
+  }
+
+  // ── Physics ──────────────────────────────────────────────────────────────────
+  const DEAD_BALL_FRAMES = 180; // ~3 s at 60 fps
+  const DEAD_BALL_SPEED  = 0.5; // px/frame threshold
+
+  function handleFallOff() {
+    for (let i = balls.length - 1; i >= 0; i--) {
+      const b   = balls[i];
+      const pos = b.body.position;
+
+      // Remove if fallen off the bottom
+      if (pos.y > H + 80) {
+        World.remove(world, b.body);
+        balls.splice(i, 1);
+        continue;
+      }
+
+      // Remove if motionless for too long (stuck / settled)
+      const spd = Math.hypot(b.body.velocity.x, b.body.velocity.y);
+      if (spd < DEAD_BALL_SPEED) {
+        b.stillFrames = (b.stillFrames || 0) + 1;
+        if (b.stillFrames >= DEAD_BALL_FRAMES) {
+          World.remove(world, b.body);
+          balls.splice(i, 1);
+        }
+      } else {
+        b.stillFrames = 0;
+      }
+    }
+  }
+
+  // ── Inventory UI ─────────────────────────────────────────────────────────────
+  function updateMoneyDisplay() {
+    const txt = '$' + money;
+    moneyDisplay.textContent = txt;
+    const editMoney = document.getElementById('edit-money-display');
+    if (editMoney) editMoney.textContent = txt;
+
+    const full       = inventory.length >= maxBalls;
+    const buyBallBtn = document.getElementById('btn-buy-basic');
+    if (buyBallBtn) {
+      buyBallBtn.textContent = `+ Basic $1 (${inventory.length}/${maxBalls})`;
+      buyBallBtn.disabled = money < BALL_TYPES.basic.cost || full;
+    }
+    const buyBumperBtn = document.getElementById('btn-buy-bumper');
+    const buyShelfBtn  = document.getElementById('btn-buy-shelf');
+    if (buyBumperBtn) buyBumperBtn.classList.toggle('disabled', money < PLATFORM_TYPES.bumper.cost);
+    if (buyShelfBtn)  buyShelfBtn.classList.toggle('disabled',  money < PLATFORM_TYPES.basic.cost);
+  }
+
+  // Ball row is drawn on canvas — this just triggers a redraw flag (no-op; draw is per-frame)
+  function updateBallRow() { /* drawn in p.draw via drawInventoryRow() */ }
+
+  // Buy a ball of the given type id
+  function buyBall(type) {
+    const def = BALL_TYPES[type];
+    if (!def || money < def.cost || inventory.length >= maxBalls) return;
+    money -= def.cost;
+    inventory.push({ type });
+    saveMoney(money);
+    saveInventory(inventory);
+    updateMoneyDisplay();
+  }
+
+  // Buy a platform and place it centred in the play area
+  function buyPlatform(type) {
+    const def = PLATFORM_TYPES[type];
+    if (!def || money < def.cost) return;
+    money -= def.cost;
+    saveMoney(money);
+    updateMoneyDisplay();
+    // fw in the def: for bumper use diameter=BR*2, for shelf use def.width
+    const fw = type === 'bumper' ? (BR * 2) / W : def.width;
+    spawnShelf({ fx: 0.5, fy: 0.5, fw, a: 0, platformType: type });
+    selectedShelf = shelves.length - 1;
+    saveAllDefs();
+  }
+
+  // ── Bumper collision ─────────────────────────────────────────────────────────
+  // Awards $10 every time a ball hits a bumper from any direction.
+  function handleBumperCollision(event) {
+    for (const pair of event.pairs) {
+      const { bodyA, bodyB } = pair;
+      const isBumper = bodyA.label === 'bumper' || bodyB.label === 'bumper';
+      const isBall   = bodyA.label !== 'bumper' && bodyB.label !== 'bumper'
+                     ? false : true;
+      if (!isBumper) continue;
+
+      money += 10;
+      saveMoney(money);
+      updateMoneyDisplay();
+    }
+  }
+
+  // ── Canvas: draw inventory ball row ──────────────────────────────────────────
+  function drawInventoryRow() {
+    if (editMode || inventory.length === 0) return;
+    const gc = p.drawingContext;
+    const r  = BR;                     // same radius as thrown balls
+    const gap = r * 2.6;
+    const totalW = inventory.length * gap - (gap - r * 2);
+    const maxW   = W - 40;
+    const visCount = Math.min(inventory.length, Math.floor(maxW / gap) || 1);
+    const startX = W / 2 - (Math.min(visCount, inventory.length) * gap - (gap - r * 2)) / 2 + r;
+    const cy = H - r - 14;
+
+    for (let i = 0; i < visCount; i++) {
+      const ball = inventory[i];
+      const pal  = getBallPalette(ball.type);
+      const cx   = startX + i * gap;
+      const isNext = (i === 0);
+      const alpha = isNext ? 1.0 : 0.5;
+      const drawR = isNext ? r * 1.22 : r;
+
+      // Outer glow for next ball
+      if (isNext) {
+        const gw = gc.createRadialGradient(cx, cy, 0, cx, cy, drawR * 2.4);
+        gw.addColorStop(0, hexA(pal[1], 0.22));
+        gw.addColorStop(1, 'rgba(0,0,0,0)');
+        gc.fillStyle = gw;
+        gc.beginPath(); gc.arc(cx, cy, drawR * 2.4, 0, Math.PI * 2); gc.fill();
+      }
+
+      // Ball body — same radial gradient as drawBall
+      const gr = gc.createRadialGradient(cx - drawR * .32, cy - drawR * .38, drawR * .04, cx, cy, drawR);
+      gr.addColorStop(0, pal[0]);
+      gr.addColorStop(0.55, pal[1]);
+      gr.addColorStop(1, pal[2]);
+      gc.globalAlpha = alpha;
+      gc.fillStyle = gr;
+      gc.beginPath(); gc.arc(cx, cy, drawR, 0, Math.PI * 2); gc.fill();
+
+      // Specular highlight
+      const sp = gc.createRadialGradient(cx - drawR*.3, cy - drawR*.4, 0, cx - drawR*.3, cy - drawR*.4, drawR*.48);
+      sp.addColorStop(0, 'rgba(255,255,255,0.78)');
+      sp.addColorStop(1, 'rgba(255,255,255,0)');
+      gc.fillStyle = sp;
+      gc.beginPath(); gc.arc(cx, cy, drawR, 0, Math.PI * 2); gc.fill();
+
+      gc.strokeStyle = 'rgba(255,255,255,0.12)'; gc.lineWidth = 0.7;
+      gc.beginPath(); gc.arc(cx, cy, drawR, 0, Math.PI * 2); gc.stroke();
+      gc.globalAlpha = 1;
+
+      // Pulse ring on next ball
+      if (isNext) {
+        const pulse = (Math.sin(p.frameCount * 0.065) + 1) / 2;
+        gc.strokeStyle = hexA(pal[1], 0.28 * (1 - pulse));
+        gc.lineWidth = 1.5;
+        gc.beginPath(); gc.arc(cx, cy, drawR + 4 + pulse * 6, 0, Math.PI * 2); gc.stroke();
+      }
+    }
+
+    // If there are more balls than visible, show count badge
+    if (inventory.length > visCount) {
+      const lastCx = startX + (visCount - 1) * gap;
+      gc.fillStyle = 'rgba(200,180,255,0.85)';
+      gc.font = 'bold 10px system-ui';
+      gc.textAlign = 'center';
+      gc.fillText('+' + (inventory.length - visCount), lastCx + r + 6, cy + 4);
+      gc.textAlign = 'left';
+    }
+  }
+
+  // ── Settings UI build ────────────────────────────────────────────────────────
+  function buildSettingsUI() {
+    setupSlider('sl-gravity-y', 'val-gravity-y', cfg.gravityY,     v => { cfg.gravityY = v; applyGravity(); });
+    setupSlider('sl-gravity-x', 'val-gravity-x', cfg.gravityX,     v => { cfg.gravityX = v; applyGravity(); });
+    setupSlider('sl-air',       'val-air',        cfg.airFriction,  v => { cfg.airFriction = v; });
+    setupSlider('sl-restitution','val-restitution',cfg.restitution, v => { cfg.restitution = v; });
+    setupSlider('sl-power',     'val-power',      cfg.powerMult,    v => { cfg.powerMult = v; });
+  }
+
+  function setupSlider(sliderId, valId, initVal, onChange) {
+    const sl  = document.getElementById(sliderId);
+    const val = document.getElementById(valId);
+    sl.value = initVal;
+    val.textContent = fmtVal(initVal);
+    sl.addEventListener('input', () => {
+      const v = parseFloat(sl.value);
+      val.textContent = fmtVal(v);
+      onChange(v);
+      saveSettings(cfg);
+    });
+  }
+
+  function fmtVal(v) {
+    if (Math.abs(v) < 0.01) return v.toFixed(4);
+    if (Math.abs(v) < 0.1)  return v.toFixed(3);
+    return v.toFixed(2);
+  }
+
+  function applyGravity() {
+    if (engine) { engine.gravity.x = cfg.gravityX; engine.gravity.y = cfg.gravityY; }
+  }
+
+  // ── UI wiring ────────────────────────────────────────────────────────────────
+  function wireUI() {
+    btnSettings.addEventListener('click', openModal);
+    btnModalClose.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop) closeModal(); });
+
+    btnEdit.addEventListener('click', toggleEditMode);
+
+    document.getElementById('sa-rot-left').addEventListener('click',  () => rotateSelected(-ROT_STEP));
+    document.getElementById('sa-rot-right').addEventListener('click', () => rotateSelected( ROT_STEP));
+
+    document.getElementById('btn-reset-settings').addEventListener('click', resetSettings);
+    document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+    document.getElementById('btn-clear-data').addEventListener('click', clearAllData);
+    document.getElementById('btn-buy-basic').addEventListener('click', () => buyBall('basic'));
+    document.getElementById('btn-buy-bumper').addEventListener('click', () => buyPlatform('bumper'));
+    document.getElementById('btn-buy-shelf').addEventListener('click',  () => buyPlatform('basic'));
+  }
+
+  function openModal() {
+    paused = true;
+    aiming = false;
+    buildSettingsUI();
+    modalBackdrop.classList.add('visible');
+  }
+  function closeModal() {
+    modalBackdrop.classList.remove('visible');
+    paused = false;
+  }
+
+  function toggleEditMode() {
+    editMode = !editMode;
+    btnEdit.classList.toggle('active', editMode);
+    selectedShelf = null;
+    dragShelf = null;
+    if (!editMode) shelfActions.classList.remove('visible');
+    resetInteraction();
+    // Swap top-bar for edit-shop
+    topBar.style.display   = editMode ? 'none' : '';
+    editShop.classList.toggle('visible', editMode);
+    updateMoneyDisplay();
+  }
+
+  function resetSettings() {
+    Object.assign(cfg, DEFAULT_SETTINGS);
+    saveSettings(cfg);
+    applyGravity();
+    buildSettingsUI();
+  }
+
+  function clearAllData() {
+    if (!confirm('Clear all saved data and restart? This cannot be undone.')) return;
+    try {
+      localStorage.removeItem(LS_SHELVES);
+      localStorage.removeItem(LS_SETTINGS);
+      localStorage.removeItem(LS_INVENTORY);
+      localStorage.removeItem(LS_MONEY);
+      localStorage.removeItem(LS_MAX_BALLS);
+    } catch(e) {}
+    location.reload();
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  // ── Shelf operations ─────────────────────────────────────────────────────────
+  function rotateSelected(deg) {
+    if (selectedShelf === null) return;
+    const s = shelves[selectedShelf];
+    // Bumpers are circles — rotation has no visual effect, skip
+    if (s.platformType === 'bumper') return;
+    Body.setAngle(s.body, s.body.angle + deg * Math.PI/180);
+    syncDef(selectedShelf);
+  }
+
+  function deleteSelected() {
+    if (selectedShelf === null) return;
+    World.remove(world, shelves[selectedShelf].body);
+    shelves.splice(selectedShelf, 1);
+    selectedShelf = null;
+    shelfActions.classList.remove('visible');
+    saveAllDefs();
+  }
+
+  // ── Input helpers ────────────────────────────────────────────────────────────
+  function resetInteraction() { aiming = false; dragShelf = null; }
+
+  function isOverUI(x, y) {
+    const cr = p.canvas.getBoundingClientRect();
+    function hits(el) {
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return x >= r.left-cr.left && x <= r.right-cr.left &&
+             y >= r.top-cr.top   && y <= r.bottom-cr.top;
+    }
+    const modalOpen = modalBackdrop.classList.contains('visible');
+    return hits(shelfActions) || hits(editShop) || hits(btnSettings) || hits(btnEdit) ||
+           (modalOpen && hits(modalBackdrop));
+  }
+
+  function getTouchPos(e) {
+    const rect = p.canvas.getBoundingClientRect();
+    const t = (e.changedTouches && e.changedTouches.length) ? e.changedTouches[0] : e.touches[0];
+    return { x: fin(t.clientX - rect.left, W/2), y: fin(t.clientY - rect.top, H/2) };
+  }
+
+  // ── Touch ────────────────────────────────────────────────────────────────────
+  function onTouchStart(e) {
+    const pos = getTouchPos(e);
+    if (editMode) editPressAt(pos.x, pos.y);
+    else          gamePressAt(pos.x, pos.y);
+  }
+  function onTouchMove(e) {
+    const pos = getTouchPos(e);
+    if (editMode) editMoveAt(pos.x, pos.y);
+    else if (aiming) { curX=pos.x; curY=pos.y; }
+  }
+  function onTouchEnd(e) {
+    const pos = getTouchPos(e);
+    if (editMode) editReleaseAt(pos.x, pos.y);
+    else { if (aiming) { curX=pos.x; curY=pos.y; } gameRelease(); }
+  }
+
+  // ── Mouse ────────────────────────────────────────────────────────────────────
+  p.mousePressed  = function() {
+    if (editMode) editPressAt(p.mouseX, p.mouseY);
+    else          gamePressAt(p.mouseX, p.mouseY);
+  };
+  p.mouseDragged  = function() {
+    if (editMode) editMoveAt(p.mouseX, p.mouseY);
+    else if (aiming) { curX=p.mouseX; curY=p.mouseY; }
+  };
+  p.mouseReleased = function() {
+    if (editMode) editReleaseAt(p.mouseX, p.mouseY);
+    else { if (aiming) { curX=p.mouseX; curY=p.mouseY; } gameRelease(); }
+  };
+
+  // ── Edit interactions ────────────────────────────────────────────────────────
+  function hitTestShelf(x, y) {
+    for (let i=shelves.length-1; i>=0; i--) {
+      const s=shelves[i], pos=s.body.position, ang=s.body.angle;
+      const dx=x-pos.x, dy=y-pos.y;
+      const lx=dx*Math.cos(-ang)-dy*Math.sin(-ang);
+      const ly=dx*Math.sin(-ang)+dy*Math.cos(-ang);
+      if (Math.abs(lx)<s.fw/2+22 && Math.abs(ly)<24) return i;
+    }
+    return -1;
+  }
+
+  function editPressAt(x, y) {
+    if (isOverUI(x, y)) return;
+    const hit = hitTestShelf(x, y);
+    if (hit >= 0) {
+      selectedShelf = hit;
+      shelfActions.classList.add('visible');
+      const pos = shelves[hit].body.position;
+      dragShelf = { idx:hit, offX:x-pos.x, offY:y-pos.y };
+    } else {
+      selectedShelf = null;
+      dragShelf = null;
+      shelfActions.classList.remove('visible');
+    }
+  }
+
+  function editMoveAt(x, y) {
+    if (dragShelf === null) return;
+    const s = shelves[dragShelf.idx];
+    Body.setPosition(s.body, {
+      x: fin(x - dragShelf.offX, s.body.position.x),
+      y: fin(y - dragShelf.offY, s.body.position.y),
+    });
+    syncDef(dragShelf.idx);
+  }
+
+  function editReleaseAt(x, y) {
+    if (isOverUI(x, y)) { dragShelf = null; return; }
+    if (dragShelf !== null) { syncDef(dragShelf.idx); dragShelf = null; }
+  }
+
+  // ── Game interactions ────────────────────────────────────────────────────────
+  function gamePressAt(x, y) {
+    if (paused) return;
+    if (inventory.length === 0) return; // no balls to throw
+    if (y < FLOOR_Y - BR*3) return;
+    aiming = true;
+    startX = fin(x, W/2); startY = fin(y, FLOOR_Y + LAUNCH_H*0.5);
+    curX = startX; curY = startY;
+  }
+
+  function gameRelease() {
+    if (paused) return;
+    if (!aiming) return;
+    aiming = false;
+    if (inventory.length === 0) return;
+
+    const dx=startX-curX, dy=startY-curY;
+    const dist=Math.hypot(dx,dy);
+    if (!isFinite(dist)||dist<6) return;
+
+    // Consume the next ball from inventory
+    const ballDef = inventory.shift();
+    saveInventory(inventory);
+    updateBallRow();
+
+    const palette = getBallPalette(ballDef.type);
+    const spd = p.constrain(dist * cfg.powerMult, 1, 22);
+    const nx=dx/dist, ny=dy/dist;
+    const sx=p.constrain(startX, BR+20, W-BR-20);
+    const sy=FLOOR_Y-BR-2;
+
+    const body = Bodies.circle(sx, sy, BR, {
+      restitution: cfg.restitution,
+      friction: 0.04,
+      frictionAir: cfg.airFriction,
+      density: 0.002,
+    });
+    Body.setVelocity(body, { x:fin(nx*spd), y:fin(ny*spd) });
+    World.add(world, body);
+    balls.push({ body, palette });
+  }
+
+
+  // ── Draw ─────────────────────────────────────────────────────────────────────
+  p.draw = function() {
+    if (!paused && !editMode) {
+      Engine.update(engine, 1000/60);
+    }
+    p.image(bgGfx, 0, 0);
+
+    drawShelves();
+    drawWallEdges();
+
+    if (!editMode) {
+      drawLaunchZone();
+      for (const b of balls) drawBall(b);
+      if (aiming) drawAim(); else drawIdlePreview();
+      drawInventoryRow();
+      drawGlows();
+    } else {
+      drawEditOverlay();
+    }
+  };
+
+  // ── Render: shelves ───────────────────────────────────────────────────────────
+  function drawShelves() {
+    for (let i = 0; i < shelves.length; i++) {
+      const s   = shelves[i];
+      const pos = s.body.position;
+      const sel = editMode && selectedShelf === i;
+      const gc  = p.drawingContext;
+
+      if (s.platformType === 'bumper') {
+        drawBumper(gc, pos.x, pos.y, s.fw / 2, sel);
+      } else {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawBasicShelf(gc, s.fw, sel);
+        p.pop();
+      }
+    }
+  }
+
+  function drawBumper(gc, cx, cy, r, sel) {
+    // Selection ring
+    if (sel) {
+      gc.strokeStyle = 'rgba(255,220,80,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.arc(cx, cy, r + 12, 0, Math.PI * 2); gc.stroke();
+    }
+    // Outer glow rings
+    for (let j = 5; j > 0; j--) {
+      gc.strokeStyle = `rgba(255,200,40,${0.06 * j})`;
+      gc.lineWidth   = j * 2.5;
+      gc.beginPath(); gc.arc(cx, cy, r + j * 2, 0, Math.PI * 2); gc.stroke();
+    }
+    // Body — radial gold gradient
+    const gr = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r);
+    gr.addColorStop(0,   'rgba(255,240,120,0.98)');
+    gr.addColorStop(0.4, 'rgba(255,200,30,0.99)');
+    gr.addColorStop(0.8, 'rgba(210,145,0,0.97)');
+    gr.addColorStop(1,   'rgba(160,100,0,0.90)');
+    gc.fillStyle = gr;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Specular highlight
+    const sp = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.38, 0,
+                                       cx - r * 0.3, cy - r * 0.38, r * 0.52);
+    sp.addColorStop(0, 'rgba(255,255,255,0.75)');
+    sp.addColorStop(1, 'rgba(255,255,255,0)');
+    gc.fillStyle = sp;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Rim
+    gc.strokeStyle = 'rgba(255,180,0,0.55)';
+    gc.lineWidth   = 1.2;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.stroke();
+  }
+
+  function drawBasicShelf(gc, fw, sel) {
+    if (sel) {
+      gc.strokeStyle = 'rgba(200,170,255,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-fw/2 - 10, -14, fw + 20, 28, 9); gc.stroke();
+    }
+    for (let j = 7; j > 0; j--) {
+      gc.fillStyle = `rgba(180,140,255,${0.022 * j})`;
+      gc.beginPath(); gc.roundRect(-fw/2 - j, -6 - j, fw + j*2, 12 + j*2, 6); gc.fill();
+    }
+    const g = gc.createLinearGradient(-fw/2, -5, fw/2, 5);
+    g.addColorStop(0,   'rgba(215,195,255,0.82)');
+    g.addColorStop(0.5, 'rgba(245,225,255,0.96)');
+    g.addColorStop(1,   'rgba(185,162,235,0.75)');
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-fw/2, -5, fw, 10, 4); gc.fill();
+    gc.strokeStyle = 'rgba(255,255,255,0.5)';
+    gc.lineWidth   = 0.8;
+    gc.beginPath(); gc.moveTo(-fw/2 + 5, -4); gc.lineTo(fw/2 - 5, -4); gc.stroke();
+  }
+
+  // ── Render: wall edges ────────────────────────────────────────────────────────
+  function drawWallEdges() {
+    const gc=p.drawingContext;
+    const gl=gc.createLinearGradient(0,0,16,0);
+    gl.addColorStop(0,'rgba(150,100,220,0.45)'); gl.addColorStop(1,'rgba(0,0,0,0)');
+    gc.fillStyle=gl; gc.fillRect(0,0,16,H);
+    const gr=gc.createLinearGradient(W-16,0,W,0);
+    gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(150,100,220,0.45)');
+    gc.fillStyle=gr; gc.fillRect(W-16,0,16,H);
+  }
+
+  // ── Render: launch zone line ──────────────────────────────────────────────────
+  function drawLaunchZone() {
+    const gc=p.drawingContext;
+    const lg=gc.createLinearGradient(0,0,W,0);
+    lg.addColorStop(0,   'rgba(200,160,255,0)');
+    lg.addColorStop(0.15,'rgba(225,185,255,0.65)');
+    lg.addColorStop(0.85,'rgba(225,185,255,0.65)');
+    lg.addColorStop(1,   'rgba(200,160,255,0)');
+    gc.strokeStyle=lg; gc.lineWidth=1.2;
+    gc.beginPath(); gc.moveTo(0,FLOOR_Y); gc.lineTo(W,FLOOR_Y); gc.stroke();
+  }
+
+  // ── Render: edit overlay dim ──────────────────────────────────────────────────
+  function drawEditOverlay() {
+    const gc=p.drawingContext;
+    gc.fillStyle='rgba(10,4,22,0.30)';
+    gc.fillRect(0,0,W,H);
+  }
+
+  // ── Render: ball ─────────────────────────────────────────────────────────────
+  function drawBall(b) {
+    const x=fin(b.body.position.x), y=fin(b.body.position.y);
+    if (x===0&&y===0) return;
+    const gc=p.drawingContext;
+
+    const gw=gc.createRadialGradient(x,y,0, x,y,BR*2.4);
+    gw.addColorStop(0,hexA(b.palette[1],0.2)); gw.addColorStop(1,'rgba(0,0,0,0)');
+    gc.fillStyle=gw; gc.beginPath(); gc.arc(x,y,BR*2.4,0,Math.PI*2); gc.fill();
+
+    const gr=gc.createRadialGradient(x-BR*.32,y-BR*.38,BR*.04, x,y,BR);
+    gr.addColorStop(0,b.palette[0]); gr.addColorStop(.55,b.palette[1]); gr.addColorStop(1,b.palette[2]);
+    gc.fillStyle=gr; gc.beginPath(); gc.arc(x,y,BR,0,Math.PI*2); gc.fill();
+
+    const sp=gc.createRadialGradient(x-BR*.3,y-BR*.4,0, x-BR*.3,y-BR*.4,BR*.48);
+    sp.addColorStop(0,'rgba(255,255,255,0.78)'); sp.addColorStop(1,'rgba(255,255,255,0)');
+    gc.fillStyle=sp; gc.beginPath(); gc.arc(x,y,BR,0,Math.PI*2); gc.fill();
+    gc.strokeStyle='rgba(255,255,255,0.1)'; gc.lineWidth=0.7; gc.stroke();
+  }
+
+  // ── Render: idle preview ──────────────────────────────────────────────────────
+  function drawIdlePreview() {
+    if (inventory.length === 0) return; // nothing to throw
+    const pal = getBallPalette(inventory[0].type);
+    let px=fin(p.mouseX, W/2);
+    if (px<20||px>W-20) px=W/2;
+    const py=FLOOR_Y+LAUNCH_H*0.35;
+    const gc=p.drawingContext;
+
+    const gr=gc.createRadialGradient(px-BR*.3,py-BR*.35,0, px,py,BR);
+    gr.addColorStop(0,hexA(pal[0],0.55));
+    gr.addColorStop(0.6,hexA(pal[1],0.45));
+    gr.addColorStop(1,hexA(pal[2],0.28));
+    gc.fillStyle=gr; gc.beginPath(); gc.arc(px,py,BR,0,Math.PI*2); gc.fill();
+    gc.strokeStyle='rgba(255,255,255,0.18)'; gc.lineWidth=1; gc.stroke();
+
+    const pulse=(Math.sin(p.frameCount*.065)+1)/2;
+    gc.strokeStyle=hexA(pal[1],0.22*(1-pulse)); gc.lineWidth=1.5;
+    gc.beginPath(); gc.arc(px,py,BR+4+pulse*6,0,Math.PI*2); gc.stroke();
+  }
+
+  // ── 3D gun: setup & load ─────────────────────────────────────────────────────
+  // We use GLB — single binary, textures embedded, best Three.js support.
+  // Place your model at:  assets/gun.glb  (next to this HTML file).
+  // If missing or broken, the classic gradient cue-stick is drawn instead.
+
+  const _GUN_SIZE = 400; // offscreen canvas px (square)
+  const _GUN_PATH = 'assets/gun.glb';
+
+  function initGun() {
+    // Bail out gracefully if CDN scripts failed to load
+    if (typeof THREE === 'undefined') {
+      console.warn('[gun] three.js not loaded — using fallback cue');
+      _gunFailed = true; return;
+    }
+    if (typeof THREE.GLTFLoader === 'undefined') {
+      console.warn('[gun] GLTFLoader not loaded — using fallback cue');
+      _gunFailed = true; return;
+    }
+
+    // Offscreen WebGL canvas — transparent background, never attached to DOM
+    _gunRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    _gunRenderer.setSize(_GUN_SIZE, _GUN_SIZE);
+    _gunRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    _gunRenderer.setClearColor(0x000000, 0);
+
+    // Scene + orthographic camera (no perspective distortion for a 2D game)
+    _gunScene  = new THREE.Scene();
+    const h    = _GUN_SIZE / 2;
+    _gunCamera = new THREE.OrthographicCamera(-h, h, h, -h, 1, 1000);
+    _gunCamera.position.set(0, 0, 500);
+    _gunCamera.lookAt(0, 0, 0);
+
+    // Lights
+    _gunScene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+    sun.position.set(2, 3, 4);
+    _gunScene.add(sun);
+    const fill = new THREE.DirectionalLight(0xb090ff, 0.35); // purple fill
+    fill.position.set(-2, -1, 2);
+    _gunScene.add(fill);
+
+    // Load
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+      _GUN_PATH,
+      (gltf) => {
+        _gunModel = gltf.scene;
+
+        // ── Auto-scale to fit ~65% of the offscreen canvas ──
+        const box  = new THREE.Box3().setFromObject(_gunModel);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const longest = Math.max(size.x, size.y, size.z);
+        if (longest > 0) {
+          const s = (_GUN_SIZE * 0.65) / longest;
+          _gunModel.scale.setScalar(s);
+        }
+
+        // ── Re-centre at origin after scaling ──
+        const box2  = new THREE.Box3().setFromObject(_gunModel);
+        const mid   = new THREE.Vector3();
+        box2.getCenter(mid);
+        _gunModel.position.sub(mid);
+
+        _gunScene.add(_gunModel);
+        _gunReady = true;
+        console.log('[gun] GLB loaded ✓', _GUN_PATH);
+      },
+      undefined, // progress — not needed
+      (err) => {
+        const msg = (err && (err.message || err.toString())) || 'unknown error';
+        console.info('[gun] GLB not found or failed (' + msg + ') — using fallback cue stick');
+        _gunFailed = true;
+        // Free the WebGL context we won't be using
+        _gunRenderer.dispose();
+        _gunRenderer = null;
+      }
+    );
+  }
+
+  // ── 3D gun: composite one frame onto the p5 canvas ───────────────────────────
+  // cx, cy  — screen position to draw around (the ball spawn point)
+  // aimAngle — direction the gun points (radians, 0 = right, same as Math.atan2)
+  // normPwr  — normalised power 0-1, used to pull the gun back slightly
+  // Returns true if the 3D gun was drawn; false → caller should draw fallback.
+  function renderGun(cx, cy, aimAngle, normPwr) {
+    if (!_gunReady || !_gunRenderer || !_gunModel) return false;
+
+    // Rotate the model.  Convention: the muzzle points along +X in model space.
+    // We rotate around Z to align with the 2D aim direction.
+    _gunModel.rotation.set(0, 0, aimAngle);
+
+    // Pull back from the ball proportionally to power (cosmetic only)
+    const pull = normPwr * 24; // max 24 ortho-units pullback
+    _gunModel.position.x = -Math.cos(aimAngle) * pull;
+    _gunModel.position.y = -Math.sin(aimAngle) * pull;
+
+    _gunRenderer.render(_gunScene, _gunCamera);
+
+    // Stamp the offscreen canvas onto the p5 2D context, centred on (cx, cy)
+    const gc = p.drawingContext;
+    gc.save();
+    gc.drawImage(_gunRenderer.domElement,
+      cx - _GUN_SIZE / 2, cy - _GUN_SIZE / 2, _GUN_SIZE, _GUN_SIZE);
+    gc.restore();
+    return true;
+  }
+
+  // ── Render: aim ───────────────────────────────────────────────────────────────
+  function drawAim() {
+    const dx=startX-curX, dy=startY-curY;
+    const dist=Math.hypot(dx,dy);
+    if (!isFinite(dist)||dist<1) return;
+
+    const palette = getBallPalette(inventory[0]?.type ?? 'basic');
+    const pwr=p.constrain(dist*cfg.powerMult, 0, 22);
+    const nx=dx/dist, ny=dy/dist;
+    const sx=p.constrain(fin(startX,W/2), BR+20, W-BR-20);
+    const sy=FLOOR_Y-BR-2;
+    const gc=p.drawingContext;
+
+    // Trajectory
+    let vx=nx*pwr, vy=ny*pwr, bx=sx, by=sy;
+    const gx=cfg.gravityX*0.5, gy=cfg.gravityY*0.5;
+    for (let i=0;i<34;i++) {
+      vx+=gx; vy+=gy; bx+=vx; by+=vy;
+      if (by>FLOOR_Y+5||!isFinite(bx)||!isFinite(by)) break;
+      gc.fillStyle=hexA(palette[1], p.map(i,0,34,0.7,0)*0.85);
+      gc.beginPath(); gc.arc(bx,by,p.map(i,0,34,BR*.38,1.2),0,Math.PI*2); gc.fill();
+    }
+
+    // Power bar
+    const barW=Math.min(180,W*.40), barX=fin(sx-barW/2,10), barY=FLOOR_Y+10;
+    gc.fillStyle='rgba(255,255,255,0.07)';
+    gc.beginPath(); gc.roundRect(barX,barY,barW,6,3); gc.fill();
+    if (pwr>0) {
+      const bg=gc.createLinearGradient(barX,0,barX+barW,0);
+      bg.addColorStop(0,hexA(palette[0],0.9)); bg.addColorStop(1,hexA(palette[2],0.9));
+      gc.fillStyle=bg;
+      gc.beginPath(); gc.roundRect(barX,barY,(pwr/22)*barW,6,3); gc.fill();
+    }
+
+    // Ball at spawn
+    const gr=gc.createRadialGradient(sx-BR*.3,sy-BR*.35,0, sx,sy,BR);
+    gr.addColorStop(0,palette[0]); gr.addColorStop(.55,palette[1]); gr.addColorStop(1,palette[2]);
+    gc.fillStyle=gr; gc.beginPath(); gc.arc(sx,sy,BR,0,Math.PI*2); gc.fill();
+
+    // ── Gun / cue stick ──────────────────────────────────────────────────────
+    if (dist > 8) {
+      // aimAngle: direction from ball outward (away from player drag)
+      const aimAngle = Math.atan2(-ny, -nx);
+      const normPwr  = pwr / 22; // 0-1
+
+      // Try 3D model; if not loaded yet or file missing, draw fallback
+      const drew3d = !_gunFailed && renderGun(sx, sy, aimAngle, normPwr);
+
+      if (!drew3d) {
+        // ── Fallback: gradient cue stick ────────────────────────────────────
+        const stickLen = p.constrain(dist * .85, 0, 95);
+        const ex = sx - nx * stickLen, ey = sy - ny * stickLen;
+        const sg = gc.createLinearGradient(sx, sy, fin(ex, sx), fin(ey, sy));
+        sg.addColorStop(0, hexA(palette[1], 0.9));
+        sg.addColorStop(1, hexA(palette[0], 0.12));
+        gc.strokeStyle = sg; gc.lineWidth = 3; gc.lineCap = 'round';
+        gc.beginPath();
+        gc.moveTo(sx + nx * (BR + 3), sy + ny * (BR + 3));
+        gc.lineTo(ex, ey);
+        gc.stroke();
+      }
+    }
+  }
+
+  // ── Render: glows ─────────────────────────────────────────────────────────────
+  function drawGlows() {
+    const gc=p.drawingContext;
+    gc.save(); gc.globalCompositeOperation='screen';
+    for (const b of balls) {
+      const x=fin(b.body.position.x), y=fin(b.body.position.y);
+      const spd=Math.hypot(b.body.velocity.x,b.body.velocity.y);
+      const a=p.map(fin(spd,0),0,10,0.03,0.22);
+      const gw=gc.createRadialGradient(x,y,0, x,y,BR*3.2);
+      gw.addColorStop(0,hexA(b.palette[1],a)); gw.addColorStop(1,'rgba(0,0,0,0)');
+      gc.fillStyle=gw; gc.beginPath(); gc.arc(x,y,BR*3.2,0,Math.PI*2); gc.fill();
+    }
+    gc.restore();
+  }
+
+}); // end p5
+</script>
+</body>
+</html>
