@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MigLib Game Test</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #222;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+    </style>
+    <script src="p5.min.js"></script>
+    <script src="dist/bundle.js"></script>
+    <script defer>
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => { });
+            } else {
+                document.exitFullscreen().catch(() => { });
+            }
+        }
+
+        var started = false;
+        window.addEventListener("load", function () {
+            document.body.addEventListener("click", function () {
+                if (started) return;
+                started = true;
+                window["miglib"].start();
+                document.getElementById("startgamebutton").style.display = "none";
+                toggleFullscreen();
+            });
+        });
+    </script>
+
+</head>
+
+<body>
+    <div id="startgamebutton">Start game</div>
+</body>
+
+</html>
