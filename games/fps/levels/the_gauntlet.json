@@ -1,0 +1,515 @@
+{
+  "name": "THE GAUNTLET",
+  "description": "Z-shaped corridor.\nBlue neon veins.\nOne way in, one way out.",
+  "accentColor": "#4488ff",
+  "floorSize": 46,
+  "floorColor": 527384,
+  "fogColor": 263695,
+  "fogNear": 5,
+  "fogFar": 26,
+  "ambient": {
+    "color": 790576,
+    "intensity": 1.3
+  },
+  "sun": {
+    "color": 4482815,
+    "intensity": 0.5,
+    "pos": [
+      4,
+      10,
+      2
+    ]
+  },
+  "pointLights": [
+    {
+      "color": 2245887,
+      "intensity": 2.8,
+      "distance": 12,
+      "pos": [
+        -14,
+        2,
+        -14
+      ]
+    },
+    {
+      "color": 4482815,
+      "intensity": 2.4,
+      "distance": 12,
+      "pos": [
+        14,
+        2,
+        14
+      ]
+    },
+    {
+      "color": 3364351,
+      "intensity": 2,
+      "distance": 10,
+      "pos": [
+        0,
+        2,
+        0
+      ]
+    },
+    {
+      "color": 2241535,
+      "intensity": 1.8,
+      "distance": 8,
+      "pos": [
+        -14,
+        2,
+        14
+      ]
+    },
+    {
+      "color": 4491519,
+      "intensity": 1.8,
+      "distance": 8,
+      "pos": [
+        14,
+        2,
+        -14
+      ]
+    },
+    {
+      "color": 3368703,
+      "intensity": 1.4,
+      "distance": 8,
+      "pos": [
+        0,
+        2,
+        14
+      ]
+    },
+    {
+      "color": 2250239,
+      "intensity": 1.4,
+      "distance": 8,
+      "pos": [
+        0,
+        2,
+        -14
+      ]
+    }
+  ],
+  "floors": [
+    {
+      "gx": -3,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": 2,
+      "id": "floor"
+    }
+  ],
+  "walls": [
+    {
+      "gx": -3,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": -2,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": -1,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": 0,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": 1,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": -2,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": -1,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": 0,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": 1,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": -3,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": -2,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": -1,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": 0,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": 1,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": 2,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": -3,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": -2,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": -1,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": 0,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": 1,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": 2,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 0,
+      "gz": -1,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": 1,
+      "gz": -1,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": -2,
+      "gz": 0,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": -1,
+      "gz": 0,
+      "face": "N",
+      "id": "wall"
+    }
+  ],
+  "columns": [
+    {
+      "gx": -1,
+      "gz": -2,
+      "id": "wallPillar"
+    },
+    {
+      "gx": 1,
+      "gz": -2,
+      "id": "wallPillar"
+    },
+    {
+      "gx": -1,
+      "gz": 1,
+      "id": "wallPillar"
+    },
+    {
+      "gx": 1,
+      "gz": 1,
+      "id": "wallPillar"
+    }
+  ],
+  "props": [],
+  "playerSpawn": {
+    "x": 8,
+    "z": 8,
+    "yaw": 3.9269908169872414
+  },
+  "enemySpawns": [
+    {
+      "x": -16,
+      "z": -16
+    },
+    {
+      "x": -12,
+      "z": -16
+    }
+  ],
+  "path": [
+    {
+      "x": -14,
+      "z": -14
+    },
+    {
+      "x": 6,
+      "z": -14
+    },
+    {
+      "x": 6,
+      "z": 0
+    },
+    {
+      "x": -6,
+      "z": 0
+    },
+    {
+      "x": -6,
+      "z": 6
+    },
+    {
+      "x": 0,
+      "z": 6
+    }
+  ],
+  "nexus": {
+    "x": 0,
+    "z": 0
+  }
+}

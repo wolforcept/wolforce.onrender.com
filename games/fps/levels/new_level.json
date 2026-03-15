@@ -1,0 +1,158 @@
+{
+  "name": "New Level",
+  "description": "",
+  "accentColor": "#ff3333",
+  "floorSize": 40,
+  "floorColor": 1708056,
+  "fogColor": 8396367,
+  "fogNear": 4,
+  "fogFar": 22,
+  "ambient": {
+    "color": 16777215,
+    "intensity": 2
+  },
+  "sun": {
+    "color": 16777215,
+    "intensity": 1,
+    "pos": [
+      2,
+      10,
+      2
+    ]
+  },
+  "pointLights": [
+    {
+      "color": 16777215,
+      "intensity": 2,
+      "distance": 10,
+      "pos": [
+        19,
+        2.5,
+        9
+      ]
+    },
+    {
+      "color": 16777215,
+      "intensity": 2,
+      "distance": 10,
+      "pos": [
+        10,
+        2.5,
+        3
+      ]
+    },
+    {
+      "color": 16777215,
+      "intensity": 2,
+      "distance": 10,
+      "pos": [
+        3,
+        2.5,
+        2
+      ]
+    },
+    {
+      "color": 16720384,
+      "intensity": 3,
+      "distance": 20,
+      "pos": [
+        2,
+        2.5,
+        8
+      ]
+    },
+    {
+      "color": 16777215,
+      "intensity": 2,
+      "distance": 10,
+      "pos": [
+        10,
+        2.5,
+        -3
+      ]
+    },
+    {
+      "color": 16777215,
+      "intensity": 2,
+      "distance": 10,
+      "pos": [
+        17,
+        2.5,
+        -2
+      ]
+    }
+  ],
+  "walls": [
+    {
+      "x": 10,
+      "z": 6,
+      "w": 4,
+      "h": 3,
+      "d": 0.4,
+      "color": 8947865
+    },
+    {
+      "x": 15,
+      "z": 6,
+      "w": 4,
+      "h": 3,
+      "d": 0.4,
+      "color": 8947865
+    }
+  ],
+  "columns": [],
+  "props": [],
+  "playerSpawn": {
+    "x": 8,
+    "z": 12,
+    "yaw": 0
+  },
+  "enemySpawns": [
+    {
+      "x": 3,
+      "z": 8
+    },
+    {
+      "x": 2,
+      "z": 7
+    },
+    {
+      "x": 1,
+      "z": 8
+    },
+    {
+      "x": 2,
+      "z": 9
+    }
+  ],
+  "path": [
+    {
+      "x": 2,
+      "z": 8
+    },
+    {
+      "x": 3,
+      "z": 2
+    },
+    {
+      "x": 10,
+      "z": 3
+    },
+    {
+      "x": 10,
+      "z": -3
+    },
+    {
+      "x": 17,
+      "z": -2
+    },
+    {
+      "x": 19,
+      "z": 9
+    }
+  ],
+  "nexus": {
+    "x": 10,
+    "z": 10
+  }
+}

@@ -1,0 +1,531 @@
+{
+  "name": "CROSSROADS",
+  "description": "Four approach lanes.\nGreen tactical light.\nHold every angle.",
+  "accentColor": "#33ff88",
+  "floorSize": 56,
+  "floorColor": 659984,
+  "fogColor": 395784,
+  "fogNear": 6,
+  "fogFar": 30,
+  "ambient": {
+    "color": 530960,
+    "intensity": 1.2
+  },
+  "sun": {
+    "color": 2293606,
+    "intensity": 0.45,
+    "pos": [
+      3,
+      10,
+      3
+    ]
+  },
+  "pointLights": [
+    {
+      "color": 2293606,
+      "intensity": 2.4,
+      "distance": 14,
+      "pos": [
+        -16,
+        2,
+        -16
+      ]
+    },
+    {
+      "color": 3407752,
+      "intensity": 2.4,
+      "distance": 14,
+      "pos": [
+        16,
+        2,
+        16
+      ]
+    },
+    {
+      "color": 2284885,
+      "intensity": 2,
+      "distance": 12,
+      "pos": [
+        -16,
+        2,
+        16
+      ]
+    },
+    {
+      "color": 3407718,
+      "intensity": 2,
+      "distance": 12,
+      "pos": [
+        16,
+        2,
+        -16
+      ]
+    },
+    {
+      "color": 2293572,
+      "intensity": 1.6,
+      "distance": 10,
+      "pos": [
+        0,
+        2,
+        0
+      ]
+    },
+    {
+      "color": 4521864,
+      "intensity": 1.4,
+      "distance": 8,
+      "pos": [
+        0,
+        2,
+        16
+      ]
+    },
+    {
+      "color": 2293606,
+      "intensity": 1.4,
+      "distance": 8,
+      "pos": [
+        0,
+        2,
+        -16
+      ]
+    }
+  ],
+  "floors": [
+    {
+      "gx": -3,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": -3,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": -2,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": -1,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": 0,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": 1,
+      "id": "floor"
+    },
+    {
+      "gx": -3,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": -2,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": -1,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": 0,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": 1,
+      "gz": 2,
+      "id": "floor"
+    },
+    {
+      "gx": 2,
+      "gz": 2,
+      "id": "floor"
+    }
+  ],
+  "walls": [
+    {
+      "gx": -3,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": -2,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": -1,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": 0,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": 1,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": -3,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": -2,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": -1,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": 0,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": 1,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": 2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": -3,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": -2,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": -1,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": 0,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": 1,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": -3,
+      "gz": 2,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": -3,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": -2,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": -1,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": 0,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": 1,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 2,
+      "gz": 2,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": -1,
+      "gz": -2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": 1,
+      "gz": -2,
+      "face": "S",
+      "id": "wall"
+    },
+    {
+      "gx": -1,
+      "gz": 1,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": 1,
+      "gz": 1,
+      "face": "N",
+      "id": "wall"
+    },
+    {
+      "gx": -2,
+      "gz": -1,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": -2,
+      "gz": 1,
+      "face": "E",
+      "id": "wall"
+    },
+    {
+      "gx": 1,
+      "gz": -1,
+      "face": "W",
+      "id": "wall"
+    },
+    {
+      "gx": 1,
+      "gz": 1,
+      "face": "W",
+      "id": "wall"
+    }
+  ],
+  "columns": [
+    {
+      "gx": -1,
+      "gz": -1,
+      "id": "wallPillar"
+    },
+    {
+      "gx": 1,
+      "gz": -1,
+      "id": "wallPillar"
+    },
+    {
+      "gx": -1,
+      "gz": 1,
+      "id": "wallPillar"
+    },
+    {
+      "gx": 1,
+      "gz": 1,
+      "id": "wallPillar"
+    }
+  ],
+  "props": [],
+  "playerSpawn": {
+    "x": 10,
+    "z": 10,
+    "yaw": 3.9269908169872414
+  },
+  "enemySpawns": [
+    {
+      "x": -18,
+      "z": -18
+    },
+    {
+      "x": -14,
+      "z": -18
+    },
+    {
+      "x": 14,
+      "z": -18
+    }
+  ],
+  "path": [
+    {
+      "x": -16,
+      "z": -16
+    },
+    {
+      "x": 0,
+      "z": -16
+    },
+    {
+      "x": 0,
+      "z": 0
+    }
+  ],
+  "nexus": {
+    "x": 0,
+    "z": 0
+  }
+}

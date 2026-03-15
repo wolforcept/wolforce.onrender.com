@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Drift Pool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      background: #1a1228;
+      font-family: system-ui, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #game-container {
+      position: fixed;
+      inset: 0;
+    }
+
+    #game-container canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      touch-action: none;
+    }
+
+    /* ── Top buttons ── */
+    .top-btn {
+      position: fixed;
+      top: 14px;
+      z-index: 30;
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      padding: 7px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      transition: background 0.2s, color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .top-btn:active {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .top-btn.active {
+      background: rgba(200, 160, 255, 0.22);
+      border-color: rgba(200, 160, 255, 0.55);
+      color: rgba(230, 210, 255, 0.95);
+    }
+
+    #btn-settings {
+      left: 14px;
+    }
+
+    #btn-edit {
+      right: 14px;
+    }
+
+    /* ── Settings modal ── */
+    #modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(8, 4, 18, 0.72);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-backdrop.visible {
+      display: flex;
+    }
+
+    #settings-modal {
+      background: rgba(22, 12, 42, 0.97);
+      border: 1px solid rgba(200, 160, 255, 0.25);
+      border-radius: 20px;
+      padding: 24px 24px 20px;
+      width: min(92vw, 420px);
+      max-height: 88vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 0 0 60px rgba(140, 80, 255, 0.18);
+    }
+
+    .modal-title {
+      color: rgba(230, 210, 255, 0.9);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #settings-modal {
+      position: relative;
+    }
+
+    .s-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .s-label {
+      color: rgba(200, 180, 240, 0.55);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .s-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .s-row-label {
+      color: rgba(220, 205, 255, 0.75);
+      font-size: 12px;
+      min-width: 110px;
+    }
+
+    .s-val {
+      color: rgba(230, 215, 255, 0.9);
+      font-size: 12px;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    input[type=range] {
+      flex: 1;
+      accent-color: #c084fc;
+      height: 4px;
+      cursor: pointer;
+    }
+
+    /* Player picker */
+    .player-grid {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .p-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.55);
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .p-btn.selected {
+      border-color: rgba(200, 160, 255, 0.8);
+      color: rgba(240, 225, 255, 0.95);
+      background: rgba(180, 120, 255, 0.22);
+      transform: scale(1.1);
+    }
+
+    /* Toggle */
+    .s-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .toggle-track {
+      width: 40px;
+      height: 22px;
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .toggle-track.on {
+      background: rgba(180, 120, 255, 0.55);
+      border-color: rgba(200, 150, 255, 0.5);
+    }
+
+    .toggle-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+
+    .toggle-track.on .toggle-thumb {
+      transform: translateX(18px);
+    }
+
+    .toggle-label {
+      color: rgba(220, 205, 255, 0.75);
+      font-size: 12px;
+    }
+
+    /* Reset button */
+    .reset-btn {
+      align-self: center;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: rgba(200, 180, 240, 0.6);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      padding: 6px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    .reset-btn:active {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    /* Divider */
+    .s-divider {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      margin: 2px 0;
+    }
+
+    /* ── Shelf action bar ── */
+    #shelf-actions {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px 18px;
+      flex-wrap: wrap;
+      background: linear-gradient(to top, rgba(15, 8, 30, 0.95) 65%, transparent);
+      pointer-events: none;
+    }
+
+    #shelf-actions.visible {
+      display: flex;
+      pointer-events: auto;
+    }
+
+    .sa-btn {
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 13px;
+      border-radius: 10px;
+      padding: 8px 14px;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .sa-btn:active {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    .sa-btn.danger {
+      border-color: rgba(255, 120, 120, 0.35);
+      color: rgba(255, 160, 160, 0.9);
+    }
+
+    .sa-btn.accent {
+      border-color: rgba(180, 140, 255, 0.45);
+      color: rgba(210, 190, 255, 0.9);
+    }
+
+    /* ── Player dots ── */
+    #player-dots {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 15;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .pdot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      opacity: 0.45;
+      transition: opacity 0.2s, transform 0.2s;
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .pdot.active {
+      opacity: 1;
+      transform: scale(1.35);
+      border-color: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="game-container"></div>
+
+  <button class="top-btn" id="btn-settings">⚙</button>
+  <button class="top-btn" id="btn-edit">EDIT</button>
+
+  <!-- Settings modal -->
+  <div id="modal-backdrop">
+    <div id="settings-modal">
+      <button class="modal-close" id="btn-modal-close">✕</button>
+      <div class="modal-title">Settings</div>
+
+      <div class="s-section">
+        <div class="s-label">Players</div>
+        <div class="player-grid" id="player-grid"></div>
+      </div>
+
+      <hr class="s-divider">
+
+      <div class="s-section">
+        <div class="s-label">Physics</div>
+        <div class="s-row">
+          <span class="s-row-label">Gravity down</span>
+          <input type="range" id="sl-gravity-y" min="0.01" max="0.40" step="0.01">
+          <span class="s-val" id="val-gravity-y"></span>
+        </div>
+        <div class="s-row">
+          <span class="s-row-label">Gravity sideways</span>
+          <input type="range" id="sl-gravity-x" min="-0.010" max="0.010" step="0.0005">
+          <span class="s-val" id="val-gravity-x"></span>
+        </div>
+        <div class="s-row">
+          <span class="s-row-label">Air friction</span>
+          <input type="range" id="sl-air" min="0.001" max="0.04" step="0.001">
+          <span class="s-val" id="val-air"></span>
+        </div>
+        <div class="s-row">
+          <span class="s-row-label">Bounciness</span>
+          <input type="range" id="sl-restitution" min="0.1" max="0.95" step="0.05">
+          <span class="s-val" id="val-restitution"></span>
+        </div>
+        <div class="s-row">
+          <span class="s-row-label">Shot power</span>
+          <input type="range" id="sl-power" min="0.05" max="0.40" step="0.01">
+          <span class="s-val" id="val-power"></span>
+        </div>
+      </div>
+
+      <hr class="s-divider">
+
+      <div class="s-section">
+        <div class="s-label">Layout</div>
+        <label class="s-toggle" id="toggle-mirror">
+          <div class="toggle-track" id="mirror-track">
+            <div class="toggle-thumb"></div>
+          </div>
+          <span class="toggle-label">Mirror shelves</span>
+        </label>
+        <label class="s-toggle" id="toggle-ai">
+          <div class="toggle-track" id="ai-track">
+            <div class="toggle-thumb"></div>
+          </div>
+          <span class="toggle-label">AI players (even turns)</span>
+        </label>
+      </div>
+
+      <button class="reset-btn" id="btn-reset-settings">Reset to defaults</button>
+      <button class="reset-btn" id="btn-fullscreen" style="margin-top:0">⛶ Fullscreen</button>
+    </div>
+  </div>
+
+  <!-- Shelf edit actions -->
+  <div id="shelf-actions">
+    <button class="sa-btn" id="sa-rot-left">↺</button>
+    <button class="sa-btn" id="sa-rot-right">↻</button>
+    <button class="sa-btn" id="sa-wider">Wider</button>
+    <button class="sa-btn" id="sa-narrower">Narrower</button>
+    <button class="sa-btn accent" id="btn-add-shelf">+ Add</button>
+    <button class="sa-btn" id="btn-clone-shelf">⧉ Clone</button>
+    <button class="sa-btn danger" id="sa-delete">Delete</button>
+  </div>
+
+  <div id="player-dots"></div>
+
+  <script>
+    'use strict';
+    const { Engine, Bodies, Body, World, Events } = Matter;
+
+    // ── Storage keys ──────────────────────────────────────────────────────────────
+    const LS_SHELVES = 'driftpool_shelves_v2';
+    const LS_SETTINGS = 'driftpool_settings_v2';
+
+    // ── Default settings ──────────────────────────────────────────────────────────
+    const DEFAULT_SETTINGS = {
+      playerCount: 2,
+      gravityY: 0.10,
+      gravityX: 0.0003,
+      airFriction: 0.008,
+      restitution: 0.55,
+      powerMult: 0.16,
+      mirrorMode: false,
+      aiMode: false,
+    };
+
+    // ── Default shelf layout ──────────────────────────────────────────────────────
+    const DEFAULT_SHELVES = [
+      { fx: 0.22, fy: 0.76, fw: 0.19, a: -4 },
+      { fx: 0.65, fy: 0.71, fw: 0.17, a: 3 },
+      { fx: 0.40, fy: 0.59, fw: 0.21, a: -2 },
+      { fx: 0.17, fy: 0.45, fw: 0.16, a: 5 },
+      { fx: 0.72, fy: 0.47, fw: 0.18, a: -5 },
+      { fx: 0.48, fy: 0.33, fw: 0.15, a: 2 },
+      { fx: 0.81, fy: 0.28, fw: 0.14, a: -3 },
+      { fx: 0.13, fy: 0.30, fw: 0.15, a: 4 },
+      { fx: 0.55, fy: 0.18, fw: 0.13, a: -2 },
+      { fx: 0.31, fy: 0.13, fw: 0.12, a: 3 },
+    ];
+
+    // ── 8 player palettes ─────────────────────────────────────────────────────────
+    const ALL_PALETTES = [
+      ['#fda4c4', '#f472b6', '#e879f9'], // 1 pink→fuchsia
+      ['#93d9fc', '#38bdf8', '#6366f1'], // 2 sky→indigo
+      ['#86efac', '#34d399', '#06b6d4'], // 3 green→teal
+      ['#fde68a', '#fbbf24', '#f97316'], // 4 amber→orange
+      ['#c4b5fd', '#a78bfa', '#7c3aed'], // 5 lavender→violet
+      ['#fca5a5', '#f87171', '#e11d48'], // 6 red→rose
+      ['#5eead4', '#2dd4bf', '#0891b2'], // 7 teal→cyan
+      ['#fcd34d', '#a3e635', '#4ade80'], // 8 yellow→lime
+    ];
+
+    // Mirror shelf color palette
+    const MIRROR_SHELF = ['rgba(100,220,210,0.75)', 'rgba(130,240,230,0.92)', 'rgba(80,200,190,0.65)'];
+
+    // ── Physics constants ─────────────────────────────────────────────────────────
+    const ROT_STEP = 3;    // degrees
+    const WIDTH_STEP = 0.02; // fraction of W
+    const MIN_FW = 0.07;
+    const MAX_FW = 0.38;
+
+    // ── Utility ───────────────────────────────────────────────────────────────────
+    function hexA(hex, a) {
+      hex = hex.replace('#', '');
+      return `rgba(${parseInt(hex.slice(0, 2), 16)},${parseInt(hex.slice(2, 4), 16)},${parseInt(hex.slice(4, 6), 16)},${a})`;
+    }
+    function fin(v, fb = 0) { return (isFinite(v) && !isNaN(v)) ? v : fb; }
+
+    // ── Persistence ───────────────────────────────────────────────────────────────
+    function loadSettings() {
+      try {
+        const raw = localStorage.getItem(LS_SETTINGS);
+        if (raw) return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(raw));
+      } catch (e) { }
+      return Object.assign({}, DEFAULT_SETTINGS);
+    }
+    function saveSettings(s) {
+      try { localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); } catch (e) { }
+    }
+    function loadShelfDefs() {
+      try {
+        const raw = localStorage.getItem(LS_SHELVES);
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (Array.isArray(p) && p.length > 0) return p;
+        }
+      } catch (e) { }
+      return DEFAULT_SHELVES.map(d => ({ ...d }));
+    }
+    function saveShelfDefs(defs) {
+      try { localStorage.setItem(LS_SHELVES, JSON.stringify(defs)); } catch (e) { }
+    }
+
+    // ── p5 sketch ─────────────────────────────────────────────────────────────────
+    new p5(function (p) {
+
+      // Live settings object
+      let cfg = loadSettings();
+
+      // Dimensions
+      let W, H, FLOOR_Y, LAUNCH_H, BR;
+
+      // Physics
+      let engine, world;
+
+      // Game objects
+      let balls = [];  // {body, palette}
+      let shelves = [];  // {body, fw(px), def{fx,fy,fw,a}}
+      let mirrors = [];  // {body, fw(px), sourceIdx} — physics mirror of each shelf
+
+      // Visuals
+      let bgGfx;
+
+      // Game state
+      let currentPlayer = 0;
+      let palette = null;
+
+      // Aiming
+      let aiming = false;
+      let startX = 0, startY = 0, curX = 0, curY = 0;
+
+      // Edit mode
+      let editMode = false;
+      let selectedShelf = null;
+      let dragShelf = null;
+
+      // Modal pause
+      let paused = false;
+
+      // ── DOM refs ────────────────────────────────────────────────────────────────
+      const btnSettings = document.getElementById('btn-settings');
+      const btnEdit = document.getElementById('btn-edit');
+      const modalBackdrop = document.getElementById('modal-backdrop');
+      const btnModalClose = document.getElementById('btn-modal-close');
+      const shelfActions = document.getElementById('shelf-actions');
+      const playerDots = document.getElementById('player-dots');
+
+      // ── Setup ───────────────────────────────────────────────────────────────────
+      p.setup = function () {
+        const cnv = p.createCanvas(window.innerWidth, window.innerHeight);
+        cnv.parent('game-container');
+        cnv.elt.addEventListener('contextmenu', e => e.preventDefault());
+        cnv.elt.addEventListener('touchstart', e => { e.preventDefault(); onTouchStart(e); }, { passive: false });
+        cnv.elt.addEventListener('touchmove', e => { e.preventDefault(); onTouchMove(e); }, { passive: false });
+        cnv.elt.addEventListener('touchend', e => { e.preventDefault(); onTouchEnd(e); }, { passive: false });
+        cnv.elt.addEventListener('touchcancel', e => { e.preventDefault(); resetInteraction(); }, { passive: false });
+
+        buildSettingsUI();
+        wireUI();
+        initAll();
+      };
+
+      p.windowResized = function () {
+        p.resizeCanvas(window.innerWidth, window.innerHeight);
+        rebuildAfterResize();
+      };
+
+      // ── Init / rebuild ───────────────────────────────────────────────────────────
+      function initAll() {
+        W = p.width; H = p.height;
+        LAUNCH_H = Math.round(H * 0.25);
+        FLOOR_Y = H - LAUNCH_H;
+        BR = Math.round(p.constrain(W * 0.027, 10, 18));
+
+        resetInteraction();
+
+        if (engine) { World.clear(world); Engine.clear(engine); }
+        balls = []; shelves = []; mirrors = [];
+
+        engine = Engine.create();
+        engine.gravity.x = cfg.gravityX;
+        engine.gravity.y = cfg.gravityY;
+        world = engine.world;
+
+        Events.on(engine, 'afterUpdate', handleFallOff);
+
+        const wo = { isStatic: true, friction: 0.1, restitution: 0.45 };
+        World.add(world, [
+          Bodies.rectangle(-25, H / 2, 50, H * 2, wo),
+          Bodies.rectangle(W + 25, H / 2, 50, H * 2, wo),
+        ]);
+
+        const defs = loadShelfDefs();
+        for (const d of defs) spawnShelf(d);
+
+        buildBg();
+        currentPlayer = 0;
+        pickPalette();
+        updatePlayerDots();
+        scheduleAI(); // in case player 0 is AI (only if playerCount=1 and AI on, edge case)
+      }
+
+      function rebuildAfterResize() {
+        const defs = shelves.map(s => s.def);
+        saveShelfDefs(defs);
+
+        W = p.width; H = p.height;
+        LAUNCH_H = Math.round(H * 0.25);
+        FLOOR_Y = H - LAUNCH_H;
+        BR = Math.round(p.constrain(W * 0.027, 10, 18));
+        resetInteraction();
+
+        World.clear(world); Engine.clear(engine);
+        balls = []; shelves = []; mirrors = [];
+
+        engine = Engine.create();
+        engine.gravity.x = cfg.gravityX;
+        engine.gravity.y = cfg.gravityY;
+        world = engine.world;
+        Events.on(engine, 'afterUpdate', handleFallOff);
+
+        const wo = { isStatic: true, friction: 0.1, restitution: 0.45 };
+        World.add(world, [
+          Bodies.rectangle(-25, H / 2, 50, H * 2, wo),
+          Bodies.rectangle(W + 25, H / 2, 50, H * 2, wo),
+        ]);
+        for (const d of defs) spawnShelf(d);
+        buildBg();
+      }
+
+      function spawnShelf(def) {
+        const sx = def.fx * W, sy = def.fy * H, sw = def.fw * W;
+        const body = Bodies.rectangle(sx, sy, sw, 10, {
+          isStatic: true, friction: 0.55, restitution: 0.28
+        });
+        Body.setAngle(body, def.a * Math.PI / 180);
+        World.add(world, body);
+        const idx = shelves.length;
+        shelves.push({ body, fw: sw, def: { ...def } });
+        if (cfg.mirrorMode) spawnMirrorFor(idx);
+      }
+
+      // Spawn a physics mirror body for shelf at shelves[idx]
+      function spawnMirrorFor(idx) {
+        const s = shelves[idx];
+        const mx = W - s.body.position.x;
+        const my = s.body.position.y;
+        const ma = -s.body.angle;
+        const mb = Bodies.rectangle(mx, my, s.fw, 10, {
+          isStatic: true, friction: 0.55, restitution: 0.28
+        });
+        Body.setAngle(mb, ma);
+        World.add(world, mb);
+        mirrors.push({ body: mb, fw: s.fw, sourceIdx: idx });
+      }
+
+      // Remove all mirror bodies and rebuild them from current shelves
+      function rebuildMirrors() {
+        for (const m of mirrors) World.remove(world, m.body);
+        mirrors = [];
+        if (!cfg.mirrorMode) return;
+        for (let i = 0; i < shelves.length; i++) spawnMirrorFor(i);
+      }
+
+      // Update mirror body for shelf at idx to match its source shelf
+      function syncMirrorFor(idx) {
+        const m = mirrors.find(m => m.sourceIdx === idx);
+        if (!m) return;
+        const s = shelves[idx];
+        const mx = W - s.body.position.x;
+        const my = s.body.position.y;
+        World.remove(world, m.body);
+        const nb = Bodies.rectangle(mx, my, s.fw, 10, {
+          isStatic: true, friction: 0.55, restitution: 0.28
+        });
+        Body.setAngle(nb, -s.body.angle);
+        World.add(world, nb);
+        m.body = nb;
+        m.fw = s.fw;
+      }
+
+      // Remove mirror body for a deleted shelf at idx, fix sourceIdx refs
+      function removeMirrorFor(idx) {
+        const mi = mirrors.findIndex(m => m.sourceIdx === idx);
+        if (mi >= 0) {
+          World.remove(world, mirrors[mi].body);
+          mirrors.splice(mi, 1);
+        }
+        // Patch sourceIdx for shelves that shifted
+        for (const m of mirrors) {
+          if (m.sourceIdx > idx) m.sourceIdx--;
+        }
+      }
+
+      function syncDef(idx) {
+        const s = shelves[idx];
+        s.def.fx = s.body.position.x / W;
+        s.def.fy = s.body.position.y / H;
+        s.def.fw = s.fw / W;
+        s.def.a = s.body.angle * 180 / Math.PI;
+        if (cfg.mirrorMode) syncMirrorFor(idx);
+        saveAllDefs();
+      }
+      function saveAllDefs() { saveShelfDefs(shelves.map(s => s.def)); }
+
+      // ── Background ──────────────────────────────────────────────────────────────
+      function buildBg() {
+        if (bgGfx) bgGfx.remove();
+        bgGfx = p.createGraphics(W, H);
+        for (let y = 0; y < H; y++) {
+          const t = y / H;
+          bgGfx.stroke(p.lerp(20, 38, t), p.lerp(14, 22, t), p.lerp(40, 58, t));
+          bgGfx.line(0, y, W, y);
+        }
+        bgGfx.noStroke();
+        const cr = Math.min(W, H) * 0.55;
+        for (let r = cr; r > 0; r -= 5) {
+          bgGfx.fill(110, 70, 175, p.map(r, 0, cr, 14, 0));
+          bgGfx.ellipse(W / 2, H * 0.42, r * 2, r * 1.5);
+        }
+        for (let y = FLOOR_Y; y < H; y++) {
+          const t = (y - FLOOR_Y) / LAUNCH_H;
+          bgGfx.stroke(65, 30, 120, p.lerp(0, 90, t));
+          bgGfx.line(0, y, W, y);
+        }
+      }
+
+      // ── Physics ──────────────────────────────────────────────────────────────────
+      function handleFallOff() {
+        for (let i = balls.length - 1; i >= 0; i--) {
+          const pos = balls[i].body.position;
+          if (pos.y > H + 80 || pos.y < -150) {
+            World.remove(world, balls[i].body);
+            balls.splice(i, 1);
+          }
+        }
+      }
+
+      // ── Player / palette ─────────────────────────────────────────────────────────
+      function pickPalette() {
+        palette = ALL_PALETTES[currentPlayer % cfg.playerCount];
+      }
+      function advancePlayer() {
+        currentPlayer = (currentPlayer + 1) % cfg.playerCount;
+        pickPalette();
+        updatePlayerDots();
+        scheduleAI();
+      }
+      function updatePlayerDots() {
+        playerDots.innerHTML = '';
+        if (editMode) return;
+        for (let i = 0; i < cfg.playerCount; i++) {
+          const d = document.createElement('div');
+          d.className = 'pdot' + (i === currentPlayer ? ' active' : '');
+          const pal = ALL_PALETTES[i];
+          d.style.background = `radial-gradient(circle at 35% 35%, ${pal[0]}, ${pal[2]})`;
+          playerDots.appendChild(d);
+        }
+      }
+
+      // ── Settings UI build ────────────────────────────────────────────────────────
+      function buildSettingsUI() {
+        // Player grid
+        const grid = document.getElementById('player-grid');
+        grid.innerHTML = '';
+        for (let i = 1; i <= 8; i++) {
+          const btn = document.createElement('button');
+          const active = (i <= cfg.playerCount);
+          btn.className = 'p-btn' + (active ? ' selected' : '');
+          btn.textContent = i;
+          btn.dataset.n = i;
+          const pal = ALL_PALETTES[i - 1];
+          if (active) {
+            btn.style.background = `radial-gradient(circle at 40% 40%, ${hexA(pal[0], 0.5)}, ${hexA(pal[2], 0.3)})`;
+          }
+          btn.addEventListener('click', () => setPlayerCount(i));
+          btn.addEventListener('touchend', e => { e.stopPropagation(); setPlayerCount(i); });
+          grid.appendChild(btn);
+        }
+
+        // Sliders
+        setupSlider('sl-gravity-y', 'val-gravity-y', cfg.gravityY, v => { cfg.gravityY = v; applyGravity(); });
+        setupSlider('sl-gravity-x', 'val-gravity-x', cfg.gravityX, v => { cfg.gravityX = v; applyGravity(); });
+        setupSlider('sl-air', 'val-air', cfg.airFriction, v => { cfg.airFriction = v; });
+        setupSlider('sl-restitution', 'val-restitution', cfg.restitution, v => { cfg.restitution = v; });
+        setupSlider('sl-power', 'val-power', cfg.powerMult, v => { cfg.powerMult = v; });
+
+        // Mirror toggle
+        const track = document.getElementById('mirror-track');
+        track.classList.toggle('on', cfg.mirrorMode);
+        document.getElementById('toggle-mirror').addEventListener('click', () => {
+          cfg.mirrorMode = !cfg.mirrorMode;
+          track.classList.toggle('on', cfg.mirrorMode);
+          rebuildMirrors();
+          saveSettings(cfg);
+        });
+
+        // AI toggle
+        const aiTrack = document.getElementById('ai-track');
+        aiTrack.classList.toggle('on', cfg.aiMode);
+        document.getElementById('toggle-ai').addEventListener('click', () => {
+          cfg.aiMode = !cfg.aiMode;
+          aiTrack.classList.toggle('on', cfg.aiMode);
+          saveSettings(cfg);
+        });
+      }
+
+      function setupSlider(sliderId, valId, initVal, onChange) {
+        const sl = document.getElementById(sliderId);
+        const val = document.getElementById(valId);
+        sl.value = initVal;
+        val.textContent = fmtVal(initVal);
+        sl.addEventListener('input', () => {
+          const v = parseFloat(sl.value);
+          val.textContent = fmtVal(v);
+          onChange(v);
+          saveSettings(cfg);
+        });
+      }
+
+      function fmtVal(v) {
+        if (Math.abs(v) < 0.01) return v.toFixed(4);
+        if (Math.abs(v) < 0.1) return v.toFixed(3);
+        return v.toFixed(2);
+      }
+
+      function applyGravity() {
+        if (engine) { engine.gravity.x = cfg.gravityX; engine.gravity.y = cfg.gravityY; }
+      }
+
+      function setPlayerCount(n) {
+        cfg.playerCount = n;
+        currentPlayer = Math.min(currentPlayer, n - 1);
+        pickPalette();
+        updatePlayerDots();
+        saveSettings(cfg);
+        document.querySelectorAll('.p-btn').forEach(btn => {
+          const i = parseInt(btn.dataset.n, 10);
+          const pal = ALL_PALETTES[i - 1];
+          const active = (i <= n);
+          btn.classList.toggle('selected', active);
+          btn.style.background = active
+            ? `radial-gradient(circle at 40% 40%, ${hexA(pal[0], 0.5)}, ${hexA(pal[2], 0.3)})`
+            : '';
+        });
+      }
+
+      // ── UI wiring ────────────────────────────────────────────────────────────────
+      function wireUI() {
+        btnSettings.addEventListener('click', openModal);
+        btnModalClose.addEventListener('click', closeModal);
+        modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop) closeModal(); });
+
+        btnEdit.addEventListener('click', toggleEditMode);
+
+        document.getElementById('sa-rot-left').addEventListener('click', () => rotateSelected(-ROT_STEP));
+        document.getElementById('sa-rot-right').addEventListener('click', () => rotateSelected(ROT_STEP));
+        document.getElementById('sa-wider').addEventListener('click', () => resizeSelected(WIDTH_STEP));
+        document.getElementById('sa-narrower').addEventListener('click', () => resizeSelected(-WIDTH_STEP));
+        document.getElementById('btn-add-shelf').addEventListener('click', addShelf);
+        document.getElementById('btn-clone-shelf').addEventListener('click', cloneSelected);
+        document.getElementById('sa-delete').addEventListener('click', deleteSelected);
+
+        document.getElementById('btn-reset-settings').addEventListener('click', resetSettings);
+        document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+      }
+
+      function openModal() {
+        paused = true;
+        aiming = false;
+        buildSettingsUI();
+        modalBackdrop.classList.add('visible');
+      }
+      function closeModal() {
+        modalBackdrop.classList.remove('visible');
+        paused = false;
+        scheduleAI(); // re-trigger if it was AI's turn when we paused
+      }
+
+      function toggleEditMode() {
+        editMode = !editMode;
+        btnEdit.classList.toggle('active', editMode);
+        selectedShelf = null;
+        dragShelf = null;
+        if (!editMode) shelfActions.classList.remove('visible');
+        resetInteraction();
+        if (editMode) balls = [];
+        updatePlayerDots();
+      }
+
+      function resetSettings() {
+        Object.assign(cfg, DEFAULT_SETTINGS);
+        saveSettings(cfg);
+        applyGravity();
+        currentPlayer = 0;
+        pickPalette();
+        updatePlayerDots();
+        buildSettingsUI();
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => { });
+        } else {
+          document.exitFullscreen().catch(() => { });
+        }
+      }
+
+      // ── Shelf operations ─────────────────────────────────────────────────────────
+      function addShelf() {
+        const def = { fx: 0.5, fy: FLOOR_Y / H * 0.6, fw: 0.18, a: 0 };
+        spawnShelf(def);
+        selectedShelf = shelves.length - 1;
+        saveAllDefs();
+        shelfActions.classList.add('visible');
+      }
+
+      function cloneSelected() {
+        if (selectedShelf === null) return;
+        // Copy def with a small offset so it's not exactly on top
+        const src = shelves[selectedShelf].def;
+        const def = { fx: src.fx + 0.02, fy: src.fy + 0.02, fw: src.fw, a: src.a };
+        spawnShelf(def);
+        selectedShelf = shelves.length - 1;
+        saveAllDefs();
+        shelfActions.classList.add('visible');
+      }
+
+      function rotateSelected(deg) {
+        if (selectedShelf === null) return;
+        const s = shelves[selectedShelf];
+        Body.setAngle(s.body, s.body.angle + deg * Math.PI / 180);
+        syncDef(selectedShelf);
+      }
+
+      function resizeSelected(dfw) {
+        if (selectedShelf === null) return;
+        const s = shelves[selectedShelf];
+        const newFW = p.constrain(s.def.fw + dfw, MIN_FW, MAX_FW);
+        const newW = newFW * W;
+        const pos = s.body.position, ang = s.body.angle;
+        World.remove(world, s.body);
+        const nb = Bodies.rectangle(pos.x, pos.y, newW, 10, {
+          isStatic: true, friction: 0.55, restitution: 0.28
+        });
+        Body.setAngle(nb, ang);
+        World.add(world, nb);
+        s.body = nb; s.fw = newW; s.def.fw = newFW;
+        syncDef(selectedShelf); // syncDef now calls syncMirrorFor internally
+      }
+
+      function deleteSelected() {
+        if (selectedShelf === null) return;
+        if (cfg.mirrorMode) removeMirrorFor(selectedShelf);
+        World.remove(world, shelves[selectedShelf].body);
+        shelves.splice(selectedShelf, 1);
+        selectedShelf = null;
+        shelfActions.classList.remove('visible');
+        saveAllDefs();
+      }
+
+      // ── Input helpers ────────────────────────────────────────────────────────────
+      function resetInteraction() { aiming = false; dragShelf = null; }
+
+      function isOverUI(x, y) {
+        const cr = p.canvas.getBoundingClientRect();
+        function hits(el) {
+          if (!el) return false;
+          const r = el.getBoundingClientRect();
+          return x >= r.left - cr.left && x <= r.right - cr.left &&
+            y >= r.top - cr.top && y <= r.bottom - cr.top;
+        }
+        const modalOpen = modalBackdrop.classList.contains('visible');
+        return hits(shelfActions) || hits(btnSettings) || hits(btnEdit) ||
+          (modalOpen && hits(modalBackdrop));
+      }
+
+      function getTouchPos(e) {
+        const rect = p.canvas.getBoundingClientRect();
+        const t = (e.changedTouches && e.changedTouches.length) ? e.changedTouches[0] : e.touches[0];
+        return { x: fin(t.clientX - rect.left, W / 2), y: fin(t.clientY - rect.top, H / 2) };
+      }
+
+      // ── Touch ────────────────────────────────────────────────────────────────────
+      function onTouchStart(e) {
+        const pos = getTouchPos(e);
+        if (editMode) editPressAt(pos.x, pos.y);
+        else gamePressAt(pos.x, pos.y);
+      }
+      function onTouchMove(e) {
+        const pos = getTouchPos(e);
+        if (editMode) editMoveAt(pos.x, pos.y);
+        else if (aiming) { curX = pos.x; curY = pos.y; }
+      }
+      function onTouchEnd(e) {
+        const pos = getTouchPos(e);
+        if (editMode) editReleaseAt(pos.x, pos.y);
+        else { if (aiming) { curX = pos.x; curY = pos.y; } gameRelease(); }
+      }
+
+      // ── Mouse ────────────────────────────────────────────────────────────────────
+      p.mousePressed = function () {
+        if (editMode) editPressAt(p.mouseX, p.mouseY);
+        else gamePressAt(p.mouseX, p.mouseY);
+      };
+      p.mouseDragged = function () {
+        if (editMode) editMoveAt(p.mouseX, p.mouseY);
+        else if (aiming) { curX = p.mouseX; curY = p.mouseY; }
+      };
+      p.mouseReleased = function () {
+        if (editMode) editReleaseAt(p.mouseX, p.mouseY);
+        else { if (aiming) { curX = p.mouseX; curY = p.mouseY; } gameRelease(); }
+      };
+
+      // ── Edit interactions ────────────────────────────────────────────────────────
+      function hitTestShelf(x, y) {
+        for (let i = shelves.length - 1; i >= 0; i--) {
+          const s = shelves[i], pos = s.body.position, ang = s.body.angle;
+          const dx = x - pos.x, dy = y - pos.y;
+          const lx = dx * Math.cos(-ang) - dy * Math.sin(-ang);
+          const ly = dx * Math.sin(-ang) + dy * Math.cos(-ang);
+          if (Math.abs(lx) < s.fw / 2 + 22 && Math.abs(ly) < 24) return i;
+        }
+        return -1;
+      }
+
+      function editPressAt(x, y) {
+        if (isOverUI(x, y)) return;
+        const hit = hitTestShelf(x, y);
+        if (hit >= 0) {
+          selectedShelf = hit;
+          shelfActions.classList.add('visible');
+          const pos = shelves[hit].body.position;
+          dragShelf = { idx: hit, offX: x - pos.x, offY: y - pos.y };
+        } else {
+          selectedShelf = null;
+          dragShelf = null;
+          shelfActions.classList.remove('visible');
+        }
+      }
+
+      function editMoveAt(x, y) {
+        if (dragShelf === null) return;
+        const s = shelves[dragShelf.idx];
+        Body.setPosition(s.body, {
+          x: fin(x - dragShelf.offX, s.body.position.x),
+          y: fin(y - dragShelf.offY, s.body.position.y),
+        });
+        syncDef(dragShelf.idx);
+      }
+
+      function editReleaseAt(x, y) {
+        if (isOverUI(x, y)) { dragShelf = null; return; }
+        if (dragShelf !== null) { syncDef(dragShelf.idx); dragShelf = null; }
+      }
+
+      // ── Game interactions ────────────────────────────────────────────────────────
+      function gamePressAt(x, y) {
+        if (paused) return;
+        if (isAITurn()) return; // block human input during AI turn
+        if (y < FLOOR_Y - BR * 3) return;
+        aiming = true;
+        startX = fin(x, W / 2); startY = fin(y, FLOOR_Y + LAUNCH_H * 0.5);
+        curX = startX; curY = startY;
+      }
+
+      function gameRelease() {
+        if (paused || isAITurn()) return;
+        if (!aiming) return;
+        aiming = false;
+        const dx = startX - curX, dy = startY - curY;
+        const dist = Math.hypot(dx, dy);
+        if (!isFinite(dist) || dist < 6) return;
+
+        const spd = p.constrain(dist * cfg.powerMult, 1, 22);
+        const nx = dx / dist, ny = dy / dist;
+        const sx = p.constrain(startX, BR + 20, W - BR - 20);
+        const sy = FLOOR_Y - BR - 2;
+
+        const body = Bodies.circle(sx, sy, BR, {
+          restitution: cfg.restitution,
+          friction: 0.04,
+          frictionAir: cfg.airFriction,
+          density: 0.002,
+        });
+        Body.setVelocity(body, { x: fin(nx * spd), y: fin(ny * spd) });
+        World.add(world, body);
+        balls.push({ body, palette });
+        advancePlayer();
+      }
+
+      // ── AI ────────────────────────────────────────────────────────────────────────
+      let aiPending = false;
+
+      function isAITurn() {
+        return cfg.aiMode && (currentPlayer % 2 === 1);
+      }
+
+      function scheduleAI() {
+        if (!isAITurn() || aiPending) return;
+        aiPending = true;
+        waitForSettleThenShoot();
+      }
+
+      function waitForSettleThenShoot() {
+        const SETTLE_SPD = 1.0;
+        const POLL_MS = 150;
+        const MIN_WAIT_MS = 500;
+        const MAX_WAIT_MS = 5000;
+        const start = Date.now();
+
+        function poll() {
+          if (paused || editMode) { setTimeout(poll, POLL_MS); return; }
+          if (!isAITurn()) { aiPending = false; return; }
+
+          const elapsed = Date.now() - start;
+          const allSettled = balls.every(b =>
+            Math.hypot(b.body.velocity.x, b.body.velocity.y) < SETTLE_SPD
+          );
+
+          if ((allSettled && elapsed >= MIN_WAIT_MS) || elapsed >= MAX_WAIT_MS) {
+            setTimeout(() => {
+              aiPending = false;
+              if (!paused && !editMode && isAITurn()) aiShoot();
+            }, 200 + Math.random() * 200);
+          } else {
+            setTimeout(poll, POLL_MS);
+          }
+        }
+        setTimeout(poll, MIN_WAIT_MS);
+      }
+
+      // ── AI: shelf data ──────────────────────────────────────────────────────────
+      // Returns shelf segments as endpoint pairs for line intersection tests.
+      // Each seg: { ax,ay, bx,by, cx,cy } where (ax,ay)-(bx,by) is the shelf line,
+      // (cx,cy) is the shelf centre.
+      function getAllShelfSegs() {
+        const segs = [];
+        function addSeg(cx, cy, hw, ang) {
+          const cosA = Math.cos(ang), sinA = Math.sin(ang);
+          segs.push({
+            ax: cx - cosA * hw, ay: cy - sinA * hw,
+            bx: cx + cosA * hw, by: cy + sinA * hw,
+            cx, cy,
+          });
+        }
+        for (const s of shelves)
+          addSeg(s.body.position.x, s.body.position.y, s.fw / 2, s.body.angle);
+        if (cfg.mirrorMode)
+          for (const m of mirrors)
+            addSeg(m.body.position.x, m.body.position.y, m.fw / 2, m.body.angle);
+        return segs;
+      }
+
+      // ── AI: accurate physics simulation ────────────────────────────────────────
+      // Matter.js at delta=1000/60: per-step velocity change = gravity * (delta/1000)
+      // With default timescale=1: dv = gravity * (1000/60) / 1000 * 60 = gravity * 1
+      // So cfg.gravityY IS the per-frame delta (same units as drawAim but drawAim
+      // used *0.5 which was wrong — the AI uses the true value here).
+      function simulatePath(sx, sy, vx0, vy0) {
+        const pts = [];
+        let bx = sx, by = sy, vx = vx0, vy = vy0;
+        // frictionAir reduces velocity each frame: v *= (1 - frictionAir)
+        const drag = 1 - cfg.airFriction;
+        for (let i = 0; i < 200; i++) {
+          vx = (vx + cfg.gravityX) * drag;
+          vy = (vy + cfg.gravityY) * drag;
+          bx += vx; by += vy;
+          // simple elastic wall bounces
+          if (bx < BR) { bx = BR; vx = Math.abs(vx) * 0.7; }
+          if (bx > W - BR) { bx = W - BR; vx = -Math.abs(vx) * 0.7; }
+          pts.push({ x: bx, y: by, vx, vy });
+          if (by > FLOOR_Y + 20) break;
+          if (by < -H * 0.8) break; // escaped top
+        }
+        return pts;
+      }
+
+      // ── AI: 2D segment intersection ─────────────────────────────────────────────
+      // Returns true if segment p1→p2 intersects segment p3→p4 (excluding endpoints).
+      function segmentsIntersect(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y) {
+        const d1x = p2x - p1x, d1y = p2y - p1y;
+        const d2x = p4x - p3x, d2y = p4y - p3y;
+        const denom = d1x * d2y - d1y * d2x;
+        if (Math.abs(denom) < 1e-10) return false; // parallel
+        const ox = p3x - p1x, oy = p3y - p1y;
+        const t = (ox * d2y - oy * d2x) / denom;
+        const u = (ox * d1y - oy * d1x) / denom;
+        return t > 0.01 && t < 0.99 && u > 0.01 && u < 0.99;
+      }
+
+      // ── AI: trajectory scoring ──────────────────────────────────────────────────
+      // REWARD: each shelf the ball crosses while descending = +10
+      // PENALTY: each shelf the ball clips while ascending   = -15
+      //   (de-duplicated per shelf so a slow graze doesn't stack)
+      // Bonus: reward if the crossing point is near the middle of the shelf (better
+      //   chance of landing on it rather than grazing the edge).
+      function scorePath(pts, segs) {
+        if (pts.length < 2) return -999;
+
+        // Track per-shelf hit state to avoid stacking score from multiple steps
+        const descHit = new Uint8Array(segs.length); // hit while descending
+        const ascHit = new Uint8Array(segs.length); // hit while ascending
+
+        let score = 0;
+
+        for (let i = 1; i < pts.length; i++) {
+          const prev = pts[i - 1], cur = pts[i];
+          const descending = cur.y > prev.y;
+
+          // Ignore steps near the launch zone (can't land on floor shelves)
+          if (cur.y >= FLOOR_Y - BR) continue;
+
+          for (let si = 0; si < segs.length; si++) {
+            const seg = segs[si];
+
+            // Expand shelf endpoints slightly (by BR) so near-misses also register
+            const expand = BR * 0.8;
+            const ang = Math.atan2(seg.by - seg.ay, seg.bx - seg.ax);
+            const nx = -Math.sin(ang) * expand, ny = Math.cos(ang) * expand;
+
+            const crossed = segmentsIntersect(
+              prev.x, prev.y, cur.x, cur.y,
+              seg.ax - nx, seg.ay - ny, seg.bx - nx, seg.by - ny
+            ) || segmentsIntersect(
+              prev.x, prev.y, cur.x, cur.y,
+              seg.ax + nx, seg.ay + ny, seg.bx + nx, seg.by + ny
+            );
+
+            if (!crossed) continue;
+
+            if (descending && !descHit[si]) {
+              descHit[si] = 1;
+              // Bonus for crossing near the shelf centre (more likely to land on it)
+              const dx = cur.x - seg.cx, dy = cur.y - seg.cy;
+              const distToCenter = Math.hypot(dx, dy);
+              const hw = Math.hypot(seg.bx - seg.ax, seg.by - seg.ay) / 2;
+              const centerBonus = Math.max(0, 1 - distToCenter / (hw * 1.5));
+              score += 10 + centerBonus * 5;
+            } else if (!descending && !ascHit[si]) {
+              ascHit[si] = 1;
+              score -= 15; // heavy penalty for clips on the way up
+            }
+          }
+        }
+
+        return score;
+      }
+
+      // ── AI: main shot selection ─────────────────────────────────────────────────
+      function aiShoot() {
+        const sy = FLOOR_Y - BR - 2;
+        const segs = getAllShelfSegs(); // compute once, reuse
+
+        const xSamples = 12;
+        const angSamples = 20;
+        const powers = [4, 7, 10, 13, 16, 19];
+
+        // Collect ALL candidates with their scores so we can sample from good ones
+        const candidates = []; // {vx, vy, sx, score}
+
+        function sweep(angMin, angMax, xMin, xMax) {
+          for (let xi = 0; xi < xSamples; xi++) {
+            const sx = p.map(xi, 0, xSamples - 1, xMin, xMax);
+            for (let ai = 0; ai < angSamples; ai++) {
+              const ang = p.map(ai, 0, angSamples - 1, angMin, angMax);
+              for (const pwr of powers) {
+                const vx = Math.cos(ang) * pwr;
+                const vy = Math.sin(ang) * pwr;
+                const pts = simulatePath(sx, sy, vx, vy);
+                const sc = scorePath(pts, segs);
+                candidates.push({ vx, vy, sx, score: sc });
+              }
+            }
+          }
+        }
+
+        // Pass 1: coarse full-hemisphere sweep
+        sweep(-Math.PI + 0.05, -0.05, BR + 20, W - BR - 20);
+
+        // Find best score across all candidates
+        let bestScore = -999;
+        for (const c of candidates) if (c.score > bestScore) bestScore = c.score;
+
+        // Pass 2: fine refinement around the overall best candidate
+        const bestC = candidates.find(c => c.score === bestScore);
+        if (bestC && bestScore > -999) {
+          const bestAng = Math.atan2(bestC.vy, bestC.vx);
+          const bestPwr = Math.hypot(bestC.vx, bestC.vy);
+          const angSpan = Math.PI / 8;
+          const xSpan = W * 0.12;
+          const finePowers = [
+            bestPwr * 0.80, bestPwr * 0.90, bestPwr,
+            bestPwr * 1.10, bestPwr * 1.20,
+          ];
+          for (let xi = 0; xi < 10; xi++) {
+            const sx = p.constrain(
+              p.map(xi, 0, 9, bestC.sx - xSpan, bestC.sx + xSpan),
+              BR + 20, W - BR - 20
+            );
+            for (let ai = 0; ai < 16; ai++) {
+              const ang = p.map(ai, 0, 15, bestAng - angSpan, bestAng + angSpan);
+              for (const pwr of finePowers) {
+                const vx = Math.cos(ang) * pwr;
+                const vy = Math.sin(ang) * pwr;
+                if (vy > 0) continue;
+                const pts = simulatePath(sx, sy, vx, vy);
+                const sc = scorePath(pts, segs);
+                candidates.push({ vx, vy, sx, score: sc });
+                if (sc > bestScore) bestScore = sc;
+              }
+            }
+          }
+        }
+
+        // Build pool of good shots: any shot scoring >= 70% of bestScore
+        // (if bestScore <= 0, accept any shot with score >= 0, else fallback)
+        let chosen = null;
+        if (bestScore > 0) {
+          const threshold = bestScore * 0.70;
+          const pool = candidates.filter(c => c.score >= threshold);
+          // Pick randomly from the pool — same quality, different variety
+          chosen = pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        // Apply small jitter to the chosen shot so even repeats look different
+        let finalVx, finalVy, finalSx;
+        if (chosen) {
+          const chosenAng = Math.atan2(chosen.vy, chosen.vx);
+          const chosenPwr = Math.hypot(chosen.vx, chosen.vy);
+          // ±8% power jitter, ±6° angle jitter
+          const jitterAng = chosenAng + (Math.random() - 0.5) * (Math.PI / 30);
+          const jitterPwr = chosenPwr * (0.92 + Math.random() * 0.16);
+          finalVx = Math.cos(jitterAng) * jitterPwr;
+          finalVy = Math.sin(jitterAng) * jitterPwr;
+          // Ensure it's still upward after jitter
+          if (finalVy > 0) finalVy = -Math.abs(finalVy);
+          finalSx = p.constrain(
+            chosen.sx + (Math.random() - 0.5) * W * 0.04,
+            BR + 20, W - BR - 20
+          );
+        } else {
+          // Fallback: random upward shot
+          finalSx = p.constrain(W / 2 + (Math.random() - 0.5) * W * 0.4, BR + 30, W - BR - 30);
+          const ang = p.map(Math.random(), 0, 1, -Math.PI * 0.85, -Math.PI * 0.15);
+          const pwr = 9 + Math.random() * 7;
+          finalVx = Math.cos(ang) * pwr;
+          finalVy = Math.sin(ang) * pwr;
+        }
+
+        const body = Bodies.circle(finalSx, sy, BR, {
+          restitution: cfg.restitution,
+          friction: 0.04,
+          frictionAir: cfg.airFriction,
+          density: 0.002,
+        });
+        Body.setVelocity(body, { x: fin(finalVx), y: fin(finalVy) });
+        World.add(world, body);
+        balls.push({ body, palette });
+        advancePlayer();
+      }
+
+      // ── Draw ─────────────────────────────────────────────────────────────────────
+      p.draw = function () {
+        // Only tick physics when not paused and not in edit mode
+        if (!paused && !editMode) Engine.update(engine, 1000 / 60);
+        p.image(bgGfx, 0, 0);
+
+        if (cfg.mirrorMode) drawMirrorShelves();
+        drawShelves();
+        drawWallEdges();
+
+        if (!editMode) {
+          drawLaunchZone();
+          for (const b of balls) drawBall(b);
+          if (aiming) drawAim(); else drawIdlePreview();
+          drawGlows();
+        } else {
+          drawEditOverlay();
+        }
+      };
+
+      // ── Render: mirror shelves ────────────────────────────────────────────────────
+      function drawMirrorShelves() {
+        for (const m of mirrors) {
+          const pos = m.body.position;
+          const ang = m.body.angle;
+
+          p.push(); p.translate(pos.x, pos.y); p.rotate(ang);
+          const gc = p.drawingContext;
+
+          for (let j = 5; j > 0; j--) {
+            gc.fillStyle = `rgba(80,210,200,${0.016 * j})`;
+            gc.beginPath(); gc.roundRect(-m.fw / 2 - j, -6 - j, m.fw + j * 2, 12 + j * 2, 6); gc.fill();
+          }
+          const g = gc.createLinearGradient(-m.fw / 2, -5, m.fw / 2, 5);
+          g.addColorStop(0, MIRROR_SHELF[0]);
+          g.addColorStop(0.5, MIRROR_SHELF[1]);
+          g.addColorStop(1, MIRROR_SHELF[2]);
+          gc.fillStyle = g;
+          gc.beginPath(); gc.roundRect(-m.fw / 2, -5, m.fw, 10, 4); gc.fill();
+          gc.strokeStyle = 'rgba(160,255,248,0.4)'; gc.lineWidth = 0.7;
+          gc.beginPath(); gc.moveTo(-m.fw / 2 + 5, -4); gc.lineTo(m.fw / 2 - 5, -4); gc.stroke();
+          p.pop();
+        }
+      }
+
+      // ── Render: real shelves ──────────────────────────────────────────────────────
+      function drawShelves() {
+        for (let i = 0; i < shelves.length; i++) {
+          const s = shelves[i], pos = s.body.position, ang = s.body.angle;
+          const sel = (editMode && selectedShelf === i);
+
+          p.push(); p.translate(pos.x, pos.y); p.rotate(ang);
+          const gc = p.drawingContext;
+
+          if (sel) {
+            gc.strokeStyle = 'rgba(200,170,255,0.75)'; gc.lineWidth = 2;
+            gc.beginPath(); gc.roundRect(-s.fw / 2 - 10, -14, s.fw + 20, 28, 9); gc.stroke();
+          }
+          for (let j = 7; j > 0; j--) {
+            gc.fillStyle = `rgba(180,140,255,${0.022 * j})`;
+            gc.beginPath(); gc.roundRect(-s.fw / 2 - j, -6 - j, s.fw + j * 2, 12 + j * 2, 6); gc.fill();
+          }
+          const g = gc.createLinearGradient(-s.fw / 2, -5, s.fw / 2, 5);
+          g.addColorStop(0, 'rgba(215,195,255,0.82)');
+          g.addColorStop(0.5, 'rgba(245,225,255,0.96)');
+          g.addColorStop(1, 'rgba(185,162,235,0.75)');
+          gc.fillStyle = g;
+          gc.beginPath(); gc.roundRect(-s.fw / 2, -5, s.fw, 10, 4); gc.fill();
+          gc.strokeStyle = 'rgba(255,255,255,0.5)'; gc.lineWidth = 0.8;
+          gc.beginPath(); gc.moveTo(-s.fw / 2 + 5, -4); gc.lineTo(s.fw / 2 - 5, -4); gc.stroke();
+          p.pop();
+        }
+      }
+
+      // ── Render: wall edges ────────────────────────────────────────────────────────
+      function drawWallEdges() {
+        const gc = p.drawingContext;
+        const gl = gc.createLinearGradient(0, 0, 16, 0);
+        gl.addColorStop(0, 'rgba(150,100,220,0.45)'); gl.addColorStop(1, 'rgba(0,0,0,0)');
+        gc.fillStyle = gl; gc.fillRect(0, 0, 16, H);
+        const gr = gc.createLinearGradient(W - 16, 0, W, 0);
+        gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(150,100,220,0.45)');
+        gc.fillStyle = gr; gc.fillRect(W - 16, 0, 16, H);
+      }
+
+      // ── Render: launch zone line ──────────────────────────────────────────────────
+      function drawLaunchZone() {
+        const gc = p.drawingContext;
+        const lg = gc.createLinearGradient(0, 0, W, 0);
+        lg.addColorStop(0, 'rgba(200,160,255,0)');
+        lg.addColorStop(0.15, 'rgba(225,185,255,0.65)');
+        lg.addColorStop(0.85, 'rgba(225,185,255,0.65)');
+        lg.addColorStop(1, 'rgba(200,160,255,0)');
+        gc.strokeStyle = lg; gc.lineWidth = 1.2;
+        gc.beginPath(); gc.moveTo(0, FLOOR_Y); gc.lineTo(W, FLOOR_Y); gc.stroke();
+      }
+
+      // ── Render: edit overlay dim ──────────────────────────────────────────────────
+      function drawEditOverlay() {
+        const gc = p.drawingContext;
+        gc.fillStyle = 'rgba(10,4,22,0.30)';
+        gc.fillRect(0, 0, W, H);
+      }
+
+      // ── Render: ball ─────────────────────────────────────────────────────────────
+      function drawBall(b) {
+        const x = fin(b.body.position.x), y = fin(b.body.position.y);
+        if (x === 0 && y === 0) return;
+        const gc = p.drawingContext;
+
+        const gw = gc.createRadialGradient(x, y, 0, x, y, BR * 2.4);
+        gw.addColorStop(0, hexA(b.palette[1], 0.2)); gw.addColorStop(1, 'rgba(0,0,0,0)');
+        gc.fillStyle = gw; gc.beginPath(); gc.arc(x, y, BR * 2.4, 0, Math.PI * 2); gc.fill();
+
+        const gr = gc.createRadialGradient(x - BR * .32, y - BR * .38, BR * .04, x, y, BR);
+        gr.addColorStop(0, b.palette[0]); gr.addColorStop(.55, b.palette[1]); gr.addColorStop(1, b.palette[2]);
+        gc.fillStyle = gr; gc.beginPath(); gc.arc(x, y, BR, 0, Math.PI * 2); gc.fill();
+
+        const sp = gc.createRadialGradient(x - BR * .3, y - BR * .4, 0, x - BR * .3, y - BR * .4, BR * .48);
+        sp.addColorStop(0, 'rgba(255,255,255,0.78)'); sp.addColorStop(1, 'rgba(255,255,255,0)');
+        gc.fillStyle = sp; gc.beginPath(); gc.arc(x, y, BR, 0, Math.PI * 2); gc.fill();
+        gc.strokeStyle = 'rgba(255,255,255,0.1)'; gc.lineWidth = 0.7; gc.stroke();
+      }
+
+      // ── Render: idle preview ──────────────────────────────────────────────────────
+      function drawIdlePreview() {
+        if (!palette) return;
+        let px = fin(p.mouseX, W / 2);
+        if (px < 20 || px > W - 20) px = W / 2;
+        const py = FLOOR_Y + LAUNCH_H * 0.35;
+        const gc = p.drawingContext;
+
+        const gr = gc.createRadialGradient(px - BR * .3, py - BR * .35, 0, px, py, BR);
+        gr.addColorStop(0, hexA(palette[0], 0.55));
+        gr.addColorStop(0.6, hexA(palette[1], 0.45));
+        gr.addColorStop(1, hexA(palette[2], 0.28));
+        gc.fillStyle = gr; gc.beginPath(); gc.arc(px, py, BR, 0, Math.PI * 2); gc.fill();
+        gc.strokeStyle = 'rgba(255,255,255,0.18)'; gc.lineWidth = 1; gc.stroke();
+
+        const pulse = (Math.sin(p.frameCount * .065) + 1) / 2;
+        gc.strokeStyle = hexA(palette[1], 0.22 * (1 - pulse)); gc.lineWidth = 1.5;
+        gc.beginPath(); gc.arc(px, py, BR + 4 + pulse * 6, 0, Math.PI * 2); gc.stroke();
+      }
+
+      // ── Render: aim ───────────────────────────────────────────────────────────────
+      function drawAim() {
+        const dx = startX - curX, dy = startY - curY;
+        const dist = Math.hypot(dx, dy);
+        if (!isFinite(dist) || dist < 1) return;
+
+        const pwr = p.constrain(dist * cfg.powerMult, 0, 22);
+        const nx = dx / dist, ny = dy / dist;
+        const sx = p.constrain(fin(startX, W / 2), BR + 20, W - BR - 20);
+        const sy = FLOOR_Y - BR - 2;
+        const gc = p.drawingContext;
+
+        // Trajectory
+        let vx = nx * pwr, vy = ny * pwr, bx = sx, by = sy;
+        const gx = cfg.gravityX * 0.5, gy = cfg.gravityY * 0.5;
+        for (let i = 0; i < 34; i++) {
+          vx += gx; vy += gy; bx += vx; by += vy;
+          if (by > FLOOR_Y + 5 || !isFinite(bx) || !isFinite(by)) break;
+          gc.fillStyle = hexA(palette[1], p.map(i, 0, 34, 0.7, 0) * 0.85);
+          gc.beginPath(); gc.arc(bx, by, p.map(i, 0, 34, BR * .38, 1.2), 0, Math.PI * 2); gc.fill();
+        }
+
+        // Power bar
+        const barW = Math.min(180, W * .40), barX = fin(sx - barW / 2, 10), barY = FLOOR_Y + 10;
+        gc.fillStyle = 'rgba(255,255,255,0.07)';
+        gc.beginPath(); gc.roundRect(barX, barY, barW, 6, 3); gc.fill();
+        if (pwr > 0) {
+          const bg = gc.createLinearGradient(barX, 0, barX + barW, 0);
+          bg.addColorStop(0, hexA(palette[0], 0.9)); bg.addColorStop(1, hexA(palette[2], 0.9));
+          gc.fillStyle = bg;
+          gc.beginPath(); gc.roundRect(barX, barY, (pwr / 22) * barW, 6, 3); gc.fill();
+        }
+
+        // Ball at spawn
+        const gr = gc.createRadialGradient(sx - BR * .3, sy - BR * .35, 0, sx, sy, BR);
+        gr.addColorStop(0, palette[0]); gr.addColorStop(.55, palette[1]); gr.addColorStop(1, palette[2]);
+        gc.fillStyle = gr; gc.beginPath(); gc.arc(sx, sy, BR, 0, Math.PI * 2); gc.fill();
+
+        // Cue stick
+        if (dist > 8) {
+          const stickLen = p.constrain(dist * .85, 0, 95);
+          const ex = sx - nx * stickLen, ey = sy - ny * stickLen;
+          const sg = gc.createLinearGradient(sx, sy, fin(ex, sx), fin(ey, sy));
+          sg.addColorStop(0, hexA(palette[1], 0.9)); sg.addColorStop(1, hexA(palette[0], 0.12));
+          gc.strokeStyle = sg; gc.lineWidth = 3; gc.lineCap = 'round';
+          gc.beginPath(); gc.moveTo(sx + nx * (BR + 3), sy + ny * (BR + 3)); gc.lineTo(ex, ey); gc.stroke();
+        }
+      }
+
+      // ── Render: glows ─────────────────────────────────────────────────────────────
+      function drawGlows() {
+        const gc = p.drawingContext;
+        gc.save(); gc.globalCompositeOperation = 'screen';
+        for (const b of balls) {
+          const x = fin(b.body.position.x), y = fin(b.body.position.y);
+          const spd = Math.hypot(b.body.velocity.x, b.body.velocity.y);
+          const a = p.map(fin(spd, 0), 0, 10, 0.03, 0.22);
+          const gw = gc.createRadialGradient(x, y, 0, x, y, BR * 3.2);
+          gw.addColorStop(0, hexA(b.palette[1], a)); gw.addColorStop(1, 'rgba(0,0,0,0)');
+          gc.fillStyle = gw; gc.beginPath(); gc.arc(x, y, BR * 3.2, 0, Math.PI * 2); gc.fill();
+        }
+        gc.restore();
+      }
+
+    }); // end p5
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,2263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>FPS</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      color: #e8f4e8;
+    }
+
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+    }
+
+    #crosshair::before,
+    #crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    #crosshair::before {
+      width: 2px;
+      height: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #crosshair::after {
+      width: 100%;
+      height: 2px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    #nexus-hud {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    #nexus-label {
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: rgba(100, 180, 255, 0.6);
+    }
+
+    #nexus-bar-wrap {
+      width: 220px;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(100, 180, 255, 0.3);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    #nexus-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #1a88ff, #44ccff);
+      border-radius: 5px;
+      transition: width 0.2s;
+      box-shadow: 0 0 8px #44ccff88;
+    }
+
+    #wave-label {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: rgba(255, 200, 80, 0.55);
+      margin-top: 2px;
+    }
+
+    /* Wave info panel — next wave countdown + composition */
+    #wave-info {
+      position: absolute;
+      top: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      pointer-events: none;
+    }
+
+    #wave-timer {
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: rgba(255, 200, 80, 0.7);
+    }
+
+    #wave-timer.urgent {
+      color: rgba(255, 80, 80, 0.9);
+      animation: pulse 0.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from {
+        opacity: 0.6;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    #wave-preview {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 320px;
+    }
+
+    .wave-pip {
+      font-size: 9px;
+      letter-spacing: 2px;
+      padding: 2px 6px;
+      border: 1px solid;
+      border-radius: 2px;
+      opacity: 0.75;
+    }
+
+    #level-name {
+      position: absolute;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: rgba(255, 255, 255, 0.18);
+    }
+
+    #money {
+      position: absolute;
+      top: 20px;
+      right: 40px;
+      font-size: 22px;
+      letter-spacing: 2px;
+      color: #ffd700;
+      text-shadow: 0 0 10px #ffd70088;
+    }
+
+    #ammo {
+      position: absolute;
+      bottom: 32px;
+      right: 40px;
+      font-size: 28px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 12px #4fffb0;
+      color: #4fffb0;
+    }
+
+    #bars-left {
+      position: absolute;
+      bottom: 32px;
+      left: 40px;
+    }
+
+    .bar-row {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 8px;
+    }
+
+    .bar-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 4px;
+    }
+
+    .bar-track {
+      width: 160px;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #health-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #ff4b4b, #ff9944);
+      border-radius: 4px;
+      transition: width 0.15s;
+    }
+
+    #energy-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #ccaa00, #ffee44);
+      border-radius: 4px;
+      transition: width 0.05s;
+    }
+
+    #hit-marker {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #ff4444;
+      font-size: 32px;
+      opacity: 0;
+      transition: opacity 0.05s;
+    }
+
+    #damage-flash {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 0, 0, 0);
+      pointer-events: none;
+      transition: background 0.1s;
+    }
+
+    #reload-msg {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 13px;
+      letter-spacing: 3px;
+      color: rgba(255, 200, 80, 0.8);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #respawn-msg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, 40px);
+      font-size: 14px;
+      letter-spacing: 3px;
+      color: rgba(255, 80, 80, 0.85);
+      display: none;
+      text-align: center;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.88);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: all;
+    }
+
+    .menu-title {
+      font-size: 56px;
+      letter-spacing: 10px;
+      color: #4fffb0;
+      text-shadow: 0 0 40px #4fffb066;
+      margin-bottom: 8px;
+    }
+
+    .menu-subtitle {
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: rgba(255, 255, 255, 0.3);
+      margin-bottom: 32px;
+    }
+
+    .level-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 32px;
+      justify-content: center;
+      max-width: 960px;
+    }
+
+    .level-card {
+      width: 170px;
+      padding: 18px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    }
+
+    .level-card:hover {
+      border-color: #4fffb0;
+      background: rgba(79, 255, 176, 0.06);
+      transform: translateY(-3px);
+    }
+
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-bottom: 12px;
+    }
+
+    .card-num {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.25);
+      margin-bottom: 8px;
+    }
+
+    .card-name {
+      font-size: 14px;
+      letter-spacing: 2px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .card-desc {
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.4);
+      line-height: 1.6;
+    }
+
+    .menu-hint {
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    .info-title {
+      font-size: 52px;
+      letter-spacing: 8px;
+      color: #4fffb0;
+      text-shadow: 0 0 40px #4fffb088;
+      margin-bottom: 16px;
+    }
+
+    .info-sub {
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.45);
+      letter-spacing: 2px;
+      margin-bottom: 32px;
+    }
+
+    .info-btn {
+      padding: 12px 36px;
+      font-family: inherit;
+      font-size: 15px;
+      letter-spacing: 3px;
+      background: transparent;
+      border: 1px solid #4fffb0;
+      color: #4fffb0;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      margin: 6px;
+    }
+
+    .info-btn:hover {
+      background: #4fffb0;
+      color: #000;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="hud">
+    <div id="crosshair"></div>
+    <div id="nexus-hud">
+      <div id="nexus-label">NEXUS</div>
+      <div id="nexus-bar-wrap">
+        <div id="nexus-fill"></div>
+      </div>
+      <div id="wave-label">WAVE 1</div>
+    </div>
+    <div id="level-name"></div>
+    <div id="wave-info">
+      <div id="wave-timer"></div>
+      <div id="wave-preview"></div>
+    </div>
+    <div id="money">&#36; <span id="money-amt">0</span></div>
+    <div id="ammo"><span id="ammo-cur">12</span> / <span id="ammo-max">12</span></div>
+    <div id="bars-left">
+      <div class="bar-row">
+        <div class="bar-label">HP</div>
+        <div class="bar-track">
+          <div id="health-fill"></div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">ENERGY</div>
+        <div class="bar-track">
+          <div id="energy-fill"></div>
+        </div>
+      </div>
+    </div>
+    <div id="hit-marker">&#10022;</div>
+    <div id="damage-flash"></div>
+    <div id="reload-msg">RELOADING&hellip;</div>
+    <div id="respawn-msg">YOU DIED<br><span id="respawn-count">5</span></div>
+    <div id="overlay"></div>
+  </div>
+
+  <script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+  <!--
+  ═══════════════════════════════════════════════════════════════
+  EXTERNAL CONFIG FILES  (plain scripts, loaded before the module)
+  ═══════════════════════════════════════════════════════════════
+
+  config/config.js
+  ────────────────
+  const CONFIG = {
+    // Player
+    PLAYER_SPEED, PLAYER_SPRINT_SPEED, PLAYER_HEIGHT, PLAYER_MAX_HP,
+    PLAYER_RADIUS, MOUSE_SENSITIVITY, JUMP_FORCE, GRAVITY, PLAYER_RESPAWN_TIME,
+    // Energy
+    PLAYER_ENERGY_MAX, PLAYER_ENERGY_DRAIN, PLAYER_ENERGY_REGEN,
+    // Gun
+    GUN_DAMAGE, AMMO_MAX, RELOAD_TIME, SHOOT_COOLDOWN,
+    // Enemy base
+    ENEMY_ATTACK_DIST, ENEMY_ATTACK_RATE, WAYPOINT_REACH_DIST,
+    // Elite enemy
+    ELITE_WAVE_INTERVAL, ELITE_HP_MULTIPLIER, ELITE_SPEED_MULT, ELITE_SCALE,
+    ELITE_COLOR, ELITE_EMISSIVE, ELITE_EYE_COLOR, ELITE_EYE_EMISSIVE,
+    // Wave system
+    WAVE_INTERVAL, WAVE_INITIAL_COUNT, WAVE_COUNT_GROWTH,
+    WAVE_INITIAL_HP, WAVE_HP_GROWTH,
+    // Nexus
+    NEXUS_MAX_HP, NEXUS_DAMAGE, NEXUS_REACH_DIST,
+    // Coins
+    COIN_VALUE, COIN_PICKUP_DIST, COIN_BOB_SPEED, COIN_ROT_SPEED, COIN_LIFETIME,
+    // Path visualisation
+    PATH_STRIP_WIDTH, PATH_STRIP_COLOR, PATH_STRIP_EMISSIVE,
+    PATH_STRIP_INTENSITY, PATH_STRIP_Y,
+    PATH_NODE_LIGHT_COLOR, PATH_NODE_LIGHT_INTENSITY, PATH_NODE_LIGHT_DISTANCE,
+    // Global lighting boost
+    AMBIENT_EXTRA_INTENSITY, SUN_EXTRA_INTENSITY,
+  }
+
+  config/enemies.js
+  ─────────────────
+  const ENEMY_TYPES = [
+    {
+      id, label, weight,
+      speedMult, hpMult, scale,
+      bodyColor, bodyEmissive,
+      eyeColor, eyeEmissive,
+      hpBarHi, hpBarMid, hpBarLo,   // CSS color strings for HP bar
+    }, ...
+  ]
+  const _ENEMY_TYPE_TABLE   // weighted array for O(1) random pick
+  function pickRandomEnemyType() → ENEMY_TYPES entry
+  const ENEMY_BASE_SPEED    // base movement speed in world-units/s
+
+  config/assets.js
+  ────────────────
+  // Scale tuning (multiply to correct for model export units)
+  const MODEL_SCALE_GUN, MODEL_SCALE_FLOOR, MODEL_SCALE_WALL,
+        MODEL_SCALE_PIPE, MODEL_SCALE_ENV, MODEL_SCALE_ACCESSORY
+  const MODEL_FLOOR_TILE_SIZE   // native size of one floor tile (world units)
+  const GRID_UNIT               // world metres per 1 grid cell
+  const WALL_HEIGHT             // world metres tall per wall segment (= 4 × GRID_UNIT)
+
+  // Per-model position offsets — plain {x,y,z} objects, tune to fix pivot mismatches
+  const MODEL_POS_OFFSET_FLOOR, MODEL_POS_OFFSET_WALL, MODEL_POS_OFFSET_PIPE
+
+  let DEBUG_HITBOXES            // toggled by F3 — renders wireframe collision volumes
+
+  const ASSET_MANIFEST = {
+    <id>: {
+      path:      string,         // e.g. 'assets/guns/blaster-a.glb'
+      scale:     number,         // uniform scale applied on load
+      posOffset: {x,y,z},        // position correction for pivot mismatches
+      rotOffset: {x,y,z},        // rotation correction (radians)
+      shadows:   { cast, receive },
+      gridW?:    number,         // footprint width in grid units (grid assets only)
+      gridD?:    number,         // footprint depth in grid units (grid assets only)
+    }, ...
+    // Groups: gun (active), blasterA–blasterR, gun accessories, crates,
+    //         floor/wall/pipe (core), wall variants (corner/door/window/pillar),
+    //         all other environment props
+  }
+
+  config/levels.js
+  ────────────────
+  const LEVEL_MANIFEST = [ 'filename', ... ]
+  // Filenames (no path, no .json) of levels to load from levels/<n>.json
+  // Level JSON schema documented in the LEVEL DEFINITION FORMAT comment
+  // in section 5 of this file.
+  ═══════════════════════════════════════════════════════════════
+-->
+  <script src="config/config.js"></script>
+  <script src="config/enemies.js"></script>
+  <script src="config/assets.js"></script>
+  <script src="config/levels.js"></script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    'use strict';
+
+
+
+    /* ═══════════════════════════════════════════════════════════
+       3. STATE
+    ═══════════════════════════════════════════════════════════ */
+    const State = {
+      running: false,
+      paused: false,   // true when intentionally paused (not game-over or menu)
+      wantLock: false,   // true when we've requested pointer lock intentionally
+      currentLevel: 0,
+      player: {
+        hp: CONFIG.PLAYER_MAX_HP,
+        energy: CONFIG.PLAYER_ENERGY_MAX,
+        money: 0,
+        yaw: 0,
+        pitch: 0,
+        vel: new THREE.Vector3(),
+        velY: 0,
+        onGround: true,
+        dead: false,
+        respawnTimer: 0,
+      },
+      gun: {
+        ammo: CONFIG.AMMO_MAX,
+        reloading: false,
+        reloadTimerId: null,   // FIX: track timer ID so it can be cancelled on restart
+        lastShot: 0,
+        mouseHeld: false,
+      },
+      nexus: { hp: CONFIG.NEXUS_MAX_HP },
+      wave: {
+        number: 1,
+        timer: CONFIG.WAVE_INTERVAL,
+      },
+      enemies: [],
+      bullets: [],
+      coins: [],
+      keys: {},
+    };
+
+
+    /* ═══════════════════════════════════════════════════════════
+       4. RENDERER & SCENE SETUP
+    ═══════════════════════════════════════════════════════════ */
+    const Renderer = (() => {
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 400);
+      camera.position.set(0, CONFIG.PLAYER_HEIGHT, 0);
+
+      window.addEventListener('resize', () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+      });
+
+      return { renderer, scene, camera };
+    })();
+
+    const { renderer, scene, camera } = Renderer;
+
+
+    /* ═══════════════════════════════════════════════════════════
+       5. LEVEL DEFINITIONS  (6 new levels)
+       Schema:
+         name, description, accentColor
+         floorSize, floorColor, fogColor, fogNear, fogFar
+         ambient      : { color, intensity }
+         sun          : { color, intensity, pos:[x,y,z] }
+         pointLights  : [{ color, intensity, distance, pos:[x,y,z] }]
+         walls        : [{ x, z, w, h, d, color }]
+         columns      : [{ x, z, radius, height, color }]
+         playerSpawn  : { x, z, yaw }
+         enemySpawns  : [{ x, z }]      — enemies start here
+         path         : [{ x, z }]      — ordered waypoints to nexus
+         nexus        : { x, z }        — nexus position (last path node)
+    
+       PATH DESIGN NOTES:
+         • All waypoints are in open corridors, never inside walls.
+         • Path goes spawn → twist A → twist B → (optional C) → nexus.
+         • Player spawns on opposite side from enemy spawns.
+    ═══════════════════════════════════════════════════════════ */
+    /* ─────────────────────────────────────────────────────────────────
+       LEVEL DEFINITION FORMAT  (loaded from levels/<name>.json at runtime)
+       Each JSON file must contain:
+    
+       name         string   — display name e.g. "KILLBOX"
+       description  string   — shown on menu card (\n for line breaks)
+       accentColor  string   — CSS hex color for menu dot e.g. "#ff3333"
+    
+       floorSize    number   — world-space extent for fog/ceiling/boundary
+       floorColor   number   — decimal int color e.g. 1315098  (= 0x141a1a)
+       fogColor     number   — decimal int color
+       fogNear      number
+       fogFar       number
+    
+       ambient      { color: number, intensity: number }
+       sun          { color: number, intensity: number, pos: [x,y,z] }
+       pointLights  [ { color, intensity, distance, pos:[x,y,z] }, … ]
+    
+       floors   [ { gx, gz, id } ]              — grid-snapped floor tiles
+       walls    [ { gx, gz, face, id } ]        — face = "N"|"S"|"E"|"W"
+       columns  [ { gx, gz, id } ]              — grid-snapped pillars
+       props    [ { id, x, y, z, rotY } ]       — hand-placed, world coords
+    
+       playerSpawn  { x, z, yaw }
+       enemySpawns  [ { x, z }, … ]
+       path         [ { x, z }, … ]             — waypoints for enemies
+       nexus        { x, z }
+    ───────────────────────────────────────────────────────────────── */
+
+    // Populated at startup by LevelLoader.loadAll(). Treat as read-only after init.
+    let LEVELS = [];
+
+    /* ═══════════════════════════════════════════════════════════
+       2b. LEVEL LOADER
+       Fetches all level JSON files listed in LEVEL_MANIFEST.
+       Always resolves — missing/broken files are skipped with a
+       console warning so the game starts even with partial data.
+    ═══════════════════════════════════════════════════════════ */
+    // Add filenames here (without path or extension) to register a level.
+    const LevelLoader = (() => {
+      // Fetch + parse one JSON file. Returns null on any failure.
+      async function _fetchLevel(filename) {
+        const url = `levels/${filename}.json`;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) { console.warn(`LevelLoader: ${url} → HTTP ${res.status}`); return null; }
+          const def = await res.json();
+          // Ensure optional arrays exist so the rest of the code never has to guard
+          def.floors = def.floors || [];
+          def.columns = def.columns || [];
+          def.props = def.props || [];
+          return def;
+        } catch (e) {
+          console.warn(`LevelLoader: failed to load ${url}:`, e.message);
+          return null;
+        }
+      }
+
+      // Load all manifested levels in order, skipping nulls.
+      // Returns a Promise that resolves when all fetches settle.
+      async function loadAll() {
+        const results = await Promise.all(LEVEL_MANIFEST.map(_fetchLevel));
+        LEVELS.length = 0;
+        results.forEach((def, i) => {
+          if (def) LEVELS.push(def);
+          else console.warn(`LevelLoader: skipped "${LEVEL_MANIFEST[i]}"`);
+        });
+        console.log(`LevelLoader: ${LEVELS.length}/${LEVEL_MANIFEST.length} levels loaded.`);
+      }
+
+      return { loadAll };
+    })();
+
+
+
+
+
+
+
+    /* ═══════════════════════════════════════════════════════════
+       6e. MODEL CACHE
+       Loads GLB files listed in ASSET_MANIFEST and stores cloneable
+       template scenes. Consumers call ModelCache.get(id) to receive
+       a ready-to-place clone.
+    
+       Design:
+         • preload(ids)         – load a set of models in parallel.
+                                  Returns a Promise that always resolves
+                                  (failures are logged; missing models
+                                  fall back gracefully to procedural geo).
+         • get(id)              – returns a deep clone of the template,
+                                  or null if the model failed / wasn't loaded.
+         • applyManifestTransform(id, object3D)
+                                – applies the manifest's posOffset / rotOffset
+                                  to an already-placed object. Useful when
+                                  callers need to add their own offset on top.
+    
+       Cloning strategy:
+         THREE.Object3D.clone() shares geometries and materials with the
+         template (copy-on-write is handled by Three.js internally), so
+         placing 30 wall clones costs almost no extra GPU memory.
+    ═══════════════════════════════════════════════════════════ */
+    const ModelCache = (() => {
+      const _templates = new Map();   // id → THREE.Group (loaded template)
+      const _loader = new GLTFLoader();
+
+      // Load a single model entry. Returns a Promise<void> — never rejects.
+      function _loadOne(id) {
+        const entry = ASSET_MANIFEST[id];
+        if (!entry) {
+          console.warn(`ModelCache: unknown asset id "${id}"`);
+          return Promise.resolve();
+        }
+
+        return new Promise(resolve => {
+          _loader.load(
+            entry.path,
+            (gltf) => {
+              const root = gltf.scene;
+
+              // Apply manifest normalisation transform once onto the template
+              root.scale.setScalar(entry.scale);
+              root.position.copy(entry.posOffset);
+              root.rotation.copy(entry.rotOffset);
+
+              // Bake shadow settings onto every mesh
+              const { cast, receive } = entry.shadows;
+              root.traverse(child => {
+                if (child.isMesh) {
+                  child.castShadow = cast;
+                  child.receiveShadow = receive;
+                }
+              });
+
+              _templates.set(id, root);
+              console.log(`ModelCache: loaded "${id}" (${entry.path})`);
+              resolve();
+            },
+            undefined,
+            (err) => {
+              console.warn(`ModelCache: failed to load "${id}" (${entry.path}) — procedural fallback will be used.`, err.message || '');
+              resolve();   // always resolve so preload() doesn't block the game
+            }
+          );
+        });
+      }
+
+      // Load all requested ids in parallel.
+      // Returns a Promise that resolves when every load attempt has settled.
+      function preload(ids) {
+        return Promise.all(ids.map(_loadOne));
+      }
+
+      // Returns a deep clone of the template for the given id, or null.
+      // The clone is independent: you can move/rotate/scale it freely.
+      function get(id) {
+        const template = _templates.get(id);
+        if (!template) return null;
+        return template.clone(true);   // true = deep clone (children included)
+      }
+
+      return { preload, get };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       6f. GEOMETRY UTILS
+       Centralises all procedural THREE.*Geometry / MeshStandardMaterial
+       construction. This is a temporary layer — as real models become
+       available, callers replace GeometryUtils.make*() calls with
+       ModelCache.get() calls and this module shrinks to nothing.
+    
+       Every function returns { mesh, geo, mat } so callers can track
+       them for proper disposal.
+    ═══════════════════════════════════════════════════════════ */
+    const GeometryUtils = (() => {
+
+      function makeBox(w, h, d, color, options = {}) {
+        const geo = new THREE.BoxGeometry(w, h, d);
+        const mat = new THREE.MeshStandardMaterial({
+          color,
+          roughness: options.roughness ?? 0.8,
+          metalness: options.metalness ?? 0,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.castShadow = options.castShadow ?? true;
+        mesh.receiveShadow = options.receiveShadow ?? true;
+        return { mesh, geo, mat };
+      }
+
+      function makeCylinder(radius, height, segments, color, options = {}) {
+        const geo = new THREE.CylinderGeometry(radius, radius, height, segments);
+        const mat = new THREE.MeshStandardMaterial({
+          color,
+          roughness: options.roughness ?? 0.7,
+          metalness: options.metalness ?? 0,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.castShadow = options.castShadow ?? true;
+        mesh.receiveShadow = options.receiveShadow ?? true;
+        return { mesh, geo, mat };
+      }
+
+      function makePlane(w, h, color, options = {}) {
+        const geo = new THREE.PlaneGeometry(w, h, options.segW ?? 1, options.segH ?? 1);
+        const mat = new THREE.MeshStandardMaterial({
+          color,
+          roughness: options.roughness ?? 0.9,
+          metalness: options.metalness ?? 0,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.castShadow = options.castShadow ?? false;
+        mesh.receiveShadow = options.receiveShadow ?? true;
+        return { mesh, geo, mat };
+      }
+
+      function makeOctahedron(radius, detail, color, options = {}) {
+        const geo = new THREE.OctahedronGeometry(radius, detail);
+        const mat = new THREE.MeshStandardMaterial({
+          color,
+          roughness: options.roughness ?? 0.1,
+          metalness: options.metalness ?? 0.8,
+          emissive: options.emissive ?? 0x000000,
+          emissiveIntensity: options.emissiveIntensity ?? 0,
+          transparent: options.transparent ?? false,
+          opacity: options.opacity ?? 1,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        return { mesh, geo, mat };
+      }
+
+      function makeSphere(radius, widthSeg, heightSeg, color, options = {}) {
+        const geo = new THREE.SphereGeometry(radius, widthSeg, heightSeg);
+        const mat = new THREE.MeshStandardMaterial({
+          color,
+          roughness: options.roughness ?? 0.6,
+          emissive: options.emissive ?? 0x000000,
+          emissiveIntensity: options.emissiveIntensity ?? 0,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.castShadow = options.castShadow ?? true;
+        return { mesh, geo, mat };
+      }
+
+      function makePathStrip(len, color, emissive, emissiveIntensity) {
+        const geo = new THREE.PlaneGeometry(len, CONFIG.PATH_STRIP_WIDTH);
+        const mat = new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity, roughness: 0.8 });
+        const mesh = new THREE.Mesh(geo, mat);
+        return { mesh, geo, mat };
+      }
+
+      return { makeBox, makeCylinder, makePlane, makeOctahedron, makeSphere, makePathStrip };
+    })();
+
+
+
+    /* ═══════════════════════════════════════════════════════════
+       6. WORLD BUILDER
+       World.build(def)  — Spawns geometry, lights, path strip.
+       World.clear()     — Removes all tracked objects + disposes
+                           all geometries and materials (no leak).
+    ═══════════════════════════════════════════════════════════ */
+    const World = (() => {
+      // Track { obj, geo, mat } for full disposal
+      const _built = [];
+
+      function _track(obj, geo = null, mat = null) {
+        scene.add(obj);
+        _built.push({ obj, geo, mat });
+        return obj;
+      }
+
+      // Convenience: add a light (no geo/mat to dispose)
+      function _addLight(light) {
+        scene.add(light);
+        _built.push({ obj: light, geo: null, mat: null });
+        return light;
+      }
+
+      function clear() {
+        _built.forEach(({ obj, geo, mat }) => {
+          scene.remove(obj);
+          if (geo) geo.dispose();
+          if (mat) {
+            if (Array.isArray(mat)) mat.forEach(m => m.dispose());
+            else mat.dispose();
+          }
+        });
+        _built.length = 0;
+      }
+
+      function _buildPath(def) {
+        const path = def.path;
+        for (let i = 0; i < path.length - 1; i++) {
+          const a = path[i], b = path[i + 1];
+          const dx = b.x - a.x, dz = b.z - a.z;
+          const len = Math.sqrt(dx * dx + dz * dz);
+          const midX = (a.x + b.x) * 0.5;
+          const midZ = (a.z + b.z) * 0.5;
+
+          const { mesh: strip, geo, mat } = GeometryUtils.makePathStrip(
+            len,
+            CONFIG.PATH_STRIP_COLOR,
+            CONFIG.PATH_STRIP_EMISSIVE,
+            CONFIG.PATH_STRIP_INTENSITY
+          );
+          strip.rotation.x = -Math.PI / 2;
+          strip.rotation.z = -Math.atan2(dz, dx);
+          strip.position.set(midX, CONFIG.PATH_STRIP_Y, midZ);
+          _track(strip, geo, i === 0 ? mat : null);   // dispose shared mat once via first strip
+          if (i > 0) {
+            // Store mat reference on first entry only — mark others to skip
+            strip._sharedMat = mat;
+          }
+        }
+        // Ensure the shared path strip mat is tracked for disposal exactly once
+        // (already assigned to first strip entry above via i===0)
+
+        path.forEach(wp => {
+          const pl = new THREE.PointLight(
+            CONFIG.PATH_NODE_LIGHT_COLOR,
+            CONFIG.PATH_NODE_LIGHT_INTENSITY,
+            CONFIG.PATH_NODE_LIGHT_DISTANCE
+          );
+          pl.position.set(wp.x, 0.3, wp.z);
+          _addLight(pl);
+        });
+      }
+
+      // ── Grid helpers ─────────────────────────────────────────────
+      // Grid cell (gx,gz) → world-space centre. The +GRID_UNIT/2 shifts
+      // from cell corner to cell centre.
+      function _gx(gx) { return gx * GRID_UNIT + GRID_UNIT / 2; }
+      function _gz(gz) { return gz * GRID_UNIT + GRID_UNIT / 2; }
+
+      // Face → visual rotation + edge offset so the wall sits on the cell face.
+      const _FACE = {
+        N: { rotY: 0, dx: 0, dz: -(GRID_UNIT / 2) },
+        S: { rotY: Math.PI, dx: 0, dz: (GRID_UNIT / 2) },
+        E: { rotY: Math.PI / 2, dx: (GRID_UNIT / 2), dz: 0 },
+        W: { rotY: -Math.PI / 2, dx: -(GRID_UNIT / 2), dz: 0 },
+      };
+
+      function build(def) {
+        scene.background = new THREE.Color(def.fogColor);
+        scene.fog = new THREE.Fog(def.fogColor, def.fogNear, def.fogFar);
+
+        // — Floor tiles (grid-snapped) ────────────────────────────
+        if (def.floors && def.floors.length > 0) {
+          def.floors.forEach(f => {
+            const wx = _gx(f.gx), wz = _gz(f.gz);
+            const model = ModelCache.get(f.id);
+            if (model) {
+              model.position.set(wx + MODEL_POS_OFFSET_FLOOR.x, MODEL_POS_OFFSET_FLOOR.y, wz + MODEL_POS_OFFSET_FLOOR.z);
+              _track(model);
+            } else {
+              const { mesh: tile, geo, mat } = GeometryUtils.makePlane(GRID_UNIT, GRID_UNIT, def.floorColor,
+                { roughness: 0.9, metalness: 0.1, receiveShadow: true });
+              tile.rotation.x = -Math.PI / 2;
+              tile.position.set(wx, 0, wz);
+              _track(tile, geo, mat);
+            }
+          });
+        } else {
+          const { mesh: floor, geo, mat } = GeometryUtils.makePlane(def.floorSize, def.floorSize, def.floorColor,
+            { segW: 30, segH: 30, roughness: 0.9, metalness: 0.1, receiveShadow: true });
+          floor.rotation.x = -Math.PI / 2;
+          _track(floor, geo, mat);
+        }
+
+        const gridHelper = new THREE.GridHelper(def.floorSize, Math.floor(def.floorSize / 2), 0x1e2535, 0x161c28);
+        _track(gridHelper);
+
+        // — Ceiling —
+        const { mesh: ceil, geo: ceilGeo, mat: ceilMat } = GeometryUtils.makePlane(def.floorSize, def.floorSize, def.fogColor,
+          { roughness: 1, castShadow: false, receiveShadow: false });
+        ceil.rotation.x = Math.PI / 2;
+        ceil.position.y = WALL_HEIGHT + 2;
+        _track(ceil, ceilGeo, ceilMat);
+
+        // — Lights —
+        _addLight(new THREE.AmbientLight(def.ambient.color, def.ambient.intensity + CONFIG.AMBIENT_EXTRA_INTENSITY));
+        const sun = new THREE.DirectionalLight(def.sun.color, def.sun.intensity + CONFIG.SUN_EXTRA_INTENSITY);
+        sun.position.set(...def.sun.pos);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(1024, 1024);
+        _addLight(sun);
+        def.pointLights.forEach(l => {
+          const pl = new THREE.PointLight(l.color, l.intensity, l.distance);
+          pl.position.set(...l.pos);
+          _addLight(pl);
+        });
+
+        // — Walls (grid-snapped, at natural model size) ──────────
+        // face determines rotY + which cell edge the wall sits on.
+        // No stretching — the model renders at its exported dimensions.
+        def.walls.forEach(w => {
+          const manifest = ASSET_MANIFEST[w.id] || ASSET_MANIFEST.wall;
+          const face = _FACE[w.face] || _FACE.N;
+          const wx = _gx(w.gx) + face.dx;
+          const wz = _gz(w.gz) + face.dz;
+          const model = ModelCache.get(w.id);
+          if (model) {
+            model.position.set(wx + MODEL_POS_OFFSET_WALL.x, MODEL_POS_OFFSET_WALL.y, wz + MODEL_POS_OFFSET_WALL.z);
+            model.rotation.y = face.rotY;
+            _track(model);
+          } else {
+            // Fallback box sized to asset's declared grid footprint
+            const gw = (manifest && manifest.gridW) ? manifest.gridW : 4;
+            const gd = (manifest && manifest.gridD) ? manifest.gridD : 1;
+            const NS = (w.face === 'N' || w.face === 'S');
+            const { mesh, geo, mat } = GeometryUtils.makeBox(
+              NS ? gw * GRID_UNIT : gd * GRID_UNIT,
+              WALL_HEIGHT,
+              NS ? gd * GRID_UNIT : gw * GRID_UNIT,
+              0x1c1820
+            );
+            mesh.position.set(wx, WALL_HEIGHT / 2, wz);
+            _track(mesh, geo, mat);
+          }
+        });
+
+        // — Columns (grid-snapped) ───────────────────────────────
+        def.columns.forEach(c => {
+          const wx = _gx(c.gx), wz = _gz(c.gz);
+          const model = ModelCache.get(c.id);
+          if (model) {
+            model.position.set(wx + MODEL_POS_OFFSET_PIPE.x, MODEL_POS_OFFSET_PIPE.y, wz + MODEL_POS_OFFSET_PIPE.z);
+            _track(model);
+          } else {
+            const r = GRID_UNIT * 0.25;
+            const { mesh, geo, mat } = GeometryUtils.makeCylinder(r, WALL_HEIGHT, 10, 0x2a1a2a);
+            mesh.position.set(wx, WALL_HEIGHT / 2, wz);
+            _track(mesh, geo, mat);
+          }
+        });
+
+        // — Props (hand-placed, world coords, no collision) ──────
+        if (def.props) {
+          def.props.forEach(p => {
+            const model = ModelCache.get(p.id);
+            if (model) {
+              model.position.set(p.x, p.y || 0, p.z);
+              model.rotation.y = p.rotY || 0;
+              _track(model);
+            }
+          });
+        }
+
+        _buildPath(def);
+      }
+
+      return { build, clear };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       6b. NEXUS OBJECT
+    ═══════════════════════════════════════════════════════════ */
+    const NexusObject = (() => {
+      let _group = null, _light = null, _innerCore = null;
+      const _geos = [], _mats = [];
+
+      function build(nexusDef) {
+        _group = new THREE.Group();
+
+        const { mesh: outerMesh, geo: outerGeo, mat: outerMat } = GeometryUtils.makeOctahedron(0.9, 0, 0x2255ff, {
+          emissive: 0x1133dd, emissiveIntensity: 0.6,
+          transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.8,
+        });
+        _geos.push(outerGeo); _mats.push(outerMat);
+        _group.add(outerMesh);
+
+        const { mesh: innerMesh, geo: innerGeo, mat: innerMat } = GeometryUtils.makeOctahedron(0.45, 0, 0x88ccff, {
+          emissive: 0x66aaff, emissiveIntensity: 2.0, roughness: 0.0, metalness: 1.0,
+        });
+        _geos.push(innerGeo); _mats.push(innerMat);
+        _innerCore = innerMesh;
+        _group.add(_innerCore);
+
+        _light = new THREE.PointLight(0x4488ff, 3.0, 8);
+        _light.position.set(0, 0.2, 0);
+        _group.add(_light);
+
+        _group.position.set(nexusDef.x, 1.0, nexusDef.z);
+        scene.add(_group);
+      }
+
+      function clear() {
+        if (_group) {
+          scene.remove(_group);
+          _geos.forEach(g => g.dispose());
+          _mats.forEach(m => m.dispose());
+          _geos.length = 0; _mats.length = 0;
+          _group = null; _light = null; _innerCore = null;
+        }
+      }
+
+      function takeDamage(dmg) {
+        State.nexus.hp = Math.max(0, State.nexus.hp - dmg);
+        HUD.updateNexus();
+      }
+
+      function update(t) {
+        if (!_group) return;
+        _group.rotation.y = t * 0.5;
+        if (_innerCore) _innerCore.scale.setScalar(0.8 + Math.sin(t * 3.0) * 0.2);
+        if (_light) {
+          _light.intensity = 2.5 + Math.sin(t * 4.0) * 0.8;
+          if (State.nexus.hp < CONFIG.NEXUS_MAX_HP * 0.3) {
+            const r = 0.5 + Math.sin(t * 8) * 0.5;
+            _light.color.setRGB(r, 0.2, 1.0 - r * 0.5);
+          }
+        }
+      }
+
+      return { build, clear, takeDamage, update };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       6c. COLLISION SYSTEM
+    ═══════════════════════════════════════════════════════════ */
+    const Collision = (() => {
+      const _walls = [];
+      const _cols = [];
+
+      // Grid helpers (same formula as World)
+      function _gx(gx) { return gx * GRID_UNIT + GRID_UNIT / 2; }
+      function _gz(gz) { return gz * GRID_UNIT + GRID_UNIT / 2; }
+
+      function build(def) {
+        _walls.length = 0;
+        _cols.length = 0;
+
+        // AABB derived from face + asset gridW/gridD — no manual box needed.
+        def.walls.forEach(w => {
+          const manifest = ASSET_MANIFEST[w.id] || ASSET_MANIFEST.wall;
+          const gridW = (manifest && manifest.gridW) ? manifest.gridW : 4;
+          const gridD = (manifest && manifest.gridD) ? manifest.gridD : 1;
+          const halfW = (gridW * GRID_UNIT) / 2;
+          const halfD = (gridD * GRID_UNIT) / 2;
+          const cx = _gx(w.gx), cz = _gz(w.gz);
+          const NS = (w.face === 'N' || w.face === 'S');
+          const offX = w.face === 'W' ? -(GRID_UNIT / 2) : w.face === 'E' ? (GRID_UNIT / 2) : 0;
+          const offZ = w.face === 'N' ? -(GRID_UNIT / 2) : w.face === 'S' ? (GRID_UNIT / 2) : 0;
+          const wx = cx + offX, wz = cz + offZ;
+          if (NS) {
+            _walls.push({ minX: wx - halfW, maxX: wx + halfW, minZ: wz - halfD, maxZ: wz + halfD, h: WALL_HEIGHT });
+          } else {
+            _walls.push({ minX: wx - halfD, maxX: wx + halfD, minZ: wz - halfW, maxZ: wz + halfW, h: WALL_HEIGHT });
+          }
+        });
+
+        // Column radius derived from asset gridW
+        def.columns.forEach(c => {
+          const manifest = ASSET_MANIFEST[c.id] || ASSET_MANIFEST.pipe;
+          const gw = (manifest && manifest.gridW) ? manifest.gridW : 1;
+          const r = (gw * GRID_UNIT) / 2 * 0.9;
+          _cols.push({ x: _gx(c.gx), z: _gz(c.gz), r, h: WALL_HEIGHT });
+        });
+      }
+
+      function clear() { _walls.length = 0; _cols.length = 0; }
+
+      function overlaps(px, pz, r) {
+        for (const w of _walls) {
+          const cx = Math.max(w.minX, Math.min(px, w.maxX));
+          const cz = Math.max(w.minZ, Math.min(pz, w.maxZ));
+          const dx = px - cx, dz = pz - cz;
+          if (dx * dx + dz * dz < r * r) return true;
+        }
+        for (const c of _cols) {
+          const dx = px - c.x, dz = pz - c.z;
+          const minR = r + c.r;
+          if (dx * dx + dz * dz < minR * minR) return true;
+        }
+        return false;
+      }
+
+      function resolvePlayer() {
+        const r = CONFIG.PLAYER_RADIUS;
+
+        for (const w of _walls) {
+          const px = camera.position.x;
+          const pz = camera.position.z;
+          const cx = Math.max(w.minX, Math.min(px, w.maxX));
+          const cz = Math.max(w.minZ, Math.min(pz, w.maxZ));
+          const dx = px - cx, dz = pz - cz;
+          const dist2 = dx * dx + dz * dz;
+          if (dist2 < r * r && dist2 > 0) {
+            const dist = Math.sqrt(dist2);
+            const push = r - dist;
+            camera.position.x += (dx / dist) * push;
+            camera.position.z += (dz / dist) * push;
+          } else if (dist2 === 0) {
+            camera.position.x += r;
+          }
+        }
+
+        for (const c of _cols) {
+          const dx = camera.position.x - c.x;
+          const dz = camera.position.z - c.z;
+          const dist2 = dx * dx + dz * dz;
+          const minR = r + c.r;
+          if (dist2 < minR * minR && dist2 > 0) {
+            const dist = Math.sqrt(dist2);
+            const push = minR - dist;
+            camera.position.x += (dx / dist) * push;
+            camera.position.z += (dz / dist) * push;
+          }
+        }
+      }
+
+      function testPoint(px, pz) {
+        for (const w of _walls) {
+          if (px > w.minX && px < w.maxX && pz > w.minZ && pz < w.maxZ) return true;
+        }
+        for (const c of _cols) {
+          const dx = px - c.x, dz = pz - c.z;
+          if (dx * dx + dz * dz < c.r * c.r) return true;
+        }
+        return false;
+      }
+
+      return {
+        build, clear, resolvePlayer, testPoint, overlaps,
+        getWalls: () => _walls, getCols: () => _cols
+      };
+    })();
+    /* ═══════════════════════════════════════════════════════════
+       6c-2. HITBOX RENDERER  (F3 debug overlay)
+       Renders white wireframe shapes that exactly match the live
+       collision data from Collision.getWalls() / getCols():
+         Walls   → BoxGeometry  wireframe (AABB extents + wall height)
+         Columns → CylinderGeometry wireframe
+       Rebuilt on every Collision.build(); shown/hidden via F3.
+    ═══════════════════════════════════════════════════════════ */
+    const HitboxRenderer = (() => {
+      const _meshes = [];
+      // Shared wireframe material — white, no depth test so it always
+      // shows through walls, semi-transparent to not obscure gameplay.
+      const _wireMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        wireframe: true,
+        depthTest: false,
+        transparent: true,
+        opacity: 0.4,
+      });
+
+      function _clear() {
+        _meshes.forEach(m => { scene.remove(m); m.geometry.dispose(); });
+        _meshes.length = 0;
+      }
+
+      // Called after Collision.build(def). Reads live AABB + circle
+      // data and spawns one wireframe mesh per hitbox volume.
+      // Collision data now carries .h — no need for levelDef lookup.
+      function rebuild() {
+        _clear();
+        for (const w of Collision.getWalls()) {
+          const wx = w.maxX - w.minX, wz = w.maxZ - w.minZ;
+          const wh = w.h || WALL_HEIGHT;
+          const geo = new THREE.BoxGeometry(wx, wh, wz);
+          const mesh = new THREE.Mesh(geo, _wireMat);
+          mesh.position.set((w.minX + w.maxX) / 2, wh / 2, (w.minZ + w.maxZ) / 2);
+          mesh.visible = DEBUG_HITBOXES;
+          scene.add(mesh); _meshes.push(mesh);
+        }
+        for (const c of Collision.getCols()) {
+          const ch = c.h || WALL_HEIGHT;
+          const geo = new THREE.CylinderGeometry(c.r, c.r, ch, 16);
+          const mesh = new THREE.Mesh(geo, _wireMat);
+          mesh.position.set(c.x, ch / 2, c.z);
+          mesh.visible = DEBUG_HITBOXES;
+          scene.add(mesh); _meshes.push(mesh);
+        }
+      }
+
+      function setVisible(v) { _meshes.forEach(m => m.visible = v); }
+      function clear() { _clear(); }
+
+      return { rebuild, setVisible, clear };
+    })();
+
+
+
+
+    /* ═══════════════════════════════════════════════════════════
+       7. GUN MODEL  (attached to camera)
+       Attempts to load the blaster GLB via ModelCache.
+       Falls back to a procedural mesh if the file is not found
+       or if loading fails for any reason.
+       The public API is identical either way: build(), shoot(), update().
+    ═══════════════════════════════════════════════════════════ */
+    const GunModel = (() => {
+      // ── Tuning constants ────────────────────────────────────────
+      // Position of the gun group relative to the camera (right, down, forward).
+      const GUN_OFFSET_POS = new THREE.Vector3(0.22, -0.2, -0.38);
+      // Rotation applied to the loaded model so it faces forward.
+      const GUN_OFFSET_ROT = new THREE.Euler(0, Math.PI, 0);
+      // Scale: MODEL_SCALE_GUN is defined in ASSET_MANIFEST constants above.
+      // ────────────────────────────────────────────────────────────
+
+      let gunGroup = null;
+      let kickback = 0;
+
+      // — Procedural fallback geometry —
+      const _procGeos = [], _procMats = [];
+
+      function _buildProcedural(parent) {
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222831, roughness: 0.4, metalness: 0.8 });
+        const slideMat = new THREE.MeshStandardMaterial({ color: 0x333c47, roughness: 0.3, metalness: 0.9 });
+        const gripMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+        const sightMat = new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0xff0000, emissiveIntensity: 1 });
+        _procMats.push(bodyMat, slideMat, gripMat, sightMat);
+
+        const bodyGeo = new THREE.BoxGeometry(0.08, 0.12, 0.38);
+        const barrelGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.22, 8);
+        const slideGeo = new THREE.BoxGeometry(0.075, 0.07, 0.30);
+        const gripGeo = new THREE.BoxGeometry(0.07, 0.14, 0.12);
+        const sightGeo = new THREE.BoxGeometry(0.015, 0.015, 0.01);
+        _procGeos.push(bodyGeo, barrelGeo, slideGeo, gripGeo, sightGeo);
+
+        parent.add(new THREE.Mesh(bodyGeo, bodyMat));
+        const barrel = new THREE.Mesh(barrelGeo, bodyMat);
+        barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.02, -0.28); parent.add(barrel);
+        const slide = new THREE.Mesh(slideGeo, slideMat);
+        slide.position.set(0, 0.045, -0.03); parent.add(slide);
+        const grip = new THREE.Mesh(gripGeo, gripMat);
+        grip.position.set(0, -0.12, 0.08); parent.add(grip);
+        const sight = new THREE.Mesh(sightGeo, sightMat);
+        sight.position.set(0, 0.085, -0.14); parent.add(sight);
+      }
+
+      // — Attach whichever root (GLB scene or procedural group) to camera —
+      function _attach(root) {
+        gunGroup = root;
+        gunGroup.position.copy(GUN_OFFSET_POS);
+        gunGroup.rotation.copy(GUN_OFFSET_ROT);
+        camera.add(gunGroup);
+      }
+
+      function _useFallback() {
+        const root = new THREE.Group();
+        _buildProcedural(root);
+        _attach(root);
+      }
+
+      // — Public API —
+      function build() {
+        // Remove any previously attached gun group (safe to call multiple times)
+        if (gunGroup) {
+          camera.remove(gunGroup);
+          gunGroup = null;
+        }
+        scene.add(camera);
+        const model = ModelCache.get('gun');
+        if (model) {
+          model.scale.setScalar(MODEL_SCALE_GUN);
+          _attach(model);
+        } else {
+          _useFallback();
+        }
+      }
+
+      function shoot() { kickback = 0.06; }
+
+      function update(dt) {
+        if (!gunGroup) return;
+        kickback *= Math.pow(0.01, dt);
+        if (kickback < 0.001) kickback = 0;
+        gunGroup.position.z = GUN_OFFSET_POS.z + kickback;
+        gunGroup.rotation.x = GUN_OFFSET_ROT.x + kickback * 1.5;
+        gunGroup.position.y = GUN_OFFSET_POS.y + Math.sin(performance.now() * 0.001 * 1.4) * 0.004;
+      }
+
+      return { build, shoot, update };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       8. ENEMY CLASS
+       Enemies follow a predefined waypoint path.
+       Can be a random typed enemy OR an elite (boss wave).
+    
+       Constructor: (x, z, pathWaypoints, hp, isElite, type)
+         type  — an ENEMY_TYPES entry; ignored if isElite === true.
+                 If omitted, a random type is picked.
+    ═══════════════════════════════════════════════════════════ */
+    class Enemy {
+      constructor(x, z, pathWaypoints, hp, isElite = false, type = null) {
+        this.isElite = isElite;
+        this.type = isElite ? null : (type || pickRandomEnemyType());
+
+        // Scale HP by type multiplier (elite uses its own separate multiplier in WaveSystem)
+        const hpScale = isElite ? 1.0 : this.type.hpMult;
+        this.maxHp = Math.round(hp * hpScale);
+        this.hp = this.maxHp;
+
+        this.alive = true;
+        this.lastAttack = 0;
+        this.pos = new THREE.Vector3(x, 0, z);
+        this.path = pathWaypoints;
+        this.waypointIdx = 0;
+
+        // Speed from type or elite override
+        this.speed = isElite
+          ? ENEMY_BASE_SPEED * CONFIG.ELITE_SPEED_MULT
+          : ENEMY_BASE_SPEED * this.type.speedMult;
+
+        // Visual parameters
+        const bodyColor = isElite ? CONFIG.ELITE_COLOR : this.type.bodyColor;
+        const bodyEmit = isElite ? CONFIG.ELITE_EMISSIVE : this.type.bodyEmissive;
+        const eyeColor = isElite ? CONFIG.ELITE_EYE_COLOR : this.type.eyeColor;
+        const eyeEmit = isElite ? CONFIG.ELITE_EYE_EMISSIVE : this.type.eyeEmissive;
+        const meshScale = isElite ? CONFIG.ELITE_SCALE : this.type.scale;
+
+        // — Build mesh —
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: bodyColor, roughness: 0.6, emissive: bodyEmit, emissiveIntensity: 0.4,
+        });
+        this._bodyMat = bodyMat;
+
+        this.mesh = new THREE.Group();
+
+        const { mesh: cyl } = GeometryUtils.makeCylinder(0.35, 1.0, 10, bodyColor,
+          { roughness: 0.6, castShadow: true });
+        cyl.material = bodyMat;
+        this.mesh.add(cyl);
+
+        [0.5, -0.5].forEach(oy => {
+          const { mesh: cap } = GeometryUtils.makeSphere(0.35, 10, 6, bodyColor, { castShadow: true });
+          cap.material = bodyMat;
+          cap.position.y = oy;
+          this.mesh.add(cap);
+        });
+
+        const eyeMat = new THREE.MeshStandardMaterial({
+          color: eyeColor, emissive: eyeEmit, emissiveIntensity: 2,
+        });
+        this._eyeMat = eyeMat;
+        [-0.15, 0.15].forEach(ox => {
+          const { mesh: eye } = GeometryUtils.makeSphere(0.07, 6, 6, eyeColor);
+          eye.material = eyeMat;
+          eye.position.set(ox, 0.35, -0.33);
+          this.mesh.add(eye);
+        });
+
+        if (meshScale !== 1.0) this.mesh.scale.setScalar(meshScale);
+
+        // — HP bar sprite —
+        const hpCanvas = document.createElement('canvas');
+        hpCanvas.width = 128; hpCanvas.height = 16;
+        this._hpCtx = hpCanvas.getContext('2d');
+        this._hpTex = new THREE.CanvasTexture(hpCanvas);
+        const hpSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this._hpTex, depthTest: false }));
+        const barScale = meshScale > 1.2 ? meshScale * 1.1 : 1.2;
+        hpSprite.scale.set(barScale, 0.15, 1);
+        hpSprite.position.set(0, isElite ? 2.6 : 1.8, 0);
+        this.mesh.add(hpSprite);
+        this._updateHPBar();
+
+        const yBase = meshScale * 0.9;
+        this.mesh.position.set(this.pos.x, yBase, this.pos.z);
+        scene.add(this.mesh);
+        this._yBase = yBase;
+      }
+
+      _hpBarColor(pct) {
+        if (this.isElite) {
+          return pct > 0.5 ? '#ffaa00' : pct > 0.25 ? '#ff6600' : '#ff2200';
+        }
+        const t = this.type;
+        return pct > 0.5 ? t.hpBarHi : pct > 0.25 ? t.hpBarMid : t.hpBarLo;
+      }
+
+      _updateHPBar() {
+        const ctx = this._hpCtx, w = 128, h = 16;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#333'; ctx.fillRect(0, 0, w, h);
+        const pct = this.hp / this.maxHp;
+        ctx.fillStyle = this._hpBarColor(pct);
+        ctx.fillRect(0, 0, w * pct, h);
+        this._hpTex.needsUpdate = true;
+      }
+
+      // FIX: deal damage directly here; no need to return 'attack' signal to game loop
+      _damagePlayer() {
+        if (State.player.dead) return;
+        const now = performance.now();
+        if (now - this.lastAttack < CONFIG.ENEMY_ATTACK_RATE) return;
+        this.lastAttack = now;
+        State.player.hp = Math.max(0, State.player.hp - CONFIG.ENEMY_DAMAGE);
+        HUD.updateHealth();
+        HUD.showDamageFlash();
+        if (State.player.hp <= 0) {
+          State.player.dead = true;
+          State.player.respawnTimer = CONFIG.PLAYER_RESPAWN_TIME;
+        }
+      }
+
+      takeDamage(dmg) {
+        this.hp -= dmg;
+        this._updateHPBar();
+        if (this.hp <= 0) this.die();
+      }
+
+      die() {
+        this.alive = false;
+        scene.remove(this.mesh);
+        // Dispose enemy-specific materials
+        if (this._bodyMat) this._bodyMat.dispose();
+        if (this._eyeMat) this._eyeMat.dispose();
+        if (this._hpTex) this._hpTex.dispose();
+      }
+
+      dieWithCoin() { CoinSystem.spawnAt(this.pos.x, this.pos.z); this.die(); }
+
+      // Returns 'reached_nexus' | null
+      update(dt) {
+        if (!this.alive) return null;
+
+        // — Path following —
+        if (this.waypointIdx < this.path.length) {
+          const wp = this.path[this.waypointIdx];
+          const dx = wp.x - this.pos.x, dz = wp.z - this.pos.z;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          if (dist < CONFIG.WAYPOINT_REACH_DIST) {
+            this.waypointIdx++;
+          } else {
+            this.pos.x += (dx / dist) * this.speed * dt;
+            this.pos.z += (dz / dist) * this.speed * dt;
+            this.mesh.rotation.y = Math.atan2(dx, dz);
+          }
+        }
+
+        if (this.waypointIdx >= this.path.length) return 'reached_nexus';
+
+        this.mesh.position.set(this.pos.x, this._yBase, this.pos.z);
+
+        // Attack player if in range — damage applied directly (no return signal needed)
+        const px = camera.position.x - this.pos.x;
+        const pz = camera.position.z - this.pos.z;
+        if (px * px + pz * pz <= CONFIG.ENEMY_ATTACK_DIST * CONFIG.ENEMY_ATTACK_DIST) {
+          this._damagePlayer();
+        }
+
+        return null;
+      }
+    }
+
+
+    /* ═══════════════════════════════════════════════════════════
+       8b. COIN SYSTEM
+    ═══════════════════════════════════════════════════════════ */
+    const CoinSystem = (() => {
+      // Shared geometry/material for all coins — created once, never disposed
+      // (coins exist for the lifetime of the game)
+      const { mesh: _coinTemplate, geo: _geo, mat: _mat } = GeometryUtils.makeCylinder(
+        0.22, 0.08, 16, 0xffd700,
+        { roughness: 0.2, metalness: 0.9, castShadow: true }
+      );
+      _mat.emissive.setHex(0xcc9900);
+      _mat.emissiveIntensity = 0.5;
+
+      class Coin {
+        constructor(x, z) {
+          this.alive = true;
+          this.ttl = CONFIG.COIN_LIFETIME;
+          this.spawnY = 0.5;
+          this.mesh = new THREE.Mesh(_geo, _mat);
+          this.mesh.position.set(x, this.spawnY, z);
+          this.light = new THREE.PointLight(0xffd700, 1.5, 3.5);
+          this.light.position.set(x, 0.5, z);
+          scene.add(this.mesh); scene.add(this.light);
+        }
+
+        update(dt, playerPos) {
+          if (!this.alive) return;
+          this.ttl -= dt;
+          if (this.ttl <= 0) { this._die(); return; }
+          const t = performance.now() * 0.001;
+          this.mesh.position.y = this.spawnY + Math.sin(t * CONFIG.COIN_BOB_SPEED) * 0.12;
+          this.mesh.rotation.y += CONFIG.COIN_ROT_SPEED * dt;
+          this.light.position.y = this.mesh.position.y;
+          const dx = playerPos.x - this.mesh.position.x;
+          const dz = playerPos.z - this.mesh.position.z;
+          if (dx * dx + dz * dz < CONFIG.COIN_PICKUP_DIST * CONFIG.COIN_PICKUP_DIST) {
+            State.player.money += CONFIG.COIN_VALUE;
+            HUD.updateMoney();
+            this._die();
+          }
+        }
+
+        _die() { this.alive = false; scene.remove(this.mesh); scene.remove(this.light); }
+      }
+
+      function spawnAt(x, z) { State.coins.push(new Coin(x, z)); }
+
+      function update(dt, playerPos) {
+        for (let i = State.coins.length - 1; i >= 0; i--) {
+          State.coins[i].update(dt, playerPos);
+          if (!State.coins[i].alive) State.coins.splice(i, 1);
+        }
+      }
+
+      function clearAll() { State.coins.forEach(c => c._die()); State.coins.length = 0; }
+
+      return { spawnAt, update, clearAll };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       9. BULLET SYSTEM
+       FIX: bullet hit detection uses the enemy's logical this.pos
+       (the same Vector3 used for movement), not mesh.position
+       which can lag one frame behind due to matrix updates.
+       Hit radius is generously 0.7 but scaled by enemy type.
+    ═══════════════════════════════════════════════════════════ */
+    const BulletSystem = (() => {
+      const SPEED = 40, TTL = 1.5;
+      const { mesh: _bulletTemplate, geo, mat } = GeometryUtils.makeSphere(0.04, 4, 4, 0xffee44,
+        { castShadow: false });
+      mat.type = 'MeshBasicMaterial';   // override: bullets don't need lighting
+      // Re-create with MeshBasicMaterial for performance
+      const _geo = new THREE.SphereGeometry(0.04, 4, 4);
+      const _mat = new THREE.MeshBasicMaterial({ color: 0xffee44 });
+
+      function spawn(origin, direction) {
+        const mesh = new THREE.Mesh(_geo, _mat);
+        mesh.position.copy(origin);
+        scene.add(mesh);
+        State.bullets.push({ mesh, vel: direction.clone().multiplyScalar(SPEED), ttl: TTL });
+        const flash = new THREE.PointLight(0xffcc44, 6, 3);
+        flash.position.copy(origin);
+        scene.add(flash);
+        setTimeout(() => scene.remove(flash), 60);
+      }
+
+      function update(dt) {
+        for (let i = State.bullets.length - 1; i >= 0; i--) {
+          const b = State.bullets[i];
+          b.ttl -= dt;
+          b.mesh.position.addScaledVector(b.vel, dt);
+
+          if (b.mesh.position.y < 0
+            || Collision.testPoint(b.mesh.position.x, b.mesh.position.z)) {
+            _remove(i); continue;
+          }
+
+          let hit = false;
+          for (const enemy of State.enemies) {
+            if (!enemy.alive) continue;
+            // FIX: compare against enemy.pos (the authoritative logical position),
+            // not enemy.mesh.position which is set at the *end* of enemy.update().
+            // We also use bullet.mesh.position.x/z vs enemy.pos.x/z (ignore Y for
+            // the horizontal distance, then separately check height band).
+            const dx = b.mesh.position.x - enemy.pos.x;
+            const dz = b.mesh.position.z - enemy.pos.z;
+            const hitRadius = 0.65 * (enemy.isElite ? CONFIG.ELITE_SCALE : (enemy.type ? enemy.type.scale : 1.0));
+            if (dx * dx + dz * dz < hitRadius * hitRadius) {
+              enemy.takeDamage(CONFIG.GUN_DAMAGE);
+              HUD.showHitMarker();
+              if (!enemy.alive) enemy.dieWithCoin();
+              hit = true; break;
+            }
+          }
+          if (hit || b.ttl <= 0) _remove(i);
+        }
+      }
+
+      function _remove(i) { scene.remove(State.bullets[i].mesh); State.bullets.splice(i, 1); }
+      return { spawn, update };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       10. HUD CONTROLLER
+    ═══════════════════════════════════════════════════════════ */
+    const HUD = (() => {
+      const ammoCur = document.getElementById('ammo-cur');
+      const ammoMax = document.getElementById('ammo-max');
+      const healthFill = document.getElementById('health-fill');
+      const energyFill = document.getElementById('energy-fill');
+      const nexusFill = document.getElementById('nexus-fill');
+      const moneyAmt = document.getElementById('money-amt');
+      const waveLabel = document.getElementById('wave-label');
+      const waveTimer = document.getElementById('wave-timer');
+      const wavePreview = document.getElementById('wave-preview');
+      const hitMarker = document.getElementById('hit-marker');
+      const dmgFlash = document.getElementById('damage-flash');
+      const reloadMsg = document.getElementById('reload-msg');
+      const respawnMsg = document.getElementById('respawn-msg');
+      const respawnCnt = document.getElementById('respawn-count');
+      const levelName = document.getElementById('level-name');
+      let hitTimer = null;
+
+      // Colour and label for each enemy type id used in wave preview pills
+      const TYPE_PILL_STYLE = {
+        'standard': { color: '#ff2244', label: 'STD' },
+        'speeder': { color: '#22ddff', label: 'SPD' },
+        'brute': { color: '#882200', label: 'BRT' },
+        'ghost': { color: '#aaaaff', label: 'GHT' },
+        'tank': { color: '#aaff00', label: 'TNK' },
+        '__elite__': { color: '#ff7700', label: 'ELITE' },
+      };
+
+      function updateAmmo() { ammoCur.textContent = State.gun.ammo; ammoMax.textContent = CONFIG.AMMO_MAX; }
+      function updateHealth() { healthFill.style.width = (State.player.hp / CONFIG.PLAYER_MAX_HP * 100) + '%'; }
+      function updateEnergy() { energyFill.style.width = (State.player.energy / CONFIG.PLAYER_ENERGY_MAX * 100) + '%'; }
+      function updateNexus() { nexusFill.style.width = (State.nexus.hp / CONFIG.NEXUS_MAX_HP * 100) + '%'; }
+      function updateMoney() { moneyAmt.textContent = State.player.money; }
+      function updateLevel(n) { levelName.textContent = n; }
+      function updateWave(n) { waveLabel.textContent = 'WAVE ' + n; }
+      function showReload(v) { reloadMsg.style.opacity = v ? '1' : '0'; }
+      function showRespawn(s) { respawnMsg.style.display = 'block'; respawnCnt.textContent = s; }
+      function hideRespawn() { respawnMsg.style.display = 'none'; }
+
+      // Update the countdown timer shown above the nexus bar.
+      // When enemies remain and timer is 0, show "CLEAR WAVE" instead.
+      function updateWaveTimer(timeLeft, enemyCount) {
+        if (timeLeft <= 0 && enemyCount > 0) {
+          waveTimer.textContent = 'CLEAR ' + enemyCount + ' REMAINING';
+          waveTimer.classList.add('urgent');
+        } else if (timeLeft <= 0) {
+          waveTimer.textContent = 'SPAWNING…';
+          waveTimer.classList.add('urgent');
+        } else {
+          const secs = Math.ceil(timeLeft);
+          waveTimer.textContent = 'NEXT WAVE IN ' + secs + 's';
+          waveTimer.classList.toggle('urgent', secs <= 5);
+        }
+      }
+
+      // Render the composition pills for the upcoming wave number.
+      function updateWavePreview(nextWaveNum) {
+        const { tally, isEliteWave } = WaveSystem.previewWave(nextWaveNum);
+        const parts = [];
+        tally.forEach((count, id) => {
+          const style = TYPE_PILL_STYLE[id] || { color: '#fff', label: id.toUpperCase() };
+          parts.push(
+            `<span class="wave-pip" style="color:${style.color};border-color:${style.color}">` +
+            `${count}× ${style.label}</span>`
+          );
+        });
+        if (isEliteWave && !tally.has('__elite__')) {
+          const s = TYPE_PILL_STYLE['__elite__'];
+          parts.unshift(`<span class="wave-pip" style="color:${s.color};border-color:${s.color}">1× ELITE</span>`);
+        }
+        wavePreview.innerHTML = parts.join('');
+      }
+
+      function showHitMarker() {
+        hitMarker.style.opacity = '1';
+        clearTimeout(hitTimer);
+        hitTimer = setTimeout(() => { hitMarker.style.opacity = '0'; }, 120);
+      }
+      function showDamageFlash() {
+        dmgFlash.style.background = 'rgba(255,0,0,0.35)';
+        setTimeout(() => { dmgFlash.style.background = 'rgba(255,0,0,0)'; }, 150);
+      }
+
+      return {
+        updateAmmo, updateHealth, updateEnergy, updateNexus,
+        updateMoney, updateLevel, updateWave, showReload,
+        showHitMarker, showDamageFlash, showRespawn, hideRespawn,
+        updateWaveTimer, updateWavePreview,
+      };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       11. PLAYER CONTROLLER
+    ═══════════════════════════════════════════════════════════ */
+    const PlayerController = (() => {
+      const HALF_PI = Math.PI / 2 - 0.01;
+      const forward = new THREE.Vector3();
+      const right = new THREE.Vector3();
+
+      function onMouseMove(e) {
+        if (!State.running || State.player.dead) return;
+        State.player.yaw -= e.movementX * CONFIG.MOUSE_SENSITIVITY;
+        State.player.pitch -= e.movementY * CONFIG.MOUSE_SENSITIVITY;
+        State.player.pitch = Math.max(-HALF_PI, Math.min(HALF_PI, State.player.pitch));
+      }
+
+      function shoot() {
+        if (State.player.dead) return;
+        const now = performance.now();
+        if (State.gun.reloading) return;
+        if (State.gun.ammo <= 0) { startReload(); return; }
+        if (now - State.gun.lastShot < CONFIG.SHOOT_COOLDOWN) return;
+
+        State.gun.ammo--; State.gun.lastShot = now;
+        HUD.updateAmmo(); GunModel.shoot();
+
+        const origin = camera.position.clone();
+        const dir = new THREE.Vector3(0, 0, -1)
+          .applyEuler(new THREE.Euler(State.player.pitch, State.player.yaw, 0, 'YXZ'));
+        origin.addScaledVector(dir, 0.3); origin.y -= 0.05;
+        BulletSystem.spawn(origin, dir);
+        if (State.gun.ammo === 0) startReload();
+      }
+
+      function startReload() {
+        if (State.gun.reloading || State.gun.ammo === CONFIG.AMMO_MAX) return;
+        State.gun.reloading = true; HUD.showReload(true);
+        // FIX: store timer ID on State so startGame() can cancel it on restart
+        State.gun.reloadTimerId = setTimeout(() => {
+          // Guard: ignore if this timer fired after a level restart reset it
+          if (!State.gun.reloading) return;
+          State.gun.ammo = CONFIG.AMMO_MAX; State.gun.reloading = false;
+          State.gun.reloadTimerId = null;
+          HUD.updateAmmo(); HUD.showReload(false);
+        }, CONFIG.RELOAD_TIME);
+      }
+
+      function update(dt) {
+        camera.rotation.order = 'YXZ';
+        camera.rotation.y = State.player.yaw;
+        camera.rotation.x = State.player.pitch;
+
+        // — Respawn countdown —
+        if (State.player.dead) {
+          State.player.respawnTimer -= dt;
+          HUD.showRespawn(Math.ceil(State.player.respawnTimer));
+          if (State.player.respawnTimer <= 0) {
+            const sp = LEVELS[State.currentLevel].playerSpawn;
+            camera.position.set(sp.x, CONFIG.PLAYER_HEIGHT, sp.z);
+            State.player.yaw = sp.yaw;
+            State.player.hp = CONFIG.PLAYER_MAX_HP;
+            State.player.dead = false;
+            HUD.updateHealth(); HUD.hideRespawn();
+          }
+          return;
+        }
+
+        if (State.gun.mouseHeld) shoot();
+
+        // — Sprint / energy —
+        const isSprinting = (State.keys['shift'] || State.keys['shiftleft'] || State.keys['shiftright'])
+          && State.player.energy > 0;
+        State.player.energy = isSprinting
+          ? Math.max(0, State.player.energy - CONFIG.PLAYER_ENERGY_DRAIN * dt)
+          : Math.min(CONFIG.PLAYER_ENERGY_MAX, State.player.energy + CONFIG.PLAYER_ENERGY_REGEN * dt);
+        HUD.updateEnergy();
+
+        const speed = isSprinting ? CONFIG.PLAYER_SPRINT_SPEED : CONFIG.PLAYER_SPEED;
+        forward.set(-Math.sin(State.player.yaw), 0, -Math.cos(State.player.yaw));
+        right.set(Math.cos(State.player.yaw), 0, -Math.sin(State.player.yaw));
+
+        const k = State.keys;
+        const mx = ((k['d'] || k['arrowright']) ? 1 : 0) - ((k['a'] || k['arrowleft']) ? 1 : 0);
+        const mz = ((k['w'] || k['arrowup']) ? 1 : 0) - ((k['s'] || k['arrowdown']) ? 1 : 0);
+
+        if (mx !== 0 || mz !== 0) {
+          const len = Math.sqrt(mx * mx + mz * mz);
+          camera.position.x += (right.x * mx / len + forward.x * mz / len) * speed * dt;
+          camera.position.z += (right.z * mx / len + forward.z * mz / len) * speed * dt;
+          Collision.resolvePlayer();
+        }
+
+        // Vertical physics
+        State.player.velY -= CONFIG.GRAVITY * dt;
+        camera.position.y += State.player.velY * dt;
+        if (camera.position.y <= CONFIG.PLAYER_HEIGHT) {
+          camera.position.y = CONFIG.PLAYER_HEIGHT;
+          State.player.velY = 0; State.player.onGround = true;
+        }
+
+        const half = LEVELS[State.currentLevel].floorSize / 2 - 1;
+        camera.position.x = Math.max(-half, Math.min(half, camera.position.x));
+        camera.position.z = Math.max(-half, Math.min(half, camera.position.z));
+      }
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mousedown', e => { if (e.button === 0 && State.running) State.gun.mouseHeld = true; });
+      document.addEventListener('mouseup', e => { if (e.button === 0) State.gun.mouseHeld = false; });
+      document.addEventListener('keydown', e => {
+        State.keys[e.key.toLowerCase()] = true;
+        if (e.key.toLowerCase() === 'r') startReload();
+        if (e.key === ' ' && State.player.onGround && State.running && !State.player.dead) {
+          State.player.velY = CONFIG.JUMP_FORCE; State.player.onGround = false;
+        }
+        // F3 — toggle hitbox wireframe overlay
+        if (e.key === 'F3') {
+          e.preventDefault();
+          DEBUG_HITBOXES = !DEBUG_HITBOXES;
+          HitboxRenderer.setVisible(DEBUG_HITBOXES);
+          console.log('Hitbox overlay:', DEBUG_HITBOXES ? 'ON' : 'OFF');
+        }
+      });
+      document.addEventListener('keyup', e => { State.keys[e.key.toLowerCase()] = false; });
+
+      return { update, startReload };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       12. ENEMY SPAWNER
+       spawnEnemy(spawnIdx, waveHp, isElite)
+       — spawns at a specific spawn point with given base HP.
+       — type is randomly selected from ENEMY_TYPES (weighted).
+       — elite ignores type; uses elite visual/stat overrides.
+    ═══════════════════════════════════════════════════════════ */
+    const EnemySpawner = (() => {
+      let _roundRobin = 0;
+
+      function spawn(spawnIdx, waveHp, isElite = false) {
+        const def = LEVELS[State.currentLevel];
+        const idx = (spawnIdx !== undefined)
+          ? spawnIdx % def.enemySpawns.length
+          : (_roundRobin++ % def.enemySpawns.length);
+        const sp = def.enemySpawns[idx];
+        // Elite HP uses the raw wave HP × elite multiplier; type HP uses waveHp × type.hpMult (inside Enemy ctor)
+        const hp = isElite ? Math.round(waveHp * CONFIG.ELITE_HP_MULTIPLIER) : waveHp;
+        State.enemies.push(new Enemy(sp.x, sp.z, def.path, hp, isElite));
+      }
+
+      function reset() { _roundRobin = 0; }
+
+      return { spawn, reset };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       13. WAVE SYSTEM
+    ═══════════════════════════════════════════════════════════ */
+    const WaveSystem = (() => {
+
+      function _waveCount(n) {
+        return CONFIG.WAVE_INITIAL_COUNT + (n - 1) * CONFIG.WAVE_COUNT_GROWTH;
+      }
+
+      function _waveHp(n) {
+        return CONFIG.WAVE_INITIAL_HP + (n - 1) * CONFIG.WAVE_HP_GROWTH;
+      }
+
+      // Returns an array of { type, isElite, count } describing the next wave's composition.
+      // Used by HUD to render the preview pills.
+      function previewWave(waveNum) {
+        const count = _waveCount(waveNum);
+        const hp = _waveHp(waveNum);
+        const isEliteWave = (waveNum % CONFIG.ELITE_WAVE_INTERVAL === 0);
+        const tally = new Map();   // typeId → count
+
+        for (let i = 0; i < count; i++) {
+          if (isEliteWave && i === 0) {
+            tally.set('__elite__', (tally.get('__elite__') || 0) + 1);
+          } else {
+            // We can't know exact random picks ahead of time, so show the
+            // weighted distribution as rounded expected counts instead.
+            // For simplicity: just list all types proportionally.
+            // Actually: sample the weighted table deterministically using index i as seed.
+            const typeIdx = i % _ENEMY_TYPE_TABLE.length;
+            const t = _ENEMY_TYPE_TABLE[typeIdx];
+            tally.set(t.id, (tally.get(t.id) || 0) + 1);
+          }
+        }
+        return { tally, isEliteWave, count, hp };
+      }
+
+      function startWave(waveNum) {
+        State.wave.number = waveNum;
+        State.wave.timer = CONFIG.WAVE_INTERVAL;
+
+        // FIX: Do NOT kill surviving enemies from the previous wave.
+        // Only remove enemies that are already dead (cleanup).
+        State.enemies = State.enemies.filter(e => e.alive);
+
+        const count = _waveCount(waveNum);
+        const hp = _waveHp(waveNum);
+        const isEliteWave = (waveNum % CONFIG.ELITE_WAVE_INTERVAL === 0);
+
+        EnemySpawner.reset();
+
+        for (let i = 0; i < count; i++) {
+          const useElite = isEliteWave && (i === 0);
+          EnemySpawner.spawn(i % LEVELS[State.currentLevel].enemySpawns.length, hp, useElite);
+        }
+
+        HUD.updateWave(waveNum);
+        HUD.updateWavePreview(waveNum + 1);
+      }
+
+      function tick(dt) {
+        State.wave.timer -= dt;
+        // FIX: Only advance to next wave when the timer expires AND all enemies are dead.
+        // If enemies remain, keep the timer at 0 and wait.
+        if (State.wave.timer <= 0) {
+          if (State.enemies.length === 0) {
+            startWave(State.wave.number + 1);
+          } else {
+            State.wave.timer = 0;   // clamp; don't go negative
+          }
+        }
+        HUD.updateWaveTimer(State.wave.timer, State.enemies.length);
+      }
+
+      return { startWave, tick, previewWave };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       14. GAME LOOP
+    ═══════════════════════════════════════════════════════════ */
+    const GameLoop = (() => {
+      let lastTime = 0;
+
+      function tick(now) {
+        requestAnimationFrame(tick);
+        const dt = Math.min((now - lastTime) / 1000, 0.05);
+        lastTime = now;
+        const t = now * 0.001;
+
+        if (!State.running) { renderer.render(scene, camera); return; }
+
+        PlayerController.update(dt);
+        GunModel.update(dt);
+        BulletSystem.update(dt);
+        NexusObject.update(t);
+        CoinSystem.update(dt, camera.position);
+        WaveSystem.tick(dt);
+
+        for (let i = State.enemies.length - 1; i >= 0; i--) {
+          const enemy = State.enemies[i];
+          if (!enemy.alive) { State.enemies.splice(i, 1); continue; }
+
+          const result = enemy.update(dt);
+
+          if (result === 'reached_nexus') {
+            enemy.die();
+            State.enemies.splice(i, 1);
+            NexusObject.takeDamage(CONFIG.NEXUS_DAMAGE);
+            if (State.nexus.hp <= 0) { endGame(); return; }
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      function start() { lastTime = performance.now(); requestAnimationFrame(tick); }
+      return { start };
+    })();
+
+
+    /* ═══════════════════════════════════════════════════════════
+       15. OVERLAY / POINTER LOCK  (UI glue)
+    ═══════════════════════════════════════════════════════════ */
+    const overlay = document.getElementById('overlay');
+
+    function showMenu() {
+      State.running = false;
+      State.paused = false;
+      State.wantLock = false;
+      document.exitPointerLock();
+      const cards = LEVELS.length === 0
+        ? '<div class="menu-hint" style="color:#ff4444">No levels found — check the levels/ folder.</div>'
+        : LEVELS.map((lvl, i) => `
+    <div class="level-card" data-idx="${i}">
+      <div class="card-dot" style="background:${lvl.accentColor}"></div>
+      <div class="card-num">LEVEL ${i + 1}</div>
+      <div class="card-name">${lvl.name}</div>
+      <div class="card-desc">${lvl.description.replace(/\n/g, '<br>')}</div>
+    </div>`).join('');
+
+      overlay.innerHTML = `
+    <div class="menu-title">FPS</div>
+    <div class="menu-subtitle">SELECT A LEVEL</div>
+    <div class="level-cards">${cards}</div>
+    <div class="menu-hint">WASD&nbsp;MOVE &nbsp;|&nbsp; SHIFT&nbsp;SPRINT &nbsp;|&nbsp; SPACE&nbsp;JUMP &nbsp;|&nbsp; HOLD&nbsp;LMB&nbsp;SHOOT &nbsp;|&nbsp; R&nbsp;RELOAD</div>
+  `;
+      overlay.style.display = 'flex';
+      overlay.querySelectorAll('.level-card').forEach(card => {
+        card.addEventListener('click', () => startGame(parseInt(card.dataset.idx, 10)));
+      });
+    }
+
+    function startGame(levelIndex) {
+      // FIX: cancel any pending reload timer before resetting gun state
+      if (State.gun.reloadTimerId !== null) {
+        clearTimeout(State.gun.reloadTimerId);
+        State.gun.reloadTimerId = null;
+      }
+
+      State.currentLevel = levelIndex;
+      State.player.hp = CONFIG.PLAYER_MAX_HP;
+      State.player.energy = CONFIG.PLAYER_ENERGY_MAX;
+      State.player.money = 0;
+      State.player.yaw = 0;
+      State.player.pitch = 0;
+      State.player.velY = 0;
+      State.player.onGround = true;
+      State.player.dead = false;
+      State.player.respawnTimer = 0;
+      State.gun.ammo = CONFIG.AMMO_MAX;
+      State.gun.reloading = false;
+      State.gun.mouseHeld = false;
+      State.keys = {};
+      State.nexus.hp = CONFIG.NEXUS_MAX_HP;
+      State.wave.number = 1;
+      State.wave.timer = CONFIG.WAVE_INTERVAL;
+
+      State.enemies.forEach(e => { if (e.alive) e.die(); });
+      State.enemies.length = 0;
+      State.bullets.forEach(b => scene.remove(b.mesh));
+      State.bullets.length = 0;
+      CoinSystem.clearAll();
+
+      World.clear();
+      NexusObject.clear();
+      Collision.clear();
+
+      const def = LEVELS[levelIndex];
+      World.build(def);
+      NexusObject.build(def.nexus);
+      Collision.build(def);
+      HitboxRenderer.rebuild();
+
+      const sp = def.playerSpawn;
+      camera.position.set(sp.x, CONFIG.PLAYER_HEIGHT, sp.z);
+      State.player.yaw = sp.yaw;
+
+      WaveSystem.startWave(1);
+
+      HUD.updateAmmo();
+      HUD.updateHealth();
+      HUD.updateEnergy();
+      HUD.updateNexus();
+      HUD.updateMoney();
+      HUD.updateLevel(def.name);
+      HUD.updateWave(1);
+      HUD.updateWaveTimer(CONFIG.WAVE_INTERVAL, 0);
+      HUD.updateWavePreview(2);
+      HUD.hideRespawn();
+
+      overlay.style.display = 'none';
+      document.documentElement.requestFullscreen().catch(() => { });
+      State.paused = false;
+      State.running = false;   // will be set true by pointerlockchange
+      _requestLock();
+    }
+
+    function endGame() {
+      State.running = false;
+      State.paused = false;
+      State.wantLock = false;
+      document.exitPointerLock();
+      overlay.innerHTML = `
+    <div class="info-title">NEXUS DESTROYED</div>
+    <div class="info-sub">&#36;${State.player.money} earned &nbsp;&middot;&nbsp; Wave ${State.wave.number} &nbsp;&middot;&nbsp; ${LEVELS[State.currentLevel].name}</div>
+    <button class="info-btn" id="retry-btn">RETRY</button>
+    <button class="info-btn" id="menu-btn">MENU</button>
+  `;
+      overlay.style.display = 'flex';
+      document.getElementById('retry-btn').addEventListener('click', () => startGame(State.currentLevel));
+      document.getElementById('menu-btn').addEventListener('click', showMenu);
+    }
+
+    function _requestLock() {
+      State.wantLock = true;
+      // requestPointerLock returns a Promise in modern browsers; ignore the rejection
+      // (happens if called outside a user gesture — we handle that via the click events).
+      const result = document.body.requestPointerLock();
+      if (result && typeof result.catch === 'function') result.catch(() => { });
+    }
+
+    function _showPauseMenu() {
+      State.running = false;
+      State.paused = true;
+      State.gun.mouseHeld = false;
+      overlay.innerHTML = `
+    <div class="info-title">PAUSED</div>
+    <div class="info-sub">${LEVELS[State.currentLevel].name} &nbsp;&middot;&nbsp; Wave ${State.wave.number}</div>
+    <button class="info-btn" id="resume-btn">RESUME</button>
+    <button class="info-btn" id="menu-btn2">MENU</button>
+  `;
+      overlay.style.display = 'flex';
+      document.getElementById('resume-btn').addEventListener('click', () => {
+        // Don't set running=true here — wait for pointerlockchange to confirm lock acquired.
+        _requestLock();
+      });
+      document.getElementById('menu-btn2').addEventListener('click', showMenu);
+    }
+
+    // Single source-of-truth for pointer lock state changes.
+    // Runs whenever the browser grants or revokes pointer lock.
+    document.addEventListener('pointerlockchange', () => {
+      const locked = !!document.pointerLockElement;
+
+      if (locked) {
+        // Lock was granted — resume the game if this was an intentional request.
+        if (State.wantLock) {
+          State.wantLock = false;
+          State.paused = false;
+          State.running = true;
+          overlay.style.display = 'none';
+        }
+      } else {
+        // Lock was lost.
+        State.wantLock = false;
+        // Only show pause menu if the game was actively running (not already paused/ended/menu).
+        if (State.running) {
+          _showPauseMenu();
+        }
+      }
+    });
+
+    // Re-acquire lock when the user clicks the canvas while the game is paused mid-session.
+    // This handles the "click window after switching tabs" case.
+    document.addEventListener('click', () => {
+      if (State.paused && !document.pointerLockElement) {
+        _requestLock();
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════════════════════
+       16. INIT
+       Preload all known models in parallel, then start the game.
+       The game always starts even if some/all models fail to load
+       — GeometryUtils fallbacks kick in automatically.
+    ═══════════════════════════════════════════════════════════ */
+    GunModel.build();   // attaches camera to scene immediately (gun loads async)
+    GameLoop.start();
+
+    // Load level JSONs, then warm the model cache, then open the menu.
+    // Both are fire-and-forget Promises; the game runs fine even if some fail.
+    LevelLoader.loadAll().then(() => {
+      ModelCache.preload(Object.keys(ASSET_MANIFEST)).then(() => {
+        console.log('ModelCache: all preloads settled — starting game.');
+        GunModel.build();
+        showMenu();
+      });
+    });
+
+  </script>
+</body>
+
+</html>
