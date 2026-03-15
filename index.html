@@ -1,13 +1,1261 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>xp</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wolforcept</title>
+  <link rel="stylesheet" href="https://wolforcept.github.io/cdn/iconawesome/ia.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       #region THEME & VARIABLES
+    ============================================================ */
+    :root {
+      --bg:           #1b2c2e;
+      --bg-card:      #1f3436;
+      --bg-card-hover:#253e41;
+      --bg-overlay:   rgba(15, 24, 26, 0.85);
+      --bg-navbar:    rgba(22, 35, 37, 0.97);
+      --bg-filter:    rgba(20, 32, 34, 0.98);
+      --bg-dialog:    #172628;
+      --bg-dialog-border: rgba(180,140,60,0.25);
+      --bg-input:     rgba(255,255,255,0.06);
+
+      --gold:         #c9a84c;
+      --gold-bright:  #e8c96a;
+      --gold-dim:     rgba(201,168,76,0.35);
+      --gold-text:    #f0d98a;
+
+      --text:         #d6e8ea;
+      --text-dim:     #7fa8b0;
+      --text-muted:   #4a6b71;
+
+      --tag-off-bg:   rgba(255,255,255,0.07);
+      --tag-off-text: #7fa8b0;
+      --tag-and-bg:   rgba(50,120,200,0.25);
+      --tag-and-text: #6ab4f0;
+      --tag-or-bg:    rgba(50,170,100,0.25);
+      --tag-or-text:  #72e0a0;
+      --tag-not-bg:   rgba(200,60,60,0.25);
+      --tag-not-text: #f08080;
+
+      --chip-active-bg:  rgba(201,168,76,0.2);
+      --chip-active-text:#e8c96a;
+      --chip-bg:         rgba(255,255,255,0.05);
+      --chip-text:       #7fa8b0;
+
+      --radius:       8px;
+      --radius-lg:    14px;
+      --shadow:       0 4px 24px rgba(0,0,0,0.45);
+      --shadow-card:  0 2px 12px rgba(0,0,0,0.35);
+
+      --font-display: 'Cinzel', serif;
+      --font-body:    'Crimson Pro', serif;
+
+      --navbar-h:     56px;
+      --filterbar-h:  52px;
+
+      --transition:   180ms ease;
+    }
+    /* #endregion */
+
+    /* ============================================================
+       #region RESET & BASE
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
+    body {
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 300;
+      line-height: 1.6;
+    }
+    a { color: var(--gold); text-decoration: none; }
+    a:hover { color: var(--gold-bright); }
+    button {
+      background: none; border: none; cursor: pointer;
+      font-family: inherit; color: inherit;
+      transition: opacity var(--transition), color var(--transition), background var(--transition);
+    }
+    input, textarea {
+      font-family: var(--font-body);
+      background: var(--bg-input);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius);
+      color: var(--text);
+      padding: 8px 12px;
+      width: 100%;
+      font-size: 15px;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    input:focus, textarea:focus {
+      border-color: var(--gold-dim);
+    }
+    textarea { resize: vertical; min-height: 90px; }
+    label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 4px; letter-spacing: 0.05em; }
+    /* #endregion */
+
+    /* ============================================================
+       #region NAVBAR
+    ============================================================ */
+    .navbar {
+      height: var(--navbar-h);
+      background: var(--bg-navbar);
+      border-bottom: 1px solid rgba(201,168,76,0.1);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+      position: relative;
+      z-index: 100;
+    }
+    .navbar-logo {
+      height: 34px;
+      width: auto;
+      display: block;
+      flex-shrink: 0;
+    }
+    .navbar-logo-fallback {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .navbar-spacer { flex: 1; }
+    .navbar-right { display: flex; align-items: center; gap: 8px; }
+
+    .btn-icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: background var(--transition), opacity var(--transition);
+    }
+    .btn-login {
+      opacity: 0.25;
+      color: var(--text-dim);
+    }
+    .btn-login:hover { opacity: 0.7; background: rgba(255,255,255,0.05); }
+
+    .btn-create {
+      background: rgba(201,168,76,0.15);
+      color: var(--gold);
+      border: 1px solid rgba(201,168,76,0.3);
+    }
+    .btn-create:hover { background: rgba(201,168,76,0.28); }
+
+    .btn-back {
+      color: var(--gold);
+      font-size: 14px;
+      display: flex; align-items: center; gap: 6px;
+      letter-spacing: 0.03em;
+      opacity: 0.8;
+    }
+    .btn-back:hover { opacity: 1; }
+    /* #endregion */
+
+    /* ============================================================
+       #region FILTER BAR
+    ============================================================ */
+    .filterbar-wrapper {
+      background: var(--bg-filter);
+      border-bottom: 1px solid rgba(201,168,76,0.08);
+      box-shadow: 0 2px 16px rgba(0,0,0,0.3);
+    }
+    .filterbar {
+      min-height: var(--filterbar-h);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-arrange {
+      width: 34px; height: 34px;
+      border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-dim);
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .btn-arrange:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+    .filterbar-chips {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      background: var(--chip-bg);
+      color: var(--chip-text);
+      border: 1px solid rgba(255,255,255,0.07);
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+      user-select: none;
+    }
+    .chip.active {
+      background: var(--chip-active-bg);
+      color: var(--chip-active-text);
+      border-color: rgba(201,168,76,0.3);
+    }
+    .chip:hover:not(.active) { background: rgba(255,255,255,0.1); color: var(--text); }
+
+    .btn-advanced {
+      width: 34px; height: 34px;
+      border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-dim);
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 14px;
+      flex-shrink: 0;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+    .btn-advanced.active { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.1); }
+    .btn-advanced:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+    /* Advanced filter panel */
+    .advanced-panel {
+      background: var(--bg-filter);
+      border-bottom: 1px solid rgba(201,168,76,0.1);
+      padding: 14px 20px;
+    }
+    .advanced-panel-inner {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+    }
+    .adv-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 11px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid transparent;
+      transition: background var(--transition), color var(--transition);
+      background: var(--tag-off-bg);
+      color: var(--tag-off-text);
+    }
+    .adv-tag[data-state="AND"] { background: var(--tag-and-bg); color: var(--tag-and-text); border-color: rgba(50,120,200,0.3); }
+    .adv-tag[data-state="OR"]  { background: var(--tag-or-bg);  color: var(--tag-or-text);  border-color: rgba(50,170,100,0.3); }
+    .adv-tag[data-state="NOT"] { background: var(--tag-not-bg); color: var(--tag-not-text); border-color: rgba(200,60,60,0.3); }
+    .adv-clear {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .adv-clear:hover { color: var(--text-dim); background: rgba(255,255,255,0.05); }
+    /* #endregion */
+
+    /* ============================================================
+       #region MAIN CONTENT
+    ============================================================ */
+    .main {
+      padding: 24px 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Grid */
+    .posts-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 600px) {
+      .posts-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    }
+    @media (min-width: 900px) {
+      .posts-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (min-width: 1200px) {
+      .posts-grid { grid-template-columns: repeat(5, 1fr); }
+    }
+
+    /* Grid tile */
+    .post-tile {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--bg-card);
+      box-shadow: var(--shadow-card);
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .post-tile:hover { transform: translateY(-2px) scale(1.01); box-shadow: 0 6px 20px rgba(0,0,0,0.55); }
+    .post-tile-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 300ms ease;
+    }
+    .post-tile:hover .post-tile-img { transform: scale(1.05); }
+    .post-tile-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.75) 60%, rgba(0,0,0,0.92));
+      padding: 20px 8px 7px;
+    }
+    .post-tile-title {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.04em;
+      line-height: 1.3;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+    @media (min-width: 600px) { .post-tile-title { font-size: 12px; } }
+
+    /* List */
+    .posts-list { display: flex; flex-direction: column; gap: 14px; }
+
+    .post-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.05);
+      box-shadow: var(--shadow-card);
+      padding: 12px 14px;
+      transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+    }
+    .post-card:hover { background: var(--bg-card-hover); box-shadow: var(--shadow); transform: translateY(-1px); }
+    .post-card-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .post-card-main {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .post-card-img-wrap { flex-shrink: 0; }
+    .post-card-img {
+      width: 126px;
+      height: 126px;
+      object-fit: cover;
+      display: block;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    @media (max-width: 600px) {
+      .post-card { max-width: 100%; }
+      .post-card-img { width: 105px; height: 105px; }
+    }
+    @media (min-width: 700px) {
+      .post-card { max-width: 720px; }
+      .post-card-img { width: 154px; height: 154px; }
+    }
+    .post-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      flex: 1;
+      min-width: 0;
+    }
+    .post-card-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gold-text);
+      letter-spacing: 0.04em;
+    }
+    .post-card-date {
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .post-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+    .post-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(201,168,76,0.1);
+      color: var(--gold-dim);
+      color: rgba(200,168,76,0.75);
+      border: 1px solid rgba(201,168,76,0.15);
+    }
+    .post-card-content {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .post-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+    .post-link {
+      font-size: 12px;
+      color: var(--gold);
+      border: 1px solid var(--gold-dim);
+      border-radius: var(--radius);
+      padding: 2px 10px;
+      transition: background var(--transition);
+    }
+    .post-link:hover { background: rgba(201,168,76,0.1); }
+
+    /* Star / Favourite */
+    .star-btn {
+      position: absolute;
+      top: 6px; right: 6px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.35);
+      transition: color var(--transition), transform var(--transition);
+      line-height: 1;
+      z-index: 2;
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .star-btn.faved { color: var(--gold-bright); }
+    .star-btn:hover { transform: scale(1.2); }
+
+    .list-star {
+      position: relative;
+    }
+    /* #endregion */
+
+    /* ============================================================
+       #region POST DETAIL PAGE
+    ============================================================ */
+    .detail-page {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 30px 20px 24px;
+      animation: fadeUp 250ms ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .detail-hero {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: var(--radius-lg);
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+    }
+    .detail-title-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .detail-title-row .detail-title { flex: 1; margin-bottom: 0; }
+    .detail-star {
+      flex-shrink: 0;
+      margin-top: 4px;
+      font-size: 18px;
+      color: rgba(255,255,255,0.3);
+      transition: color var(--transition), transform var(--transition);
+    }
+    .detail-star.faved { color: var(--gold-bright); }
+    .detail-star:hover { transform: scale(1.2); }
+    .detail-title {
+      font-family: var(--font-display);
+      font-size: clamp(22px, 5vw, 34px);
+      font-weight: 700;
+      color: var(--gold-text);
+      letter-spacing: 0.06em;
+      line-height: 1.2;
+    }
+    .detail-date {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+    }
+    .detail-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+    .detail-content {
+      font-size: 17px;
+      color: var(--text);
+      line-height: 1.75;
+      margin-bottom: 28px;
+      white-space: pre-wrap;
+    }
+    .detail-links-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .detail-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .detail-link {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--gold-dim);
+      color: var(--gold);
+      font-size: 14px;
+      transition: background var(--transition);
+    }
+    .detail-link:hover { background: rgba(201,168,76,0.12); }
+    .detail-divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      margin: 28px 0;
+    }
+    /* #endregion */
+
+    /* ============================================================
+       #region DIALOGS / MODALS
+    ============================================================ */
+    .dialog-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      animation: fadeIn 150ms ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Shared dialog style — easy to restyle all at once */
+    .dialog {
+      background: var(--bg-dialog);
+      border: 1px solid var(--bg-dialog-border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 8px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,168,76,0.08) inset;
+      padding: 28px 28px 22px;
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+      animation: scaleIn 180ms cubic-bezier(.2,.8,.4,1) both;
+    }
+    @keyframes scaleIn { from { opacity:0; transform: scale(0.93); } to { opacity:1; transform: scale(1); } }
+    .dialog-wide { max-width: 520px; }
+
+    .dialog-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+    .dialog-field { margin-bottom: 16px; }
+    .dialog-error {
+      font-size: 12.5px;
+      color: #f08080;
+      min-height: 18px;
+      margin-top: -8px;
+      margin-bottom: 10px;
+      visibility: hidden;
+    }
+    .dialog-error.visible { visibility: visible; }
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-cancel {
+      padding: 7px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      color: var(--text-dim);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .btn-cancel:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .btn-primary {
+      padding: 7px 18px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      background: rgba(201,168,76,0.18);
+      color: var(--gold-bright);
+      border: 1px solid rgba(201,168,76,0.35);
+      font-family: var(--font-display);
+      font-size: 13px;
+      letter-spacing: 0.06em;
+    }
+    .btn-primary:hover { background: rgba(201,168,76,0.3); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .link-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .link-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .link-row input { flex: 1; }
+    .btn-link-del {
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+    .btn-link-del:hover { color: #f08080; border-color: rgba(200,60,60,0.4); background: rgba(200,60,60,0.1); }
+    .btn-link-add {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border: 1px dashed rgba(255,255,255,0.12);
+      border-radius: var(--radius);
+      padding: 5px 12px;
+      width: 100%;
+      text-align: left;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+    .btn-link-add:hover { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.05); }
+    /* #endregion */
+
+    /* ============================================================
+       #region EMPTY STATE / LOADING
+    ============================================================ */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state i { font-size: 36px; margin-bottom: 14px; display: block; opacity: 0.4; }
+    .loading-dots {
+      display: flex; justify-content: center; align-items: center; gap: 6px;
+      padding: 60px;
+    }
+    .loading-dots span {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--gold-dim);
+      animation: pulse 1.2s ease infinite;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,80%,100%{ transform:scale(0.6); opacity:0.4; } 40%{ transform:scale(1); opacity:1; } }
+    /* #endregion */
+
+    /* ============================================================
+       #region UTILITIES
+    ============================================================ */
+    .hidden { display: none !important; }
+    .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+    /* #endregion */
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    // ============================================================
+    // #region PREACT IMPORTS
+    // ============================================================
+    import { h, render, Fragment } from 'https://esm.sh/preact@10.22.0';
+    import { useState, useEffect, useRef, useCallback } from 'https://esm.sh/preact@10.22.0/hooks';
+    // #endregion
+
+    // ============================================================
+    // #region CONSTANTS & CONFIG
+    // ============================================================
+    const GIST_URL   = 'https://gist.githubusercontent.com/wolforcept/9a4b5ebc40791c07a176b6d47411c125/raw/wolforce';
+    const GIST_API   = 'https://api.github.com/gists/9a4b5ebc40791c07a176b6d47411c125';
+    const IMG_BASE   = 'assets/images/';
+    const LS_KEY     = 'wf_gist_key';
+    const LS_FAV     = 'wf_favs';
+
+    const SIMPLE_CHIPS = [
+      { id: 'favourites', label: '', icon: 'ia ia-star' },
+      { id: 'games',     label: 'games'     },
+      { id: 'software',  label: 'software'  },
+      { id: 'links',     label: 'links'     },
+    ];
+    // #endregion
+
+    // ============================================================
+    // #region UTILITIES
+    // ============================================================
+    const imgSrc = (img) =>
+      img && (img.startsWith('http://') || img.startsWith('https://'))
+        ? img
+        : `${IMG_BASE}${img}`;
+
+    const loadFavs   = () => JSON.parse(localStorage.getItem(LS_FAV)  || '[]');
+    const saveFavs   = (f) => localStorage.setItem(LS_FAV, JSON.stringify(f));
+    const loadKey    = ()  => localStorage.getItem(LS_KEY) || '';
+    const saveKey    = (k) => localStorage.setItem(LS_KEY, k);
+
+    const fmtDate = (d) => {
+      if (!d) return '';
+      const dt = new Date(d + 'T00:00:00');
+      return dt.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    };
+
+    // Cycle: OFF → AND → OR → NOT → OFF
+    const cycleTagState = (s) => ({ OFF:'AND', AND:'OR', OR:'NOT', NOT:'OFF' }[s] || 'OFF');
+
+    function applyFilters(posts, simpleChip, advTags, favs) {
+      let result = [...posts];
+
+      if (simpleChip === 'favourites') {
+        result = result.filter(p => favs.includes(p.title));
+      } else if (simpleChip === 'games') {
+        result = result.filter(p => p.tags?.some(t => ['game','webgame','gamejam'].includes(t.toLowerCase())));
+      } else if (simpleChip === 'software') {
+        result = result.filter(p => p.tags?.some(t => ['software','tool','app'].includes(t.toLowerCase())));
+      } else if (simpleChip === 'links') {
+        result = result.filter(p => p.tags?.some(t => t.toLowerCase() === 'links'));
+      }
+
+      // Advanced: AND tags must all match, OR tags at least one, NOT tags excluded
+      const andTags = Object.entries(advTags).filter(([,v])=>v==='AND').map(([k])=>k);
+      const orTags  = Object.entries(advTags).filter(([,v])=>v==='OR' ).map(([k])=>k);
+      const notTags = Object.entries(advTags).filter(([,v])=>v==='NOT').map(([k])=>k);
+
+      if (andTags.length) result = result.filter(p => andTags.every(t => p.tags?.includes(t)));
+      if (orTags.length)  result = result.filter(p => orTags.some(t  => p.tags?.includes(t)));
+      if (notTags.length) result = result.filter(p => !notTags.some(t => p.tags?.includes(t)));
+
+      return result;
+    }
+    // #endregion
+
+    // ============================================================
+    // #region STAR BUTTON COMPONENT
+    // ============================================================
+    function StarBtn({ postTitle, favs, onToggle, style }) {
+      const isFaved = favs.includes(postTitle);
+      const onClick = (e) => { e.stopPropagation(); onToggle(postTitle); };
+      return h('button', {
+        class: `star-btn ${isFaved ? 'faved' : ''}`,
+        onClick, style,
+        title: isFaved ? 'Remove from favourites' : 'Add to favourites',
+        'aria-label': isFaved ? 'Unfavourite' : 'Favourite',
+      }, h('i', { class: isFaved ? 'ia ia-star' : 'ia ia-star-o' }));
+    }
+    // #endregion
+
+    // ============================================================
+    // #region POST TILE (GRID)
+    // ============================================================
+    function PostTile({ post, favs, onToggleFav, onClick }) {
+      return h('div', { class: 'post-tile', onClick: () => onClick(post) },
+        post.image
+          ? h('img', { class: 'post-tile-img', src: imgSrc(post.image), alt: post.title, loading: 'lazy' })
+          : h('div', { class: 'post-tile-img', style: { background: 'var(--bg-card)' } }),
+        /* h('div', { class: 'post-tile-overlay' },
+          h('div', { class: 'post-tile-title' }, post.title)
+        ), */
+        h(StarBtn, { postTitle: post.title, favs, onToggle: onToggleFav })
+      );
+    }
+    // #endregion
+
+    // ============================================================
+    // #region POST CARD (LIST)
+    // ============================================================
+    function PostCard({ post, favs, onToggleFav, onClick }) {
+      return h('div', { class: 'post-card list-star', onClick: () => onClick(post) },
+        h('div', { class: 'post-card-header' },
+          h('span', { class: 'post-card-title' }, post.title),
+          h('span', { class: 'post-card-date'  }, fmtDate(post.date)),
+        ),
+        h('div', { class: 'post-card-main' },
+          h('div', { class: 'post-card-body' },
+            post.tags?.length && h('div', { class: 'post-tags' },
+              post.tags.map(t => h('span', { class: 'post-tag', key: t }, t))
+            ),
+            post.content && h('p', { class: 'post-card-content' }, post.content),
+            post.links?.length && h('div', { class: 'post-links' },
+              post.links.map(l => h('a', {
+                class: 'post-link', href: l.link, key: l.title,
+                onClick: e => e.stopPropagation(),
+                target: '_blank', rel: 'noopener'
+              }, l.title))
+            ),
+          ),
+          h('div', { class: 'post-card-img-wrap' },
+            post.image
+              ? h('img', { class: 'post-card-img', src: imgSrc(post.image), alt: post.title, loading: 'lazy' })
+              : null
+          ),
+        ),
+        h(StarBtn, { postTitle: post.title, favs, onToggle: onToggleFav,
+          style: { position: 'absolute', top: '8px', right: '8px' }
+        })
+      );
+    }
+    // #endregion
+
+    // ============================================================
+    // #region POST DETAIL PAGE
+    // ============================================================
+    function PostDetail({ post, favs, onToggleFav }) {
+      const isFaved = favs.includes(post.title);
+      return h('div', { class: 'detail-page' },
+        post.image
+          ? h('img', { class: 'detail-hero', src: imgSrc(post.image), alt: post.title })
+          : null,
+        h('div', { class: 'detail-title-row' },
+          h('h1', { class: 'detail-title' }, post.title),
+          h('button', {
+            class: `detail-star ${isFaved ? 'faved' : ''}`,
+            onClick: () => onToggleFav(post.title),
+            title: isFaved ? 'Remove from favourites' : 'Add to favourites',
+          }, h('i', { class: isFaved ? 'ia ia-star' : 'ia ia-star-o' }))
+        ),
+        h('div', { class: 'detail-date' }, fmtDate(post.date)),
+        post.tags?.length && h('div', { class: 'detail-tags' },
+          post.tags.map(t => h('span', { class: 'post-tag', key: t }, t))
+        ),
+        post.content && h('div', { class: 'detail-content' }, post.content),
+        post.links?.length && h(Fragment, null,
+          h('hr', { class: 'detail-divider' }),
+          h('div', { class: 'detail-links-title' }, 'Links'),
+          h('div', { class: 'detail-links' },
+            post.links.map(l => h('a', {
+              class: 'detail-link', href: l.link, key: l.title,
+              target: '_blank', rel: 'noopener'
+            }, h('i', { class: 'ia ia-external' }), l.title))
+          )
+        )
+      );
+    }
+    // #endregion
+
+    // ============================================================
+    // #region LOGIN DIALOG
+    // ============================================================
+    function LoginDialog({ onClose, onLogin }) {
+      const [key, setKey]   = useState('');
+      const [err, setErr]   = useState('');
+      const [busy, setBusy] = useState(false);
+
+      const handleLogin = async () => {
+        setErr('');
+        setBusy(true);
+        try {
+          const r = await fetch(GIST_API, {
+            headers: { Authorization: `token ${key}` }
+          });
+          if (!r.ok) throw new Error('Invalid key or access denied');
+          const data = await r.json();
+          // Check it's the right gist
+          if (!data.files) throw new Error('Unexpected response');
+          saveKey(key);
+          onLogin(key);
+          onClose();
+        } catch (e) {
+          setErr(e.message || 'Login failed');
+        } finally {
+          setBusy(false);
+        }
+      };
+
+      return h('div', { class: 'dialog-backdrop', onClick: onClose },
+        h('div', { class: 'dialog', onClick: e => e.stopPropagation() },
+          h('div', { class: 'dialog-title' }, 'Login'),
+          h('div', { class: 'dialog-field' },
+            h('label', null, 'GitHub Token'),
+            h('input', {
+              type: 'password',
+              placeholder: 'ghp_...',
+              value: key,
+              onInput: e => { setKey(e.target.value); setErr(''); },
+              onKeyDown: e => e.key === 'Enter' && handleLogin(),
+              autoFocus: true,
+            })
+          ),
+          h('div', { class: `dialog-error ${err ? 'visible' : ''}` }, err || '\u00a0'),
+          h('div', { class: 'dialog-actions' },
+            h('button', { class: 'btn-cancel', onClick: onClose }, 'Cancel'),
+            h('button', { class: 'btn-primary', onClick: handleLogin, disabled: busy || !key },
+              busy ? 'Connecting…' : 'Login')
+          )
+        )
+      );
+    }
+    // #endregion
+
+    // ============================================================
+    // #region CREATE / EDIT DIALOG
+    // ============================================================
+    const genId = () => Array.from(crypto.getRandomValues(new Uint8Array(18)))
+      .map(b => b.toString(36).padStart(2,'0')).join('');
+
+    // Pass editPost to pre-fill and switch to edit/replace mode
+    function CreateDialog({ onClose, authKey, onPostCreated, editPost }) {
+      const isEdit = !!editPost;
+      const [form, setForm] = useState(() => ({
+        title:    isEdit ? editPost.title        : '',
+        imageUrl: isEdit ? (editPost.image || '') : '',
+        tags:     isEdit ? (editPost.tags || []).join(', ') : '',
+        content:  isEdit ? (editPost.content || '') : '',
+      }));
+      const [links, setLinks] = useState(() =>
+        isEdit && editPost.links?.length
+          ? editPost.links.map(l => ({ title: l.title, url: l.link }))
+          : [{ title: '', url: '' }]
+      );
+      const [busy, setBusy] = useState(false);
+      const [err,  setErr]  = useState('');
+
+      const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
+      const setLink = (i, field) => (e) => setLinks(ls => ls.map((l, idx) => idx === i ? { ...l, [field]: e.target.value } : l));
+      const addLink    = () => setLinks(ls => [...ls, { title: '', url: '' }]);
+      const removeLink = (i) => setLinks(ls => ls.filter((_, idx) => idx !== i));
+
+      const handlePublish = async () => {
+        if (!form.title.trim()) { setErr('Title is required'); return; }
+        setBusy(true); setErr('');
+        try {
+          const tags = form.tags.split(',').map(s => s.trim()).filter(Boolean);
+          const builtLinks = links
+            .filter(l => l.url.trim())
+            .map(l => ({ title: l.title.trim() || l.url.trim(), link: l.url.trim() }));
+          const post = {
+            id:      isEdit ? editPost.id : genId(),
+            date:    isEdit ? editPost.date : new Date().toISOString().slice(0, 10),
+            title:   form.title.trim(),
+            content: form.content.trim(),
+            image:   form.imageUrl.trim(),
+            tags,
+            links: builtLinks,
+          };
+
+          const getRes = await fetch(GIST_API, { headers: { Authorization: `token ${authKey}` } });
+          if (!getRes.ok) throw new Error('Failed to fetch gist');
+          const gistData = await getRes.json();
+          const fileName = Object.keys(gistData.files)[0];
+          const raw = JSON.parse(gistData.files[fileName].content);
+          if (isEdit) {
+            raw.posts = (raw.posts || []).map(p => p.id === editPost.id ? post : p);
+          } else {
+            raw.posts = [post, ...(raw.posts || [])];
+          }
+
+          const patchRes = await fetch(GIST_API, {
+            method: 'PATCH',
+            headers: { Authorization: `token ${authKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ files: { [fileName]: { content: JSON.stringify(raw, null, 2) } } })
+          });
+          if (!patchRes.ok) throw new Error('Failed to update gist');
+          onPostCreated(post);
+          onClose();
+        } catch (e) {
+          setErr(e.message || 'Publish failed');
+        } finally {
+          setBusy(false);
+        }
+      };
+
+      return h('div', { class: 'dialog-backdrop', onClick: onClose },
+        h('div', { class: 'dialog dialog-wide', onClick: e => e.stopPropagation() },
+          h('div', { class: 'dialog-title' }, isEdit ? 'Edit Post' : 'New Post'),
+          h('div', { class: 'dialog-field' },
+            h('label', null, 'Title'),
+            h('input', { value: form.title, onInput: set('title'), placeholder: 'My Project' })
+          ),
+          h('div', { class: 'dialog-field' },
+            h('label', null, 'Image URL'),
+            h('input', { value: form.imageUrl, onInput: set('imageUrl'), placeholder: 'https://… or filename.png' })
+          ),
+          h('div', { class: 'dialog-field' },
+            h('label', null, 'Tags (comma separated)'),
+            h('input', { value: form.tags, onInput: set('tags'), placeholder: 'game, webgame, …' })
+          ),
+          h('div', { class: 'dialog-field' },
+            h('label', null, 'Content'),
+            h('textarea', { value: form.content, onInput: set('content'), placeholder: 'Describe your project…' })
+          ),
+          h('div', { class: 'dialog-field' },
+            h('label', null, 'Links'),
+            h('div', { class: 'link-rows' },
+              links.map((l, i) =>
+                h('div', { class: 'link-row', key: i },
+                  h('input', { value: l.title, onInput: setLink(i, 'title'), placeholder: 'Label' }),
+                  h('input', { value: l.url,   onInput: setLink(i, 'url'),   placeholder: 'https://…' }),
+                  h('button', { class: 'btn-link-del', onClick: () => removeLink(i), title: 'Remove' },
+                    h('i', { class: 'ia ia-close' })
+                  )
+                )
+              )
+            ),
+            h('button', { class: 'btn-link-add', onClick: addLink },
+              h('i', { class: 'ia ia-plus' }), ' Add link'
+            )
+          ),
+          h('div', { class: `dialog-error ${err ? 'visible' : ''}` }, err || '\u00a0'),
+          h('div', { class: 'dialog-actions' },
+            h('button', { class: 'btn-cancel', onClick: onClose }, 'Cancel'),
+            h('button', { class: 'btn-primary', onClick: handlePublish, disabled: busy },
+              busy ? (isEdit ? 'Saving…' : 'Publishing…') : (isEdit ? 'Save' : 'Publish'))
+          )
+        )
+      );
+    }
+    // #endregion
+
+    // ============================================================
+    // #region FILTER BAR COMPONENT
+    // ============================================================
+    function FilterBar({ arrange, onArrange, simpleChip, onSimpleChip, advOpen, onAdvOpen, allTags, advTags, onAdvTag, onAdvClear }) {
+      return h('div', { class: 'filterbar-wrapper' },
+        h('div', { class: 'filterbar' },
+          // Grid/list toggle
+          h('button', {
+            class: 'btn-arrange',
+            onClick: () => onArrange(arrange === 'grid' ? 'list' : 'grid'),
+            title: arrange === 'grid' ? 'Switch to list' : 'Switch to grid',
+          }, h('i', { class: arrange === 'grid' ? 'ia ia-list' : 'ia ia-grid' })),
+
+          // Simple chips (centered)
+          h('div', { class: 'filterbar-chips' },
+            SIMPLE_CHIPS.map(chip =>
+              h('button', {
+                key: chip.id,
+                class: `chip ${simpleChip === chip.id ? 'active' : ''}`,
+                onClick: () => { onSimpleChip(simpleChip === chip.id ? null : chip.id); onAdvClear(); },
+              },
+                chip.icon && h('i', { class: chip.icon }),
+                chip.label && h('span', null, chip.label)
+              )
+            )
+          ),
+
+          // Advanced toggle
+          h('button', {
+            class: `btn-advanced ${advOpen ? 'active' : ''}`,
+            onClick: onAdvOpen,
+            title: 'Advanced filters',
+          }, h('i', { class: 'ia ia-filter' }))
+        ),
+
+        // Advanced panel
+        advOpen && allTags.length > 0 && h('div', { class: 'advanced-panel' },
+          h('div', { class: 'advanced-panel-inner' },
+            allTags.map(tag => {
+              const state = advTags[tag] || 'OFF';
+              const prefix = state === 'OR' ? '+ ' : state === 'NOT' ? '– ' : '';
+              return h('button', {
+                key: tag,
+                class: 'adv-tag',
+                'data-state': state,
+                onClick: () => onAdvTag(tag),
+              }, prefix + tag);
+            }),
+            h('button', { class: 'adv-clear', onClick: onAdvClear }, 'Clear all')
+          )
+        )
+      );
+    }
+    // #endregion
+
+    // ============================================================
+    // #region MAIN APP
+    // ============================================================
+    function App() {
+      // --- state ---
+      const [posts,      setPosts]      = useState([]);
+      const [postMap,    setPostMap]    = useState({}); // id -> post
+      const [loading,    setLoading]    = useState(true);
+      const [authKey,    setAuthKey]    = useState(() => loadKey());
+      const [favs,       setFavs]       = useState(() => loadFavs());
+      const [arrange,    setArrange]    = useState('grid');
+      const [simpleChip, setSimpleChip] = useState(null);
+      const [advTags,    setAdvTags]    = useState({});
+      const [advOpen,    setAdvOpen]    = useState(false);
+      const [allTags,    setAllTags]    = useState([]);
+      const [detail,     setDetail]     = useState(null); // post or null
+      const [showLogin,  setShowLogin]  = useState(false);
+      const [showCreate, setShowCreate] = useState(false);
+      const [showEdit,   setShowEdit]   = useState(false);
+
+      const isLoggedIn = !!authKey;
+
+      // --- routing (hash) ---
+      useEffect(() => {
+        const onHash = () => {
+          const hash = window.location.hash;
+          if (hash.startsWith('#post/')) {
+            const id = hash.slice(6);
+            const p = postMap[id];
+            if (p) setDetail(p);
+          } else {
+            setDetail(null);
+          }
+        };
+        window.addEventListener('hashchange', onHash);
+        onHash();
+        return () => window.removeEventListener('hashchange', onHash);
+      }, [postMap]);
+
+      // --- fetch posts ---
+      useEffect(() => {
+        fetch(GIST_URL)
+          .then(r => r.json())
+          .then(data => {
+            const p = data.posts || [];
+            const map = {};
+            const tagSet = new Set();
+            p.forEach(post => {
+              if (post.id) map[post.id] = post;
+              post.tags?.forEach(t => tagSet.add(t));
+            });
+            setPosts(p);
+            setPostMap(map);
+            setAllTags([...tagSet].sort());
+          })
+          .catch(() => {})
+          .finally(() => setLoading(false));
+      }, []);
+
+      // --- favourites ---
+      const toggleFav = useCallback((title) => {
+        setFavs(f => {
+          const next = f.includes(title) ? f.filter(x=>x!==title) : [...f, title];
+          saveFavs(next);
+          return next;
+        });
+      }, []);
+
+      // --- navigation ---
+      const openPost = (post) => {
+        window.location.hash = `post/${post.id}`;
+      };
+      const goBack = () => { window.location.hash = ''; };
+
+      // --- adv tags ---
+      const toggleAdvTag = (tag) => setAdvTags(s => ({ ...s, [tag]: cycleTagState(s[tag] || 'OFF') }));
+      const clearAdvTags = () => setAdvTags({});
+      const toggleAdv    = () => { setAdvOpen(o => !o); };
+
+      // --- post created or edited ---
+      const onPostCreated = (post) => {
+        setPosts(p => {
+          const exists = p.some(x => x.id === post.id);
+          return exists ? p.map(x => x.id === post.id ? post : x) : [post, ...p];
+        });
+        setPostMap(m => ({ ...m, [post.id]: post }));
+        const tagSet = new Set(allTags);
+        post.tags?.forEach(t => tagSet.add(t));
+        setAllTags([...tagSet].sort());
+        // Keep detail view in sync if we just edited the open post
+        if (detail?.id === post.id) setDetail(post);
+      };
+
+      // --- filtered posts ---
+      const filtered = applyFilters(posts, simpleChip, advTags, favs);
+
+      // ============================================================
+      // RENDER
+      // ============================================================
+      return h(Fragment, null,
+        // ---- NAVBAR ----
+        h('nav', { class: 'navbar' },
+          h('a', { href: '#' },
+            h('img', {
+              class: 'navbar-logo',
+              src: 'assets/images/logo.png',
+              alt: 'Wolforcept',
+              onError: e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }
+            }),
+            h('span', { class: 'navbar-logo-fallback', style: { display:'none' } }, 'Wolforcept')
+          ),
+          h('div', { class: 'navbar-spacer' }),
+          h('div', { class: 'navbar-right' },
+            // Back button (detail mode)
+            detail && h('button', { class: 'btn-back', onClick: goBack },
+              h('i', { class: 'ia ia-chevron-left' }), 'Back'
+            ),
+            // Edit button (detail mode, logged in)
+            detail && isLoggedIn && h('button', {
+              class: 'btn-icon btn-create',
+              onClick: () => setShowEdit(true),
+              title: 'Edit post',
+            }, h('i', { class: 'ia ia-edit' })),
+            // Login button
+            !isLoggedIn && !detail && h('button', {
+              class: 'btn-icon btn-login',
+              onClick: () => setShowLogin(true),
+              title: 'Login',
+            }, h('i', { class: 'ia ia-key' })),
+            // Create button
+            isLoggedIn && !detail && h('button', {
+              class: 'btn-icon btn-create',
+              onClick: () => setShowCreate(true),
+              title: 'New post',
+            }, h('i', { class: 'ia ia-plus' })),
+          )
+        ),
+
+        // ---- FILTER BAR (only on list view, not detail) ----
+        !detail && h(FilterBar, {
+          arrange, onArrange: setArrange,
+          simpleChip, onSimpleChip: setSimpleChip,
+          advOpen, onAdvOpen: toggleAdv,
+          allTags, advTags,
+          onAdvTag: toggleAdvTag,
+          onAdvClear: () => { clearAdvTags(); }
+        }),
+
+        // ---- MAIN CONTENT ----
+        detail
+          ? h(PostDetail, { post: detail, favs, onToggleFav: toggleFav })
+          : h('main', { class: 'main' },
+              loading
+                ? h('div', { class: 'loading-dots' }, h('span'), h('span'), h('span'))
+                : filtered.length === 0
+                  ? h('div', { class: 'empty-state' },
+                      h('i', { class: 'ia ia-search' }),
+                      h('p', null, 'No posts match your filters.')
+                    )
+                  : arrange === 'grid'
+                    ? h('div', { class: 'posts-grid' },
+                        filtered.map(p => h(PostTile, { key: p.title, post: p, favs, onToggleFav: toggleFav, onClick: openPost }))
+                      )
+                    : h('div', { class: 'posts-list' },
+                        filtered.map(p => h(PostCard, { key: p.title, post: p, favs, onToggleFav: toggleFav, onClick: openPost }))
+                      )
+            ),
+
+        // ---- DIALOGS ----
+        showLogin  && h(LoginDialog,  { onClose: () => setShowLogin(false),  onLogin: (k) => setAuthKey(k) }),
+        showCreate && h(CreateDialog, { onClose: () => setShowCreate(false), authKey, onPostCreated }),
+        showEdit   && detail && h(CreateDialog, { onClose: () => setShowEdit(false), authKey, onPostCreated, editPost: detail }),
+      );
+    }
+    // #endregion
+
+    // ============================================================
+    // #region BOOTSTRAP
+    // ============================================================
+    render(h(App), document.getElementById('app'));
+    // #endregion
+  </script>
+</body>
 </html>

@@ -1,0 +1,90 @@
+@font-face {
+  font-family: "ia";
+  src: url('ia.eot?t=1771615417257'); /* IE9*/
+  src: url('ia.eot?t=1771615417257#iefix') format('embedded-opentype') /* IE6-IE8 */,
+  url('ia.woff2?t=1771615417257') format('woff2'),
+  url('ia.woff?t=1771615417257') format('woff'),
+  url('ia.ttf?t=1771615417257') format('truetype'),
+  url('ia.svg?t=1771615417257') format('svg');
+}
+
+[class^="ia-"], [class*=" ia-"] {
+  font-family: 'ia' !important;
+  font-style:normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+.ia-amulet::before { content: "\ea01"; }
+.ia-belt::before { content: "\ea02"; }
+.ia-bolt::before { content: "\ea03"; }
+.ia-book::before { content: "\ea04"; }
+.ia-boots::before { content: "\ea05"; }
+.ia-bow::before { content: "\ea06"; }
+.ia-campfire::before { content: "\ea07"; }
+.ia-cave::before { content: "\ea08"; }
+.ia-chakram::before { content: "\ea09"; }
+.ia-chestplate::before { content: "\ea0a"; }
+.ia-claw::before { content: "\ea0b"; }
+.ia-cloak-dagger::before { content: "\ea0c"; }
+.ia-cloak::before { content: "\ea0d"; }
+.ia-crossbow::before { content: "\ea0e"; }
+.ia-crossed-swords::before { content: "\ea0f"; }
+.ia-dagger::before { content: "\ea10"; }
+.ia-death-book::before { content: "\ea11"; }
+.ia-druidic-staff::before { content: "\ea12"; }
+.ia-fist::before { content: "\ea13"; }
+.ia-flail::before { content: "\ea14"; }
+.ia-flask::before { content: "\ea15"; }
+.ia-gloves::before { content: "\ea16"; }
+.ia-greataxe::before { content: "\ea17"; }
+.ia-greatsword::before { content: "\ea18"; }
+.ia-group::before { content: "\ea19"; }
+.ia-gunblade::before { content: "\ea1a"; }
+.ia-halberd::before { content: "\ea1b"; }
+.ia-hammer::before { content: "\ea1c"; }
+.ia-hand-fire::before { content: "\ea1d"; }
+.ia-harpy::before { content: "\ea1e"; }
+.ia-helmet::before { content: "\ea1f"; }
+.ia-holy-book::before { content: "\ea20"; }
+.ia-house::before { content: "\ea21"; }
+.ia-jagged-axe::before { content: "\ea22"; }
+.ia-katana::before { content: "\ea23"; }
+.ia-knight::before { content: "\ea24"; }
+.ia-knives::before { content: "\ea25"; }
+.ia-leaf::before { content: "\ea26"; }
+.ia-lute::before { content: "\ea27"; }
+.ia-mace::before { content: "\ea28"; }
+.ia-market::before { content: "\ea29"; }
+.ia-ninja-star::before { content: "\ea2a"; }
+.ia-orb-magic::before { content: "\ea2b"; }
+.ia-orb::before { content: "\ea2c"; }
+.ia-pants::before { content: "\ea2d"; }
+.ia-pentagram::before { content: "\ea2e"; }
+.ia-person::before { content: "\ea2f"; }
+.ia-pickaxe::before { content: "\ea30"; }
+.ia-pistol::before { content: "\ea31"; }
+.ia-potion::before { content: "\ea32"; }
+.ia-rift::before { content: "\ea33"; }
+.ia-ring::before { content: "\ea34"; }
+.ia-runic-blade::before { content: "\ea35"; }
+.ia-sceptre::before { content: "\ea36"; }
+.ia-scroll::before { content: "\ea37"; }
+.ia-scythe::before { content: "\ea38"; }
+.ia-shack::before { content: "\ea39"; }
+.ia-shield::before { content: "\ea3a"; }
+.ia-skeleton::before { content: "\ea3b"; }
+.ia-skelleton::before { content: "\ea3c"; }
+.ia-slingshot::before { content: "\ea3d"; }
+.ia-spear::before { content: "\ea3e"; }
+.ia-staff::before { content: "\ea3f"; }
+.ia-sword::before { content: "\ea40"; }
+.ia-totem::before { content: "\ea41"; }
+.ia-trident::before { content: "\ea42"; }
+.ia-vampire::before { content: "\ea43"; }
+.ia-wand::before { content: "\ea44"; }
+.ia-whip::before { content: "\ea45"; }
+.ia-winged-shield::before { content: "\ea46"; }
+
+

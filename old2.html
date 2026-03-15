@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wolforce</title>
+
+  <!-- #region Icon Font (CDN) -->
+  <link rel="stylesheet" href="https://wolforcept.github.io/cdn/iconawesome/ia.css" />
+  <!-- #endregion -->
+
+  <style>
+    /* ═══════════════════════════════════════════════════════
+       #region THEME
+       All colors are defined here and nowhere else.
+       Gold accents · Royal green · Deep navy blues
+    ═══════════════════════════════════════════════════════ */
+    :root {
+      /* — Backgrounds: dark navy scale — */
+      --bg:          #07090f;
+      --bg2:         #0b0f1c;
+      --bg3:         #101625;
+      --surface:     #182030;
+
+      /* — Borders — */
+      --border:      rgba(160, 130, 50, 0.13);
+      --border2:     rgba(180, 150, 60, 0.28);
+
+      /* — Text — */
+      --text:        #ede4cc;
+      --text2:       #7a7060;
+      --text3:       #3a3428;
+
+      /* — Gold accent scale — */
+      --gold:        #c09030;
+      --gold2:       #daa84a;
+      --gold3:       #f0cc70;
+      --gold-dim:    rgba(192, 144, 48, 0.15);
+
+      /* — Royal green — */
+      --green:       #28704a;
+      --green2:      #38a068;
+      --green-dim:   rgba(40, 112, 74, 0.18);
+
+      /* — Advanced filter tag state colors — */
+      --tag-and-bg:     rgba(40, 80, 180, 0.2);
+      --tag-and-border: #3858c0;
+      --tag-and-text:   #78a0f0;
+      --tag-or-bg:      rgba(40, 112, 74, 0.22);
+      --tag-or-border:  #38a068;
+      --tag-or-text:    #50cc88;
+      --tag-not-bg:     rgba(180, 48, 48, 0.2);
+      --tag-not-border: #b03030;
+      --tag-not-text:   #e07070;
+
+      /* — Misc — */
+      --red:         #b83030;
+      --star:        #daa84a;
+
+      /* — Layout tokens — */
+      --radius:      9px;
+      --radius-lg:   13px;
+      --font-serif:  'Cormorant Garamond', Georgia, serif;
+      --font-ui:     'Inter', system-ui, sans-serif;
+      --shadow:      0 6px 36px rgba(0,0,0,0.75);
+      --trans:       0.15s ease;
+    }
+    /* #endregion */
+
+    /* ─────────────────────────────────────────────
+       #region Reset & Base
+    ───────────────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--gold2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    button { cursor: pointer; border: none; background: none; font-family: inherit; font-size: inherit; color: inherit; }
+    img    { display: block; max-width: 100%; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 3px; }
+    /* #endregion */
+
+    /* ─────────────────────────────────────────────
+       #region Top Navbar
+    ───────────────────────────────────────────── */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(14px, 4vw, 48px);
+      height: 58px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .navbar-logo {
+      height: 32px;
+      object-fit: contain;
+      object-position: left center;
+    }
+
+    .navbar-actions { display: flex; gap: 8px; align-items: center; }
+
+    .btn-icon {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      transition: background var(--trans), opacity var(--trans);
+    }
+
+    .btn-login { opacity: 0.15; color: var(--text2); }
+    .btn-login:hover { opacity: 0.45; background: var(--surface); }
+
+    .btn-create {
+      color: var(--gold2); opacity: 0.75;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+    }
+    .btn-create:hover { opacity: 1; background: var(--bg3); border-color: var(--gold); }
+
+    /* Back button shown in navbar when on detail page */
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-family: var(--font-ui);
+      color: var(--text2);
+      padding: 5px 11px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      transition: color var(--trans), border-color var(--trans);
+    }
+    .btn-back:hover { color: var(--gold2); border-color: var(--border2); }
+    /* #endregion */
+
+    /* ─────────────────────────────────────────────
+       #region Filter Bar
+    ───────────────────────────────────────────── */
+
+    /* Wrapper always occupies the filterbar's height in the document flow.
+       This prevents the content jump when the inner bar goes position:fixed. */
+    .filterbar-wrap {
+      height: 48px; /* must match .filterbar height */
+      position: relative;
+      z-index: 100;
+    }
+
+    /* When the adv-panel is open it sits right below; the wrapper only reserves
+       the bar height — the panel extends naturally and pushes content down. */
+
+    .filterbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 clamp(14px, 4vw, 48px);
+      height: 48px;          /* keep in sync with .filterbar-wrap */
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      width: 100%;
+      box-sizing: border-box;
+      transition: box-shadow var(--trans);
+    }
+
+    .filterbar.stuck {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      box-shadow: 0 2px 28px rgba(0,0,0,0.8);
+    }
+
+    /* Single toggle button for arrange (shows opposing icon) */
+    .btn-arrange-toggle {
+      width: 30px; height: 30px;
+      border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      color: var(--text2);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      transition: color var(--trans), border-color var(--trans);
+    }
+    .btn-arrange-toggle:hover { color: var(--gold2); border-color: var(--border2); }
+
+    /* Center — simple chips, horizontally centered */
+    .filterbar-chips {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .chip {
+      display: flex; align-items: center; gap: 4px;
+      padding: 3px 12px;
+      border-radius: 99px;
+      font-size: 12px; font-weight: 500; font-family: var(--font-ui);
+      white-space: nowrap;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text2);
+      transition: background var(--trans), color var(--trans), border-color var(--trans);
+      cursor: pointer; user-select: none;
+    }
+    .chip:hover { color: var(--text); border-color: var(--border2); }
+    .chip.active-simple { background: var(--gold-dim); border-color: var(--gold); color: var(--gold2); }
+
+    /* Advanced tag chip states */
+    .chip.tag-and { background: var(--tag-and-bg); border-color: var(--tag-and-border); color: var(--tag-and-text); }
+    .chip.tag-or  { background: var(--tag-or-bg);  border-color: var(--tag-or-border);  color: var(--tag-or-text);  }
+    .chip.tag-not { background: var(--tag-not-bg); border-color: var(--tag-not-border); color: var(--tag-not-text); }
+
+    /* Advanced expanded panel — full width, wraps, no scroll */
+    .adv-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: flex-start;
+      padding: clamp(12px, 2vw, 18px) clamp(14px, 4vw, 48px);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+
+    .filterbar-right { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+    .btn-clear {
+      font-size: 11px; color: var(--text3);
+      padding: 3px 8px; border-radius: var(--radius);
+      transition: color var(--trans);
+    }
+    .btn-clear:hover { color: var(--tag-not-text); }
+
+    /* Icon-only advanced toggle */
+    .btn-adv-icon {
+      width: 30px; height: 30px;
+      border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      color: var(--text2);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      transition: color var(--trans), border-color var(--trans), background var(--trans);
+    }
+    .btn-adv-icon:hover { color: var(--gold2); border-color: var(--border2); }
+    .btn-adv-icon.active { color: var(--gold2); background: var(--gold-dim); border-color: var(--gold); }
+    /* #endregion */
+
+    /* ─────────────────────────────────────────────
+       #region Posts Grid & List Layout
+    ───────────────────────────────────────────── */
+    .posts-wrap {
+      padding: clamp(12px, 2.5vw, 32px) clamp(14px, 4vw, 48px);
+    }
+
+    /* Grid — ~3 columns on mobile (~110px min), more on wider screens */
+    .posts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 9px;
+    }
+
+    /* List */
+    .posts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      max-width: 840px;
+    }
+    /* #endregion */
+
+    /* ─────────────────────────────────────────────
+       #region Post Card — Grid (tile)
+    ───────────────────────────────────────────── */
+    .post-tile {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      transition: transform var(--trans), box-shadow var(--trans), border-color var(--trans);
+    }
+    .post-tile:hover { transform: translateY(-2px); box-shadow: 0 5px 24px rgba(0,0,0,0.6); border-color: var(--border2); }
+
+    .post-tile-img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.28s ease;
+    }
+    .post-tile:hover .post-tile-img { transform: scale(1.05); }
+
+    .post-tile-gradient {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(4,6,14,0.9) 0%, transparent 52%);
+      pointer-events: none;
+    }
+
+    .post-tile-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 7px 8px;
+    }
+
+    .post-tile-title {
+      font-size: 10px; font-weight: 600; font-family: var(--font-ui);
+      color: #fff; line-height: 1.3;
+    }
+
+    .post-tile-date { font-size: 9px; color: rgba(255,255,255,0.42); margin-top: 1px; }
+
+    /* Star button (shared by grid + list) */
+    .post-star {
+      position: absolute; top: 6px; right: 6px;
+      font-size: 12px; z-index: 2;
+      opacity: 0.35; color: var(--text2);
+      transition: opacity var(--trans), transform var(--trans);
+      background: none; padding: 3px; border-radius: 50%;
+    }
+    .post-star:hover { opacity: 0.75; transform: scale(1.2); }
+    .post-star.starred { opacity: 1; color: var(--star); }
+    /* #endregion */
+
+    /* ─────────────────────────────────────────────
+       #region Post Card — List
+    ───────────────────────────────────────────── */
+    .post-row {
+      display: flex;
+      border-radius: var(--radius-lg);
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: border-color var(--trans), box-shadow var(--trans);
+    }
+    .post-row:hover { border-color: var(--border2); box-shadow: var(--shadow); }
+
+    .post-row-img {
+      width: 115px; min-height: 105px;
+      object-fit: cover; flex-shrink: 0;
+    }
+
+    .post-row-img-placeholder {
+      width: 115px; min-height: 105px;
+      background: var(--bg3); flex-shrink: 0;
+    }
+
+    .post-row-body {
+      padding: 13px 38px 13px 14px;
+      flex: 1; min-width: 0;
+      display: flex; flex-direction: column; gap: 5px;
+    }
+
+    .post-row-title { font-size: 15px; font-weight: 600; font-family: var(--font-serif); color: var(--text); line-height: 1.25; }
+    .post-row-date  { font-size: 11px; color: var(--text2); }
+
+    .post-row-tags  { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .tag-pill {
+      font-size: 10px; padding: 1px 7px;
+      border-radius: 99px;
+      background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
+    }
+
+    .post-row-content {
+      font-size: 12px; color: var(--text2);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    .post-row-links { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+
+    .link-btn {
+      font-size: 11px; padding: 2px 9px;
+      border-radius: 99px;
+      background: var(--bg3); border: 1px solid var(--border); color: var(--gold2);
+      transition: background var(--trans), border-color var(--trans);
+    }
+    .link-btn:hover { background: var(--surface); border-color: var(--border2); text-decoration: none; }
+
+    .post-row .post-star { position: absolute; top: 8px; right: 8px; }
+    /* #endregion */
+
+    /* ─────────────────────────────────────────────
+       #region Post Detail Page
+    ───────────────────────────────────────────── */
+    .detail-wrap {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: clamp(20px, 4vw, 48px) clamp(16px, 4vw, 48px);
+    }
+
+    .detail-hero {
+      width: 100%; max-height: 400px;
+      object-fit: cover;
+      border-radius: var(--radius-lg);
+      margin-bottom: 26px;
+      border: 1px solid var(--border);
+    }
+
+    .detail-meta {
+      display: flex; align-items: baseline; gap: 14px;
+      margin-bottom: 10px; flex-wrap: wrap;
+    }
+
+    .detail-title {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      line-height: 1.1;
+      color: var(--text);
+    }
+
+    .detail-date { font-size: 12px; color: var(--text2); flex-shrink: 0; }
+
+    .detail-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 20px; }
+
+    .detail-content {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      line-height: 1.8;
+      color: var(--text2);
+      white-space: pre-wrap;
+      margin-bottom: 28px;
+    }
+
+    .detail-links-title {
+      font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text3); margin-bottom: 9px;
+    }
+
+    .detail-links { display: flex; flex-wrap: wrap; gap: 9px; }
+
+    .detail-link-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 17px;
+      border-radius: var(--radius);
+      background: var(--surface); border: 1px solid var(--border2);
+      color: var(--gold2); font-size: 13px; font-weight: 500;
+      transition: background var(--trans), border-color var(--trans);
+    }
+    .detail-link-btn:hover { background: var(--bg3); border-color: var(--gold); text-decoration: none; }
+    /* #endregion */
+
+    /* ─────────────────────────────────────────────
+       #region Dialogs / Modals
+    ───────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.78);
+      backdrop-filter: blur(5px);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.13s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 20px 72px rgba(0,0,0,0.85);
+      animation: slideUp 0.17s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(8px); opacity: 0; }
+      to   { transform: translateY(0);   opacity: 1; }
+    }
+
+    .modal-title { font-family: var(--font-serif); font-size: 20px; font-weight: 600; margin-bottom: 18px; color: var(--text); }
+
+    .modal label {
+      display: block;
+      font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text2);
+      margin-bottom: 5px; margin-top: 13px;
+    }
+    .modal label:first-of-type { margin-top: 0; }
+
+    .modal input,
+    .modal textarea {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 11px;
+      color: var(--text); font-family: inherit; font-size: 13px;
+      outline: none; resize: vertical;
+      transition: border-color var(--trans);
+    }
+    .modal input:focus,
+    .modal textarea:focus { border-color: var(--gold); }
+    .modal textarea { min-height: 84px; }
+
+    /* Fixed-height error row — dialog size never changes */
+    .modal-error { font-size: 11px; color: var(--tag-not-text); height: 16px; line-height: 16px; margin-top: 8px; overflow: hidden; }
+
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+    .btn-cancel {
+      padding: 7px 14px; border-radius: var(--radius);
+      font-size: 13px; font-weight: 500;
+      color: var(--text2); background: var(--bg3); border: 1px solid var(--border);
+      transition: color var(--trans), border-color var(--trans);
+    }
+    .btn-cancel:hover { color: var(--text); border-color: var(--border2); }
+
+    .btn-primary {
+      padding: 7px 16px; border-radius: var(--radius);
+      font-size: 13px; font-weight: 600;
+      color: var(--bg2); background: var(--gold); border: 1px solid transparent;
+      transition: opacity var(--trans), background var(--trans);
+    }
+    .btn-primary:hover { background: var(--gold2); }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+    /* #endregion */
+
+    /* ─────────────────────────────────────────────
+       #region Loading / Empty States
+    ───────────────────────────────────────────── */
+    .state-center {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; padding: 80px 20px;
+      color: var(--text2); font-size: 13px;
+    }
+
+    .spinner {
+      width: 24px; height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--gold2);
+      border-radius: 50%;
+      animation: spin 0.72s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* #endregion */
+
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script type="module">
+import { h, render } from 'https://esm.sh/preact@10.22.0';
+import { useState, useEffect, useRef, useCallback } from 'https://esm.sh/preact@10.22.0/hooks';
+import htm from 'https://esm.sh/htm@3.1.1';
+const html = htm.bind(h);
+
+// ─────────────────────────────────────────────
+// #region Constants & Config
+// ─────────────────────────────────────────────
+const GIST_RAW_URL  = 'https://gist.githubusercontent.com/wolforcept/9a4b5ebc40791c07a176b6d47411c125/raw/wolforce';
+const GIST_API_URL  = 'https://api.github.com/gists/9a4b5ebc40791c07a176b6d47411c125';
+const GIST_FILENAME = 'wolforce';
+const LS_KEY_AUTH   = 'wf_auth_key';
+const LS_KEY_FAVS   = 'wf_favourites';
+const ASSETS_BASE   = './assets/images/';
+
+// Resolve image src: absolute URLs pass through, relative paths get the assets prefix
+const imgSrc = url => (url && /^https?:\/\//.test(url)) ? url : ASSETS_BASE + url;
+
+const SIMPLE_CHIPS = [
+  { id: 'favourites', label: '★' },
+  { id: 'games',      label: 'games' },
+  { id: 'software',   label: 'software' },
+  { id: 'links',      label: 'links' },
+];
+
+const TAG_STATES = ['off', 'and', 'or', 'not'];
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region Shared Dialog Config
+// All dialogs use .modal + .modal-overlay CSS classes.
+// Style changes to all dialogs at once: edit those rules in the CSS above.
+// #endregion
+const DIALOG_WIDE = { maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' };
+
+// ─────────────────────────────────────────────
+// #region Custom Hooks
+// ─────────────────────────────────────────────
+
+function useAuth() {
+  const [key, setKey] = useState(() => localStorage.getItem(LS_KEY_AUTH) || '');
+  const login  = useCallback(k  => { setKey(k);  localStorage.setItem(LS_KEY_AUTH, k); }, []);
+  const logout = useCallback(() => { setKey(''); localStorage.removeItem(LS_KEY_AUTH); }, []);
+  return { key, isLoggedIn: !!key, login, logout };
+}
+
+function usePosts() {
+  const [posts,   setPosts]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState('');
+
+  useEffect(() => {
+    fetch(GIST_RAW_URL + '?t=' + Date.now())
+      .then(r => r.json())
+      .then(data => { setPosts(data.posts || []); setLoading(false); })
+      .catch(() => { setError('Failed to load posts.'); setLoading(false); });
+  }, []);
+
+  const addPost = useCallback((post, authKey) => {
+    return fetch(GIST_API_URL, {
+      method: 'PATCH',
+      headers: { 'Authorization': `token ${authKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        files: { [GIST_FILENAME]: { content: JSON.stringify({ posts: [...posts, post] }, null, 2) } }
+      })
+    }).then(r => {
+      if (!r.ok) throw new Error('Failed to update gist');
+      setPosts(prev => [...prev, post]);
+    });
+  }, [posts]);
+
+  return { posts, loading, error, addPost };
+}
+
+function useFavourites() {
+  const [favs, setFavs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(LS_KEY_FAVS)) || []; } catch { return []; }
+  });
+
+  const toggle = useCallback(id => {
+    setFavs(prev => {
+      const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
+      localStorage.setItem(LS_KEY_FAVS, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const isFav = useCallback(id => favs.includes(id), [favs]);
+  return { favs, toggle, isFav };
+}
+
+function useFilters() {
+  const [arrange,       setArrange]       = useState('grid');
+  const [simpleFilter,  setSimpleFilter]  = useState('');
+  const [advancedOpen,  _setAdvancedOpen] = useState(false);
+  const [tagFilters,    setTagFilters]    = useState({});
+
+  // Closing advanced mode clears all tag filters
+  const setAdvancedOpen = useCallback(val => {
+    _setAdvancedOpen(val);
+    if (!val) setTagFilters({});
+  }, []);
+
+  const cycleTag = useCallback(tag => {
+    setTagFilters(prev => {
+      const cur  = prev[tag] || 'off';
+      const next = TAG_STATES[(TAG_STATES.indexOf(cur) + 1) % TAG_STATES.length];
+      return { ...prev, [tag]: next };
+    });
+  }, []);
+
+  const clearAdvanced    = useCallback(() => setTagFilters({}), []);
+  const hasActiveAdvanced = Object.values(tagFilters).some(v => v !== 'off');
+
+  return { arrange, setArrange, simpleFilter, setSimpleFilter, advancedOpen, setAdvancedOpen, tagFilters, cycleTag, clearAdvanced, hasActiveAdvanced };
+}
+
+function useSticky(ref) {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Fire when the top edge of the wrapper scrolls above the viewport
+    const obs = new IntersectionObserver(
+      ([e]) => setStuck(e.boundingClientRect.top < 0),
+      { threshold: [0, 1], rootMargin: '0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return stuck;
+}
+
+function useHash() {
+  const [hash, setHash] = useState(() => window.location.hash);
+  useEffect(() => {
+    const onHash = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  return hash;
+}
+
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region Filter Logic
+// ─────────────────────────────────────────────
+
+function applyFilters(posts, simpleFilter, tagFilters, favs, advancedOpen) {
+  let result = [...posts];
+
+  if (advancedOpen) {
+    const andTags = Object.entries(tagFilters).filter(([,v]) => v === 'and').map(([k]) => k);
+    const orTags  = Object.entries(tagFilters).filter(([,v]) => v === 'or' ).map(([k]) => k);
+    const notTags = Object.entries(tagFilters).filter(([,v]) => v === 'not').map(([k]) => k);
+
+    if (andTags.length) result = result.filter(p => andTags.every(t => p.tags?.includes(t)));
+    if (orTags.length)  result = result.filter(p => orTags.some(t   => p.tags?.includes(t)));
+    if (notTags.length) result = result.filter(p => notTags.every(t  => !p.tags?.includes(t)));
+  } else {
+    if      (simpleFilter === 'favourites') result = result.filter(p => favs.includes(p.title));
+    else if (simpleFilter === 'games')      result = result.filter(p => p.tags?.some(t => ['game','webgame','gamejam'].includes(t)));
+    else if (simpleFilter === 'software')   result = result.filter(p => p.tags?.some(t => ['software','tool','app'].includes(t)));
+    else if (simpleFilter === 'links')      result = result.filter(p => p.links?.length > 0);
+  }
+
+  return result;
+}
+
+function buildTagList(posts) {
+  const set = new Set();
+  posts.forEach(p => (p.tags || []).forEach(t => set.add(t)));
+  return [...set].sort();
+}
+
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region Dialogs
+// ─────────────────────────────────────────────
+
+function LoginDialog({ onClose, onLogin }) {
+  const [keyVal,  setKeyVal]  = useState('');
+  const [error,   setError]   = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!keyVal.trim()) return;
+    setLoading(true); setError('');
+    try {
+      const r = await fetch(GIST_API_URL, { headers: { 'Authorization': `token ${keyVal.trim()}` } });
+      if (!r.ok) throw new Error();
+      onLogin(keyVal.trim()); onClose();
+    } catch {
+      setError('Invalid key or no access to this gist.');
+    } finally { setLoading(false); }
+  };
+
+  return html`
+    <div class="modal-overlay" onClick=${e => e.target === e.currentTarget && onClose()}>
+      <div class="modal">
+        <div class="modal-title">Sign in</div>
+        <label>GitHub Token</label>
+        <input
+          type="password" placeholder="ghp_..."
+          value=${keyVal}
+          onInput=${e => setKeyVal(e.target.value)}
+          onKeyDown=${e => e.key === 'Enter' && handleLogin()}
+          autofocus
+        />
+        <div class="modal-error">${error}</div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onClick=${onClose}>Cancel</button>
+          <button class="btn-primary" onClick=${handleLogin} disabled=${loading || !keyVal.trim()}>
+            ${loading ? 'Checking…' : 'Login'}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function CreateDialog({ onClose, onPublish }) {
+  const [form,    setForm]    = useState({ title:'', image:'', tags:'', content:'', links:'' });
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+
+  const set = field => e => setForm(prev => ({ ...prev, [field]: e.target.value }));
+
+  const handlePublish = async () => {
+    if (!form.title.trim()) { setError('Title is required.'); return; }
+    setLoading(true); setError('');
+    try {
+      const parsedLinks = form.links.trim()
+        ? form.links.split('\n').map(l => {
+            const [title, link] = l.split('|').map(s => s.trim());
+            return { title: title || link, link: link || title };
+          }).filter(l => l.link)
+        : [];
+
+      const post = {
+        date:    new Date().toISOString().split('T')[0],
+        title:   form.title.trim(),
+        content: form.content.trim(),
+        image:   form.image.trim(),
+        tags:    form.tags.split(',').map(t => t.trim()).filter(Boolean),
+        links:   parsedLinks,
+      };
+      await onPublish(post);
+      onClose();
+    } catch (e) {
+      setError(e.message || 'Publish failed.');
+    } finally { setLoading(false); }
+  };
+
+  return html`
+    <div class="modal-overlay" onClick=${e => e.target === e.currentTarget && onClose()}>
+      <div class="modal" style=${DIALOG_WIDE}>
+        <div class="modal-title">New post</div>
+        <label>Title</label>
+        <input type="text" value=${form.title} onInput=${set('title')} placeholder="My Project" />
+        <label>Image URL</label>
+        <input type="text" value=${form.image} onInput=${set('image')} placeholder="https://..." />
+        <label>Tags (comma separated)</label>
+        <input type="text" value=${form.tags} onInput=${set('tags')} placeholder="game, software, tool" />
+        <label>Content</label>
+        <textarea value=${form.content} onInput=${set('content')} placeholder="Describe your project…" />
+        <label>Links (one per line — Title | URL)</label>
+        <textarea value=${form.links} onInput=${set('links')} style="min-height:62px"
+          placeholder=${'Itch.io | https://itch.io/...\nGitHub | https://github.com/...'} />
+        <div class="modal-error">${error}</div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onClick=${onClose}>Cancel</button>
+          <button class="btn-primary" onClick=${handlePublish} disabled=${loading}>
+            ${loading ? 'Publishing…' : 'Publish'}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region Navbar Component
+// ─────────────────────────────────────────────
+
+function Navbar({ isLoggedIn, isDetail, onLoginClick, onCreateClick }) {
+  return html`
+    <nav class="navbar">
+      <img class="navbar-logo" src="./logo.png" alt="Wolforce" />
+      <div class="navbar-actions">
+        ${isDetail
+          ? html`<button class="btn-back" onClick=${() => history.back()}>← back</button>`
+          : html`
+              ${!isLoggedIn && html`
+                <button class="btn-icon btn-login" onClick=${onLoginClick} title="Sign in">
+                  <i class="ia ia-key"></i>
+                </button>
+              `}
+              ${isLoggedIn && html`
+                <button class="btn-icon btn-create" onClick=${onCreateClick} title="New post">
+                  <i class="ia ia-plus"></i>
+                </button>
+              `}
+            `
+        }
+      </div>
+    </nav>
+  `;
+}
+
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region Filter Bar Component
+// ─────────────────────────────────────────────
+
+function FilterBar({ arrange, setArrange, simpleFilter, setSimpleFilter, advancedOpen, setAdvancedOpen, tagFilters, cycleTag, clearAdvanced, hasActiveAdvanced, allTags }) {
+  const wrapRef = useRef(null);
+  const stuck   = useSticky(wrapRef);
+
+  const tagLabel = (tag, state) => {
+    if (state === 'or')  return `+${tag}`;
+    if (state === 'not') return `−${tag}`;
+    return tag;
+  };
+
+  const tagClass = state => ({ and: 'chip tag-and', or: 'chip tag-or', not: 'chip tag-not' }[state] || 'chip');
+
+  return html`
+    <div ref=${wrapRef} class="filterbar-wrap">
+      <div class=${'filterbar' + (stuck ? ' stuck' : '')}>
+
+      <!-- Left: single toggle button that shows the icon of the *other* mode -->
+      <button
+        class="btn-arrange-toggle"
+        onClick=${() => setArrange(a => a === 'grid' ? 'list' : 'grid')}
+        title=${arrange === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+      >${arrange === 'grid' ? '≡' : '⊞'}</button>
+
+      <!-- Center: simple chips (hidden in advanced mode), centered -->
+      <div class="filterbar-chips">
+        ${!advancedOpen && SIMPLE_CHIPS.map(chip => html`
+          <button
+            key=${chip.id}
+            class=${'chip' + (simpleFilter === chip.id ? ' active-simple' : '')}
+            onClick=${() => setSimpleFilter(simpleFilter === chip.id ? '' : chip.id)}
+          >${chip.label}</button>
+        `)}
+      </div>
+
+      <!-- Right: clear + icon-only advanced toggle -->
+      <div class="filterbar-right">
+        ${advancedOpen && hasActiveAdvanced && html`
+          <button class="btn-clear" onClick=${clearAdvanced}>clear</button>
+        `}
+        <button
+          class=${'btn-adv-icon' + (advancedOpen ? ' active' : '')}
+          onClick=${() => setAdvancedOpen(!advancedOpen)}
+          title=${advancedOpen ? 'Back to simple filters' : 'Advanced filters'}
+        >⚙</button>
+      </div>
+    </div>
+
+    <!-- Advanced panel sits outside the wrapper so it pushes content down naturally -->
+    ${advancedOpen && html`
+      <div class="adv-panel">
+        ${allTags.map(tag => html`
+          <button key=${tag} class=${tagClass(tagFilters[tag] || 'off')} onClick=${() => cycleTag(tag)}>
+            ${tagLabel(tag, tagFilters[tag] || 'off')}
+          </button>
+        `)}
+      </div>
+    `}
+  `;
+}
+
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region Post Card Component (Grid + List)
+// ─────────────────────────────────────────────
+
+function PostCard({ post, arrange, isFav, onToggleFav, onClick }) {
+  const starred   = isFav(post.title);
+  const handleStar = e => { e.stopPropagation(); onToggleFav(post.title); };
+
+  if (arrange === 'grid') {
+    return html`
+      <div class="post-tile" onClick=${onClick}>
+        ${post.image && html`<img class="post-tile-img" src=${imgSrc(post.image)} alt=${post.title} loading="lazy" />`}
+        <div class="post-tile-gradient"></div>
+        <div class="post-tile-bottom">
+          <div class="post-tile-title">${post.title}</div>
+          <div class="post-tile-date">${post.date}</div>
+        </div>
+        <button class=${'post-star' + (starred ? ' starred' : '')} onClick=${handleStar}>★</button>
+      </div>
+    `;
+  }
+
+  return html`
+    <div class="post-row" onClick=${onClick}>
+      ${post.image
+        ? html`<img class="post-row-img" src=${imgSrc(post.image)} alt=${post.title} loading="lazy" />`
+        : html`<div class="post-row-img-placeholder"></div>`
+      }
+      <div class="post-row-body">
+        <div>
+          <div class="post-row-title">${post.title}</div>
+          <div class="post-row-date">${post.date}</div>
+        </div>
+        ${post.tags?.length && html`
+          <div class="post-row-tags">${post.tags.map(t => html`<span key=${t} class="tag-pill">${t}</span>`)}</div>
+        `}
+        ${post.content && html`<div class="post-row-content">${post.content}</div>`}
+        ${post.links?.length && html`
+          <div class="post-row-links" onClick=${e => e.stopPropagation()}>
+            ${post.links.map(l => html`<a key=${l.link} class="link-btn" href=${l.link} target="_blank" rel="noopener">${l.title}</a>`)}
+          </div>
+        `}
+      </div>
+      <button class=${'post-star' + (starred ? ' starred' : '')} onClick=${handleStar}>★</button>
+    </div>
+  `;
+}
+
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region Post Detail Page Component
+// ─────────────────────────────────────────────
+
+function PostDetail({ post, isFav, onToggleFav }) {
+  const starred = isFav(post.title);
+
+  return html`
+    <div class="detail-wrap">
+      ${post.image && html`<img class="detail-hero" src=${imgSrc(post.image)} alt=${post.title} />`}
+
+      <div class="detail-meta">
+        <h1 class="detail-title">${post.title}</h1>
+        <span class="detail-date">${post.date}</span>
+        <button
+          class=${'post-star' + (starred ? ' starred' : '')}
+          style="position:static;margin-left:auto;font-size:15px"
+          onClick=${() => onToggleFav(post.title)}
+        >★</button>
+      </div>
+
+      ${post.tags?.length && html`
+        <div class="detail-tags">${post.tags.map(t => html`<span key=${t} class="tag-pill">${t}</span>`)}</div>
+      `}
+
+      ${post.content && html`<div class="detail-content">${post.content}</div>`}
+
+      ${post.links?.length && html`
+        <div>
+          <div class="detail-links-title">Links</div>
+          <div class="detail-links">
+            ${post.links.map(l => html`
+              <a key=${l.link} class="detail-link-btn" href=${l.link} target="_blank" rel="noopener">${l.title} ↗</a>
+            `)}
+          </div>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region Posts Feed Component
+// ─────────────────────────────────────────────
+
+function PostsFeed({ posts, arrange, isFav, onToggleFav }) {
+  const navigate = post => { window.location.hash = '#post/' + encodeURIComponent(post.title); };
+
+  if (!posts.length) return html`
+    <div class="state-center">
+      <span style="font-size:24px;opacity:0.22">◇</span>
+      <span>No posts match your filters.</span>
+    </div>
+  `;
+
+  return html`
+    <div class="posts-wrap">
+      <div class=${arrange === 'grid' ? 'posts-grid' : 'posts-list'}>
+        ${posts.map(post => html`
+          <${PostCard}
+            key=${post.title}
+            post=${post}
+            arrange=${arrange}
+            isFav=${isFav}
+            onToggleFav=${onToggleFav}
+            onClick=${() => navigate(post)}
+          />
+        `)}
+      </div>
+    </div>
+  `;
+}
+
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region App Root
+// ─────────────────────────────────────────────
+
+function App() {
+  const auth     = useAuth();
+  const postsCtx = usePosts();
+  const favCtx   = useFavourites();
+  const filters  = useFilters();
+  const hash     = useHash();
+
+  const [showLogin,  setShowLogin]  = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+
+  const allTags = buildTagList(postsCtx.posts);
+
+  const filteredPosts = applyFilters(
+    postsCtx.posts,
+    filters.simpleFilter,
+    filters.tagFilters,
+    favCtx.favs,
+    filters.advancedOpen
+  );
+
+  // Hash router — #post/<encodedTitle>
+  const detailPost = (() => {
+    if (!hash.startsWith('#post/')) return null;
+    const title = decodeURIComponent(hash.slice(6));
+    return postsCtx.posts.find(p => p.title === title) || null;
+  })();
+
+  const handlePublish = post => postsCtx.addPost(post, auth.key);
+
+  return html`
+    <${Navbar}
+      isLoggedIn=${auth.isLoggedIn}
+      isDetail=${!!detailPost}
+      onLoginClick=${() => setShowLogin(true)}
+      onCreateClick=${() => setShowCreate(true)}
+    />
+
+    ${!detailPost && html`
+      <${FilterBar}
+        arrange=${filters.arrange}
+        setArrange=${filters.setArrange}
+        simpleFilter=${filters.simpleFilter}
+        setSimpleFilter=${filters.setSimpleFilter}
+        advancedOpen=${filters.advancedOpen}
+        setAdvancedOpen=${filters.setAdvancedOpen}
+        tagFilters=${filters.tagFilters}
+        cycleTag=${filters.cycleTag}
+        clearAdvanced=${filters.clearAdvanced}
+        hasActiveAdvanced=${filters.hasActiveAdvanced}
+        allTags=${allTags}
+      />
+    `}
+
+    ${detailPost
+      ? html`<${PostDetail} post=${detailPost} isFav=${favCtx.isFav} onToggleFav=${favCtx.toggle} />`
+      : postsCtx.loading
+        ? html`<div class="state-center"><div class="spinner"></div></div>`
+        : postsCtx.error
+          ? html`<div class="state-center">${postsCtx.error}</div>`
+          : html`<${PostsFeed} posts=${filteredPosts} arrange=${filters.arrange} isFav=${favCtx.isFav} onToggleFav=${favCtx.toggle} />`
+    }
+
+    ${showLogin  && html`<${LoginDialog}  onClose=${() => setShowLogin(false)}  onLogin=${auth.login} />`}
+    ${showCreate && html`<${CreateDialog} onClose=${() => setShowCreate(false)} onPublish=${handlePublish} />`}
+  `;
+}
+
+// #endregion
+
+// ─────────────────────────────────────────────
+// #region Bootstrap
+// ─────────────────────────────────────────────
+render(html`<${App} />`, document.getElementById('app'));
+// #endregion
+</script>
+
+</body>
+</html>

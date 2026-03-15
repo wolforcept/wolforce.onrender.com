@@ -1,0 +1,79 @@
+            {
+                "date": "2025-08-24",
+                "title": "Green Spreader",
+                "content": "A half baked game for Mini Jam.",
+                "image": "greenspreader.png",
+                "tags": ["game", "webgame", "gamejam", "Mini Jam"],
+                "link": "https://wolforcept.itch.io/greenspreader",
+                "otherlinks": [{"title": "Itch.io", "link": "https://wolforcept.itch.io/greenspreader"}]
+            },
+
+            {
+                "date": "2025-08-02",
+                "title": "Large Mystical Collider",
+                "content": "Collide Mystical Particles, a game made for the GMTK game jam.",
+                "image": "lmc.png",
+                "tags": ["game", "webgame", "gamejam", "GMTK"],
+                "link": "https://wolforcept.itch.io/lmc",
+                "otherlinks": [{"title": "Itch.io", "link": "https://wolforcept.itch.io/lmc"}]
+            },
+
+            {
+                "date": "2025-07-20",
+                "title": "Falling Poker",
+                "content": "A game made for Kenney Jam.",
+                "image": "fallingpoker.png",
+                "tags": ["game", "webgame", "gamejam", "GMTK"],
+                "link": "https://wolforcept.itch.io/falling-poker",
+                "otherlinks": [{"title": "Itch.io", "link": "https://wolforcept.itch.io/falling-poker"}]
+            },
+
+            {
+                "date": "2024-04-16",
+                "title": "Angels vs Demons",
+                "content": "A game made for Ludum Dare.",
+                "image": "avd.png",
+                "tags": ["game", "unity", "gamejam", "Ludum Dare"],
+                "link": "https://ldjam.com/events/ludum-dare/55/angels-vs-demons",
+                "otherlinks": [{"title": "Ludum Dare", "link": "https://ldjam.com/events/ludum-dare/55/angels-vs-demons"}]
+            },
+
+            {
+                "date": "2023-10-02",
+                "title": "Worddish",
+                "content": "A word game made for Ludum Dare.",
+                "image": "worddish2.png",
+                "tags": ["game", "webgame", "gamejam", "Ludum Dare"],
+                "link": "https://wolforcept.itch.io/worddish",
+                "otherlinks": [{"title": "Itch.io", "link": "https://wolforcept.itch.io/worddish"}]
+            },
+
+            {
+                "date": "2023-01-09",
+                "title": "Hungry Hungry Horde",
+                "content": "A game made for Ludum Dare.",
+                "image": "hungryhungryhorde.png",
+                "tags": ["game", "unity", "gamejam", "Ludum Dare"],
+                "link": "https://ldjam.com/events/ludum-dare/51/the-best-smithy-in-the-kingdom",
+                "otherlinks": [{"title": "Ludum Dare", "link": "https://ldjam.com/events/ludum-dare/51/the-best-smithy-in-the-kingdom"}]
+            },
+            
+            {
+                "date": "2022-10-03",
+                "title": "The Best Smithy in the Kingdom",
+                "content": "A game made for Ludum Dare.",
+                "image": "smithy.png",
+                "tags": ["game", "unity", "gamejam", "Ludum Dare"],
+                "link": "https://ldjam.com/events/ludum-dare/52/hungry-hungry-horde",
+                "otherlinks": [{"title": "Ludum Dare", "link": "https://ldjam.com/events/ludum-dare/52/hungry-hungry-horde"}]
+            },
+            
+            {
+                "date": "Somewhere before the pandemic",
+                "title": "Cobra 2",
+                "content": "A game made a long time ago, when i was learning Unity. A follow up on an even older game made in Gamemaker, which I no longer have.",
+                "image": "cobra2.png",
+                "tags": ["game", "unity"],
+                "link": "https://ldjam.com/events/ludum-dare/52/hungry-hungry-horde",
+                "otherlinks": [{"title": "Play", "link": "https://wolforcept.github.io/Cobra2/"}]
+            },
