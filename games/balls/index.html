@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Drift Pool</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <style>
@@ -12,16 +13,24 @@
       width:100%; height:100%;
       overflow:hidden;
       touch-action:none;
-      background:#1a1228;
+      background:#0d0818;
       font-family: system-ui, sans-serif;
       user-select:none; -webkit-user-select:none;
+      display:flex; align-items:center; justify-content:center;
     }
-    #game-container { position:fixed; inset:0; }
+    /* Fixed-size game root — always 960×576, scaled via JS transform */
+    #scale-root {
+      position:relative;
+      width:960px; height:576px;
+      flex-shrink:0;
+      transform-origin: center center;
+    }
+    #game-container { position:absolute; inset:0; }
     #game-container canvas { display:block; position:absolute; top:0; left:0; touch-action:none; }
 
     /* ── Centered action bar ── */
     #action-bar {
-      position:fixed; top:10px; left:50%; transform:translateX(-50%);
+      position:absolute; top:10px; left:50%; transform:translateX(-50%);
       z-index:30;
       display:flex; align-items:center; gap:8px;
       background:rgba(14,8,28,0.82);
@@ -31,161 +40,140 @@
       white-space:nowrap;
       pointer-events:auto;
     }
-    #money-display {
-      color:rgba(250,230,100,0.95);
-      font-size:13px; font-weight:600; letter-spacing:0.04em;
-      min-width:44px;
-    }
-    #tech-display {
-      color:rgba(120,220,255,0.95);
-      font-size:13px; font-weight:600; letter-spacing:0.04em;
-      min-width:36px;
-    }
     .top-bar-sep {
       width:1px; height:16px;
       background:rgba(255,255,255,0.12);
     }
-    .action-btn {
-      background:rgba(255,255,255,0.08);
-      border:1px solid rgba(255,255,255,0.20);
-      color:rgba(225,215,255,0.88);
-      font-size:11px; font-weight:500; letter-spacing:0.06em;
-      padding:5px 12px; border-radius:14px;
-      cursor:pointer; white-space:nowrap;
-      transition:background 0.15s;
+    /* Settings button */
+    #btn-settings {
+      position:static; font-size:15px; color:rgba(255,255,255,0.50);
+      background:none; border:none; cursor:pointer; padding:2px 6px;
       -webkit-tap-highlight-color:transparent;
     }
-    .action-btn:active { background:rgba(255,255,255,0.18); }
-    .action-btn:disabled { opacity:0.35; cursor:default; }
+    #btn-settings:hover { color:rgba(255,255,255,0.80); }
+    /* Clear button — same bare style as settings */
     #btn-clear-balls {
-      background:rgba(255,255,255,0.06);
-      border-color:rgba(255,255,255,0.14);
-      color:rgba(200,190,220,0.65);
+      background:none; border:none;
+      color:rgba(200,190,220,0.50);
+      font-size:15px; cursor:pointer; padding:2px 6px;
+      -webkit-tap-highlight-color:transparent;
+      transition:color 0.15s;
     }
+    #btn-clear-balls:hover { color:rgba(200,190,220,0.85); }
+    /* Currency displays */
+    #money-display {
+      color:rgba(250,230,100,0.95);
+      font-size:13px; font-weight:600; letter-spacing:0.04em;
+      min-width:62px; text-align:center;
+    }
+    #tech-display {
+      color:rgba(120,220,255,0.95);
+      font-size:13px; font-weight:600; letter-spacing:0.04em;
+      min-width:62px; text-align:center;
+    }
+    /* Panel button group */
+    #action-bar-panel-btns { display:flex; gap:6px; }
+    .action-btn {
+      font-size:11px; font-weight:600; letter-spacing:0.06em;
+      padding:5px 0; border-radius:14px;
+      cursor:pointer; white-space:nowrap; width:82px; text-align:center;
+      transition:background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .action-btn:disabled { opacity:0.35; cursor:default; }
+    /* Shop button — yellow */
+    #btn-shop {
+      background:rgba(245,200,60,0.14);
+      border:1px solid rgba(245,200,60,0.38);
+      color:rgba(255,230,100,0.90);
+    }
+    #btn-shop:active { background:rgba(245,200,60,0.28); }
+    /* Research button — blue */
+    #btn-research {
+      background:rgba(56,189,248,0.12);
+      border:1px solid rgba(56,189,248,0.32);
+      color:rgba(140,225,255,0.90);
+    }
+    #btn-research:active { background:rgba(56,189,248,0.26); }
+    /* Unlocks button — purple */
+    #btn-unlocks {
+      background:rgba(167,139,250,0.14);
+      border:1px solid rgba(167,139,250,0.38);
+      color:rgba(210,195,255,0.90);
+    }
+    #btn-unlocks:active { background:rgba(167,139,250,0.28); }
 
-    /* ── Unified panel modal (Shop / Research / Unlocks) ── */
+    /* ── Restock button (bottom-right corner, large) ── */
+    #btn-restock {
+      position:absolute; bottom:0; right:0; z-index:30;
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      background:rgba(14,8,28,0.92);
+      border:1px solid rgba(180,140,255,0.35);
+      border-top-left-radius:18px; border-top-right-radius:0;
+      border-bottom-right-radius:0; border-bottom-left-radius:0;
+      padding:12px 22px 10px;
+      cursor:pointer; backdrop-filter:blur(8px);
+      -webkit-tap-highlight-color:transparent;
+      transition:background 0.15s, border-color 0.15s;
+      pointer-events:auto;
+    }
+    #btn-restock:active { background:rgba(180,120,255,0.22); }
+    #btn-restock:disabled { opacity:0.38; cursor:default; border-color:rgba(255,255,255,0.10); }
+    #btn-restock-label { font-size:17px; font-weight:700; letter-spacing:0.06em; color:rgba(230,215,255,0.95); line-height:1; }
+    #btn-restock-sub   { font-size:14px; font-weight:600; letter-spacing:0.04em; color:rgba(200,185,245,0.85); line-height:1; }
+
+    /* ── Panel modal ── */
     #panel-backdrop {
-      position:fixed; inset:0; z-index:50;
+      position:absolute; inset:0; z-index:50;
       background:rgba(6,4,18,0.82);
       backdrop-filter:blur(8px);
       display:none; align-items:center; justify-content:center;
     }
     #panel-backdrop.visible { display:flex; }
     #panel-modal {
-      background:rgba(14,8,30,0.97);
-      border:1px solid rgba(160,130,255,0.25);
       border-radius:20px;
-      padding:20px 22px 18px;
+      padding:18px 20px 0;
       width:min(92vw, 480px);
-      max-height:88vh;
-      overflow-y:auto;
-      display:flex; flex-direction:column; gap:12px;
-      box-shadow:0 0 60px rgba(120,80,255,0.14);
+      height:75vh;
+      display:flex; flex-direction:column; gap:0;
       position:relative;
+      transition:background 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
-    #panel-tabs { display:flex; gap:6px; }
+    /* Chrome: tabs + status — fixed, no scroll */
+    #panel-header { flex-shrink:0; display:flex; flex-direction:column; gap:10px; padding-bottom:12px; }
+    #panel-tabs   { display:flex; gap:6px; }
     #panel-status-row {
-      display:flex; align-items:center; gap:10px;
-      font-size:12px;
+      display:flex; align-items:center; gap:10px; font-size:12px;
     }
     #panel-money-display { color:rgba(250,230,100,0.9); font-weight:600; }
     #panel-tech-display  { color:rgba(120,220,255,0.9); font-weight:600; }
-    #panel-limit-display {
-      margin-left:auto;
-      font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+    #panel-limit-display { margin-left:auto; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; }
+    /* Content area: fills remaining height and scrolls */
+    #panel-content {
+      flex:1; overflow-y:auto; min-height:0;
+      display:flex; flex-direction:column; gap:10px;
+      padding-bottom:16px;
     }
-    #panel-content { display:flex; flex-direction:column; gap:10px; }
-    #research-tabs {
-      display:flex; gap:6px;
-    }
-    .res-tab {
-      flex:1;
-      background:rgba(20,100,160,0.12);
-      border:1px solid rgba(40,160,220,0.22);
-      color:rgba(100,190,230,0.65);
-      font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
-      padding:6px 0; border-radius:10px;
-      cursor:pointer; transition:background 0.15s, color 0.15s;
-      -webkit-tap-highlight-color:transparent;
-    }
-    .res-tab.active {
-      background:rgba(30,160,220,0.28);
-      border-color:rgba(40,200,255,0.55);
-      color:rgba(160,230,255,0.95);
-    }
-    .res-tab:active { background:rgba(30,160,220,0.40); }
-    /* Unlock cards — slightly different tint */
-    .res-card.unlock {
-      background:rgba(120,60,180,0.12);
-      border-color:rgba(160,100,255,0.28);
-    }
-    .res-card.unlock .res-card-label { color:rgba(210,180,255,0.95); }
-    .res-card.unlock .res-card-desc  { color:rgba(170,140,220,0.65); }
-    .res-card.unlock .res-card-level { color:rgba(140,100,200,0.6); }
-    .res-card.unlock .res-buy-btn {
-      background:rgba(140,60,220,0.18);
-      border-color:rgba(160,100,255,0.40);
-      color:rgba(200,170,255,0.92);
-    }
-    .res-card.unlock .res-buy-btn:active { background:rgba(140,60,220,0.36); }
-    .res-card {
-      display:flex; align-items:center; gap:12px;
-      background:rgba(20,140,200,0.10);
-      border:1px solid rgba(40,180,255,0.22);
-      border-radius:14px; padding:12px 14px;
-      transition:background 0.15s;
-    }
-    .res-card.res-cant-afford {
-      opacity:0.55;
-    }
-    .res-card-info { flex:1; display:flex; flex-direction:column; gap:3px; }
-    .res-card-label {
-      color:rgba(160,230,255,0.95);
-      font-size:13px; font-weight:600; letter-spacing:0.04em;
-    }
-    .res-card-desc {
-      color:rgba(120,195,230,0.65);
-      font-size:11px; letter-spacing:0.03em;
-    }
-    .res-card-level {
-      color:rgba(80,170,220,0.5);
-      font-size:10px; letter-spacing:0.06em; text-transform:uppercase;
-      margin-top:2px;
-    }
-    .res-buy-btn {
-      background:rgba(30,160,220,0.18);
-      border:1px solid rgba(40,190,255,0.40);
-      color:rgba(140,220,255,0.92);
-      font-size:12px; font-weight:600; letter-spacing:0.06em;
-      padding:7px 14px; border-radius:12px;
-      cursor:pointer; white-space:nowrap;
-      transition:background 0.15s;
-      -webkit-tap-highlight-color:transparent;
-      flex-shrink:0;
-    }
-    .res-buy-btn:active { background:rgba(30,160,220,0.36); }
-    .res-buy-btn:disabled { opacity:0.30; cursor:default; }
 
-    /* ── Item cards (used in Shop and Unlocks tabs) ── */
+    /* ── Scrollbar base (size + track — shared, thumb overridden per theme) ── */
+    #panel-content { scrollbar-width:thin; }
+    #settings-modal { scrollbar-width:thin; scrollbar-color:rgba(160,120,255,0.35) transparent; }
+    #panel-content::-webkit-scrollbar,
+    #settings-modal::-webkit-scrollbar { width:5px; }
+    #panel-content::-webkit-scrollbar-track,
+    #settings-modal::-webkit-scrollbar-track { background:transparent; }
+    #settings-modal::-webkit-scrollbar-thumb { background:rgba(160,120,255,0.30); border-radius:10px; }
+    #settings-modal::-webkit-scrollbar-thumb:hover { background:rgba(180,140,255,0.55); }
+
+    /* ── Base structural styles for card types (layout only, no color) ── */
     .shop-item-card {
       display:flex; align-items:center; gap:12px;
-      background:rgba(180,140,255,0.07);
-      border:1px solid rgba(180,140,255,0.18);
       border-radius:14px; padding:10px 14px;
     }
-    .shop-item-info { flex:1; display:flex; flex-direction:column; gap:2px; }
-    .shop-item-label {
-      color:rgba(220,205,255,0.95);
-      font-size:13px; font-weight:600; letter-spacing:0.04em;
-    }
-    .shop-item-desc {
-      color:rgba(180,160,230,0.55);
-      font-size:10px; letter-spacing:0.03em;
-    }
+    .shop-item-info { flex:1; display:flex; flex-direction:column; gap:3px; }
+    .shop-item-label { font-size:13px; font-weight:600; letter-spacing:0.04em; }
+    .shop-item-desc  { font-size:10px; letter-spacing:0.03em; }
     .shop-item-btn {
-      background:rgba(180,120,255,0.18);
-      border:1px solid rgba(180,120,255,0.40);
-      color:rgba(220,200,255,0.92);
       font-size:12px; font-weight:600; letter-spacing:0.05em;
       padding:7px 14px; border-radius:12px;
       cursor:pointer; white-space:nowrap;
@@ -193,36 +181,156 @@
       -webkit-tap-highlight-color:transparent;
       flex-shrink:0;
     }
-    .shop-item-btn:active { background:rgba(180,120,255,0.38); }
-    .shop-item-btn:disabled { opacity:0.30; cursor:default; }
-    .shop-item-card.locked { opacity:0.38; }
+    .res-card {
+      display:flex; align-items:center; gap:12px;
+      border-radius:14px; padding:12px 14px;
+      transition:background 0.15s;
+    }
+    .res-card.res-cant-afford { opacity:0.55; }
+    .res-card-info { flex:1; display:flex; flex-direction:column; gap:3px; }
+    .res-card-label { font-size:13px; font-weight:600; letter-spacing:0.04em; }
+    .res-card-desc  { font-size:11px; letter-spacing:0.03em; }
+    .res-card-level { font-size:10px; letter-spacing:0.06em; text-transform:uppercase; margin-top:2px; }
+    .res-buy-btn {
+      font-size:12px; font-weight:600; letter-spacing:0.06em;
+      padding:7px 14px; border-radius:12px;
+      cursor:pointer; white-space:nowrap;
+      transition:background 0.15s;
+      -webkit-tap-highlight-color:transparent;
+      flex-shrink:0;
+    }
+    .res-buy-btn:disabled { opacity:0.30; cursor:default; }
 
-    /* ── Shop area overlay (balls in play — now inside shop modal, but keep for compat) ── */
-    #shop-area {
-      position:relative;
-      display:flex; align-items:center; gap:8px;
+    /* ── Tab base style (overridden per theme) ── */
+    .res-tab {
+      flex:1; font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
+      padding:7px 0; border-radius:10px;
+      cursor:pointer; transition:background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color:transparent;
     }
-    #shop-overlay {
-      display:none;
-      position:absolute;
-      inset:-6px -8px;
-      border-radius:16px;
-      background:rgba(8,4,20,0.76);
-      backdrop-filter:blur(3px);
-      z-index:10;
-      align-items:center; justify-content:center;
-      pointer-events:auto;
+
+    /* ══════════════════════════════════════════
+       SHOP THEME — amber / yellow
+       ══════════════════════════════════════════ */
+    #panel-modal.tab-shop {
+      background:rgba(24,18,6,0.97);
+      border:1px solid rgba(245,200,60,0.30);
+      box-shadow:0 0 60px rgba(245,190,40,0.12);
     }
-    #shop-overlay.visible { display:flex; }
-    #shop-overlay span {
-      color:rgba(200,185,255,0.72);
-      font-size:10px; letter-spacing:0.10em; text-transform:uppercase;
-      text-align:center; line-height:1.4;
-      pointer-events:none;
+    /* Tab bar in shop mode */
+    #panel-modal.tab-shop .res-tab[data-tab="shop"] {
+      background:rgba(245,200,60,0.28); border:1px solid rgba(245,200,60,0.60);
+      color:rgba(255,235,110,0.98);
     }
-    /* Platform limit warning — appears below the top-bar when at capacity */
+    #panel-modal.tab-shop .res-tab[data-tab="research"],
+    #panel-modal.tab-shop .res-tab[data-tab="unlocks"] {
+      background:rgba(245,200,60,0.06); border:1px solid rgba(245,200,60,0.18);
+      color:rgba(200,170,80,0.60);
+    }
+    #panel-modal.tab-shop .res-tab:active { background:rgba(245,200,60,0.40); }
+    /* Scrollbar thumb */
+    #panel-modal.tab-shop { scrollbar-color:rgba(200,160,40,0.40) transparent; }
+    #panel-modal.tab-shop #panel-content::-webkit-scrollbar-thumb { background:rgba(200,160,40,0.38); border-radius:10px; }
+    #panel-modal.tab-shop #panel-content::-webkit-scrollbar-thumb:hover { background:rgba(230,190,50,0.65); }
+    /* Item cards */
+    #panel-modal.tab-shop .shop-item-card {
+      background:rgba(245,200,60,0.07); border:1px solid rgba(245,180,40,0.22);
+    }
+    #panel-modal.tab-shop .shop-item-label { color:rgba(255,235,120,0.96); }
+    #panel-modal.tab-shop .shop-item-desc  { color:rgba(210,180,90,0.60); }
+    #panel-modal.tab-shop .shop-item-btn {
+      background:rgba(230,180,30,0.20); border:1px solid rgba(230,180,30,0.50);
+      color:rgba(255,235,110,0.95);
+    }
+    #panel-modal.tab-shop .shop-item-btn:active { background:rgba(230,180,30,0.38); }
+    #panel-modal.tab-shop .shop-item-btn:disabled { opacity:0.30; cursor:default; }
+    #panel-modal.tab-shop .shop-item-card.locked { opacity:0.38; }
+
+    /* ══════════════════════════════════════════
+       RESEARCH THEME — cyan / blue
+       ══════════════════════════════════════════ */
+    #panel-modal.tab-research {
+      background:rgba(4,16,30,0.97);
+      border:1px solid rgba(56,189,248,0.28);
+      box-shadow:0 0 60px rgba(20,160,255,0.12);
+    }
+    #panel-modal.tab-research .res-tab[data-tab="research"] {
+      background:rgba(56,189,248,0.26); border:1px solid rgba(56,189,248,0.60);
+      color:rgba(160,235,255,0.98);
+    }
+    #panel-modal.tab-research .res-tab[data-tab="shop"],
+    #panel-modal.tab-research .res-tab[data-tab="unlocks"] {
+      background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.18);
+      color:rgba(80,165,210,0.60);
+    }
+    #panel-modal.tab-research .res-tab:active { background:rgba(56,189,248,0.40); }
+    #panel-modal.tab-research { scrollbar-color:rgba(40,160,220,0.40) transparent; }
+    #panel-modal.tab-research #panel-content::-webkit-scrollbar-thumb { background:rgba(40,160,220,0.38); border-radius:10px; }
+    #panel-modal.tab-research #panel-content::-webkit-scrollbar-thumb:hover { background:rgba(60,190,255,0.65); }
+    /* Research cards */
+    #panel-modal.tab-research .res-card {
+      display:flex; align-items:center; gap:12px;
+      background:rgba(20,140,200,0.10); border:1px solid rgba(40,180,255,0.22);
+      border-radius:14px; padding:12px 14px; transition:background 0.15s;
+    }
+    #panel-modal.tab-research .res-card.res-cant-afford { opacity:0.55; }
+    #panel-modal.tab-research .res-card-info { flex:1; display:flex; flex-direction:column; gap:3px; }
+    #panel-modal.tab-research .res-card-label { color:rgba(160,230,255,0.95); font-size:13px; font-weight:600; letter-spacing:0.04em; }
+    #panel-modal.tab-research .res-card-desc  { color:rgba(120,195,230,0.65); font-size:11px; letter-spacing:0.03em; }
+    #panel-modal.tab-research .res-card-level { color:rgba(80,170,220,0.50); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; margin-top:2px; }
+    #panel-modal.tab-research .res-buy-btn {
+      background:rgba(30,160,220,0.18); border:1px solid rgba(40,190,255,0.40);
+      color:rgba(140,220,255,0.92); font-size:12px; font-weight:600; letter-spacing:0.06em;
+      padding:7px 14px; border-radius:12px; cursor:pointer; white-space:nowrap;
+      transition:background 0.15s; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+    }
+    #panel-modal.tab-research .res-buy-btn:active { background:rgba(30,160,220,0.36); }
+    #panel-modal.tab-research .res-buy-btn:disabled { opacity:0.30; cursor:default; }
+
+    /* ══════════════════════════════════════════
+       UNLOCKS THEME — violet / purple
+       ══════════════════════════════════════════ */
+    #panel-modal.tab-unlocks {
+      background:rgba(14,6,28,0.97);
+      border:1px solid rgba(167,139,250,0.30);
+      box-shadow:0 0 60px rgba(130,80,255,0.14);
+    }
+    #panel-modal.tab-unlocks .res-tab[data-tab="unlocks"] {
+      background:rgba(167,139,250,0.28); border:1px solid rgba(167,139,250,0.65);
+      color:rgba(220,205,255,0.98);
+    }
+    #panel-modal.tab-unlocks .res-tab[data-tab="shop"],
+    #panel-modal.tab-unlocks .res-tab[data-tab="research"] {
+      background:rgba(167,139,250,0.06); border:1px solid rgba(167,139,250,0.20);
+      color:rgba(150,120,220,0.60);
+    }
+    #panel-modal.tab-unlocks .res-tab:active { background:rgba(167,139,250,0.42); }
+    #panel-modal.tab-unlocks { scrollbar-color:rgba(140,100,220,0.40) transparent; }
+    #panel-modal.tab-unlocks #panel-content::-webkit-scrollbar-thumb { background:rgba(140,100,220,0.38); border-radius:10px; }
+    #panel-modal.tab-unlocks #panel-content::-webkit-scrollbar-thumb:hover { background:rgba(170,130,255,0.65); }
+    /* Unlock cards */
+    #panel-modal.tab-unlocks .res-card {
+      display:flex; align-items:center; gap:12px;
+      background:rgba(120,60,180,0.12); border:1px solid rgba(160,100,255,0.28);
+      border-radius:14px; padding:12px 14px; transition:background 0.15s;
+    }
+    #panel-modal.tab-unlocks .res-card.res-cant-afford { opacity:0.55; }
+    #panel-modal.tab-unlocks .res-card-info { flex:1; display:flex; flex-direction:column; gap:3px; }
+    #panel-modal.tab-unlocks .res-card-label { color:rgba(210,180,255,0.95); font-size:13px; font-weight:600; letter-spacing:0.04em; }
+    #panel-modal.tab-unlocks .res-card-desc  { color:rgba(170,140,220,0.65); font-size:11px; letter-spacing:0.03em; }
+    #panel-modal.tab-unlocks .res-card-level { color:rgba(140,100,200,0.55); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; margin-top:2px; }
+    #panel-modal.tab-unlocks .res-buy-btn {
+      background:rgba(140,60,220,0.18); border:1px solid rgba(160,100,255,0.40);
+      color:rgba(200,170,255,0.92); font-size:12px; font-weight:600; letter-spacing:0.06em;
+      padding:7px 14px; border-radius:12px; cursor:pointer; white-space:nowrap;
+      transition:background 0.15s; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+    }
+    #panel-modal.tab-unlocks .res-buy-btn:active { background:rgba(140,60,220,0.36); }
+    #panel-modal.tab-unlocks .res-buy-btn:disabled { opacity:0.30; cursor:default; }
+
+    /* ── Platform limit warning — appears below the top-bar when at capacity */
     #platform-limit-warning {
-      position:fixed; top:54px; left:50%; transform:translateX(-50%);
+      position:absolute; top:54px; left:50%; transform:translateX(-50%);
       z-index:29;
       display:none;
       background:rgba(180,30,30,0.82);
@@ -238,7 +346,7 @@
 
     /* ── Settings modal ── */
     #modal-backdrop {
-      position:fixed; inset:0; z-index:50;
+      position:absolute; inset:0; z-index:50;
       background:rgba(8,4,18,0.72);
       backdrop-filter:blur(8px);
       display:none; align-items:center; justify-content:center;
@@ -326,7 +434,7 @@
 
     /* ── Shelf action bar ── */
     #shelf-actions {
-      position:fixed; bottom:0; left:0; right:0; z-index:20;
+      position:absolute; bottom:0; left:0; right:0; z-index:20;
       display:none; justify-content:center; align-items:center;
       gap:8px; padding:10px 12px 18px; flex-wrap:wrap;
       background:linear-gradient(to top, rgba(15,8,30,0.95) 65%, transparent);
@@ -347,15 +455,37 @@
     .sa-btn.danger { border-color:rgba(255,120,120,0.35); color:rgba(255,160,160,0.9); }
     .sa-btn.accent { border-color:rgba(180,140,255,0.45); color:rgba(210,190,255,0.9); }
 
+    /* ── Discovery toast ── */
+    #discovery-toast {
+      position:absolute; top:60px; left:50%; transform:translateX(-50%);
+      z-index:60;
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      pointer-events:none;
+      opacity:0; transition:opacity 0.4s;
+    }
+    #discovery-toast.visible { opacity:1; }
+    .discovery-line {
+      background:rgba(255,255,255,0.12);
+      border:1px solid rgba(255,255,255,0.30);
+      border-radius:20px;
+      padding:5px 18px;
+      color:rgba(255,255,255,0.92);
+      font-size:13px; font-weight:600; letter-spacing:0.06em;
+      white-space:nowrap;
+      text-shadow:0 0 12px rgba(255,255,255,0.60);
+      backdrop-filter:blur(6px);
+    }
+
     /* ── Ball row (canvas-drawn; this div is just a hit-test spacer) ── */
     #ball-row-spacer {
-      position:fixed; bottom:0; left:0; right:0;
+      position:absolute; bottom:0; left:0; right:0;
       height:52px; z-index:14; pointer-events:none;
     }
 
   </style>
 </head>
 <body>
+<div id="scale-root">
 <div id="game-container"></div>
 
 <!-- Settings modal -->
@@ -395,42 +525,52 @@
 
     <button class="reset-btn" id="btn-reset-settings">Reset physics to defaults</button>
     <button class="reset-btn" id="btn-fullscreen" style="margin-top:0">⛶ Fullscreen</button>
+    <button class="reset-btn" id="btn-export-save" style="margin-top:0; border-color:rgba(80,200,140,0.35); color:rgba(120,240,180,0.85);">⬇ Export save</button>
+    <button class="reset-btn" id="btn-import-save" style="margin-top:0; border-color:rgba(80,160,255,0.35); color:rgba(120,200,255,0.85);">⬆ Import save</button>
+    <input type="file" id="import-file-input" accept=".json" style="display:none">
     <button class="reset-btn" id="btn-restart-game" style="margin-top:0; border-color:rgba(255,180,50,0.35); color:rgba(255,210,100,0.85);">↺ Restart game</button>
     <button class="reset-btn" id="btn-clear-data" style="margin-top:0; border-color:rgba(255,100,100,0.3); color:rgba(255,140,140,0.7);">🗑 Clear all saved data</button>
   </div>
 </div>
 
-<div id="top-left-btns" style="display:none"></div>
-
 <!-- Centered action bar -->
 <div id="action-bar">
-  <button class="modal-close" id="btn-settings" style="position:static;font-size:15px;color:rgba(255,255,255,0.5);background:none;border:none;cursor:pointer;padding:2px 4px;">⚙</button>
+  <button id="btn-settings" title="Settings">⚙</button>
+  <div class="top-bar-sep"></div>
+  <div id="action-bar-panel-btns">
+    <button class="action-btn" id="btn-shop">Shop</button>
+    <button class="action-btn" id="btn-research">Research</button>
+    <button class="action-btn" id="btn-unlocks">Unlocks</button>
+  </div>
   <div class="top-bar-sep"></div>
   <span id="money-display">$0</span>
   <div class="top-bar-sep"></div>
   <span id="tech-display">⬡ 0</span>
   <div class="top-bar-sep"></div>
-  <button class="action-btn" id="btn-buy-basic">Ball $5</button>
-  <button class="action-btn" id="btn-shop">Shop</button>
-  <button class="action-btn" id="btn-research">Research</button>
-  <button class="action-btn" id="btn-unlocks">Unlocks</button>
-  <div class="top-bar-sep"></div>
-  <button class="action-btn" id="btn-clear-balls">Clear</button>
+  <button id="btn-clear-balls" title="Clear balls"><i class="fa fa-broom"></i></button>
 </div>
+
+<!-- Restock button — fixed bottom-right -->
+<button id="btn-restock" disabled>
+  <span id="btn-restock-label">Restock</span>
+  <span id="btn-restock-sub">#1 — $25</span>
+</button>
 
 <!-- Unified panel modal (Shop / Research / Unlocks tabs) -->
 <div id="panel-backdrop">
   <div id="panel-modal">
     <button class="modal-close" id="btn-panel-close">✕</button>
-    <div id="panel-tabs">
-      <button class="res-tab" data-tab="shop">Shop</button>
-      <button class="res-tab" data-tab="research">Research</button>
-      <button class="res-tab" data-tab="unlocks">Unlocks</button>
-    </div>
-    <div id="panel-status-row">
-      <span id="panel-money-display">$0</span>
-      <span id="panel-tech-display">⬡ 0</span>
-      <span id="panel-limit-display"></span>
+    <div id="panel-header">
+      <div id="panel-tabs">
+        <button class="res-tab" data-tab="shop">Shop</button>
+        <button class="res-tab" data-tab="research">Research</button>
+        <button class="res-tab" data-tab="unlocks">Unlocks</button>
+      </div>
+      <div id="panel-status-row">
+        <span id="panel-money-display">$0</span>
+        <span id="panel-tech-display">⬡ 0</span>
+        <span id="panel-limit-display"></span>
+      </div>
     </div>
     <div id="panel-content"></div>
   </div>
@@ -446,6 +586,11 @@
 <!-- Ball row spacer (actual balls drawn on canvas) -->
 <div id="ball-row-spacer"></div>
 
+<!-- Discovery toast -->
+<div id="discovery-toast"></div>
+
+</div><!-- #scale-root -->
+
 <script>
 'use strict';
 const { Engine, Bodies, Body, World, Events } = Matter;
@@ -458,12 +603,14 @@ const LS_MONEY      = 'driftpool_money_v1';
 const LS_MAX_BALLS  = 'driftpool_maxballs_v1';
 const LS_TECH_PTS   = 'driftpool_techpts_v1';
 const LS_RESEARCH   = 'driftpool_research_v1';
+const LS_RESTOCK    = 'driftpool_restock_v1';
+const RESTOCK_BASE_COST = 25;
 const LS_WIRES      = 'driftpool_wires_v1';
 
 // ── Ball type registry ────────────────────────────────────────────────────────
 const BALL_TYPES = {
   basic:       { label: 'Basic',      cost: 5, paletteIdx: 0, lifetime: 10 },
-  bouncy_ball: { label: 'Bouncy Ball',cost: 5, paletteIdx: 7, lifetime: 10, restitutionMult: 3.0 },
+  bouncy_ball: { label: 'Bouncy Ball',cost: 5, paletteIdx: 7, lifetime: 10, restitutionMult: 2.0 },
   gold_ball:   { label: 'Gold Ball',  cost: 5, paletteIdx: 3, lifetime: 10 },
   tech_ball:   { label: 'Tech Ball',  cost: 5, paletteIdx: 1, lifetime: 10 },
 };
@@ -496,6 +643,7 @@ const PLATFORM_TYPES = {
     cost:        150,
     restitution: 0.98,
     friction:    0.0,
+    maxUses:     8,
   },
   basic: {
     label:       'Shelf',
@@ -556,6 +704,20 @@ const PLATFORM_TYPES = {
     friction:    0.0,
     maxUses:     10,
   },
+  soft_shelf: {
+    label:       'Soft Shelf',
+    cost:        75,
+    width:       0.09,
+    restitution: 0.05,
+    friction:    0.9,
+  },
+  launcher: {
+    label:       'Launcher',
+    cost:        200,
+    width:       0.028,       // ~half ball diameter wide
+    restitution: 0.1,
+    friction:    0.05,
+  },
 };
 
 // ── Default settings ──────────────────────────────────────────────────────────
@@ -588,9 +750,6 @@ const ALL_PALETTES = [
 
 // ── Physics constants ─────────────────────────────────────────────────────────
 const BASE_PLATFORM_LIMIT = 10; // max static platforms on the board
-const WIDTH_STEP = 0.02; // fraction of W
-const MIN_FW     = 0.07;
-const MAX_FW     = 0.38;
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 function hexA(hex, a) {
@@ -670,39 +829,42 @@ function saveTechPts(n) {
 
 // ── Research registry (sorted by baseCost ascending) ──────────────────────────
 const RESEARCH = [
-  { id: 'goldGain',      label: 'Gold Rush',           desc: '+$1 per Gold Bumper hit',                  baseCost: 3   },
-  { id: 'platformSlots', label: 'Platform Capacity',   desc: '+1 max static platform on the board',      baseCost: 5   },
-  { id: 'ballTime',      label: 'Extended Life',        desc: '+1% ball lifetime, +$5 ball cost',         baseCost: 3   },
-  { id: 'goldBounce',    label: 'Gold Spring',          desc: '+0.05 bounciness on Gold Bumpers',         baseCost: 8   },
-  { id: 'techBounce',    label: 'Tech Spring',          desc: '+0.05 bounciness on Tech Bumpers',         baseCost: 8   },
-  { id: 'maxSlots',      label: 'Extra Slot',           desc: '+1 max ball inventory slot',               baseCost: 46  },
-  { id: 'bouncyBalls',   label: 'Bouncy Balls',         desc: '+5% chance: ball is bouncier (+0.1× per level)', baseCost: 10  },
-  { id: 'goldBalls',     label: 'Gold Balls',           desc: '+5% chance: ball earns $1 per bounce (+$1/level)', baseCost: 15  },
-  { id: 'techBalls',     label: 'Tech Balls',           desc: '+5% chance: ball earns 1⬡ per bounce (+1⬡/level)', baseCost: 55  },
-  { id: 'techGain',      label: 'Tech Surge',           desc: '+1 Tech Point per Tech Bumper hit',        baseCost: 55  },
+  { id: 'goldGain',       label: 'Gold Rush',             desc: '+$1 per Gold Bumper hit',                    baseCost: 3,   growthRate: 3, discoveryRestock: 11 },
+  { id: 'platformSlots',  label: 'Platform Capacity',     desc: '+3 max static platforms on the board',       baseCost: 5,   discoveryRestock: 4  },
+  { id: 'ballTime',       label: 'Extended Life',          desc: '+5% ball lifetime, +$15 restock cost',       baseCost: 3,   discoveryRestock: 17 },
+  { id: 'goldBounce',     label: 'Gold Spring',            desc: '+0.05 bounciness on Gold Bumpers',           baseCost: 8,   discoveryRestock: 34 },
+  { id: 'techBounce',     label: 'Tech Spring',            desc: '+0.05 bounciness on Tech Bumpers',           baseCost: 8,   discoveryRestock: 43 },
+  { id: 'bouncyBalls',    label: 'Bouncy Balls',           desc: '+5% chance: ball is bouncier (+0.1× per level)', baseCost: 10, discoveryRestock: 47 },
+  { id: 'goldBalls',      label: 'Gold Balls',             desc: '+5% chance: ball earns $1 per bounce (+$1/level)', baseCost: 15, discoveryRestock: 58 },
+  { id: 'maxSlots',       label: 'Extra Slot',             desc: '+1 max ball inventory slot',                 baseCost: 46,  discoveryRestock: 63 },
+  { id: 'techBalls',      label: 'Tech Balls',             desc: '+5% chance: ball earns 1⬡ per bounce (+1⬡/level)', baseCost: 55, discoveryRestock: 70 },
+  { id: 'techGain',       label: 'Tech Surge',             desc: '+1 Tech Point per Tech Bumper hit',          baseCost: 55,  discoveryRestock: 80 },
+  { id: 'timeBumperUses', label: 'Time Capacity',          desc: '+1 max uses on new Time Bumpers',            baseCost: 20,  discoveryRestock: 90 },
+  { id: 'goldenTechUses', label: 'Golden Capacity',        desc: '+1 max uses on new Golden Tech Bumpers',     baseCost: 25,  discoveryRestock: 101},
 ];
 
 // ── One-time unlock researches (sorted by total cost ascending) ───────────────
 // Each unlock costs half in ⬡ and half in $
 const UNLOCK_RESEARCH = [
-  { id: 'unlock_time_bumper',    label: 'Time Bumper',   desc: 'Unlocks the Time Bumper in the shop',   costTech: 24,  costMoney: 24,  unlocks: 'time_bumper'    },
-  { id: 'unlock_long_shelf',     label: 'Long Shelf',    desc: 'Unlocks the Long Shelf in the shop',    costTech: 38,  costMoney: 38,  unlocks: 'long_shelf'     },
-  { id: 'unlock_windmill_shelf', label: 'Windmill',      desc: 'Unlocks the Windmill in the shop',      costTech: 50,  costMoney: 50,  unlocks: 'windmill_shelf' },
-  { id: 'unlock_bouncy_shelf',   label: 'Bouncy Shelf',  desc: 'Unlocks the Bouncy Shelf in the shop',  costTech: 63,  costMoney: 63,  unlocks: 'bouncy_shelf'   },
-  { id: 'unlock_split_bumper',   label: 'Split Bumper',  desc: 'Unlocks the Split Bumper in the shop',  costTech: 125, costMoney: 125, unlocks: 'split_bumper'   },
-  { id: 'unlock_one_way_shelf',  label: 'One-Way Shelf', desc: 'Unlocks the One-Way Shelf in the shop', costTech: 250, costMoney: 250, unlocks: 'one_way_shelf'  },
+  { id: 'unlock_time_bumper',    label: 'Time Bumper',   desc: 'Unlocks the Time Bumper in the shop',   costTech: 24,  costMoney: 24,  unlocks: 'time_bumper',    discoveryRestock: 40  },
+  { id: 'unlock_long_shelf',     label: 'Long Shelf',    desc: 'Unlocks the Long Shelf in the shop',    costTech: 38,  costMoney: 38,  unlocks: 'long_shelf',     discoveryRestock: 52  },
+  { id: 'unlock_windmill_shelf', label: 'Windmill',      desc: 'Unlocks the Windmill in the shop',      costTech: 50,  costMoney: 50,  unlocks: 'windmill_shelf', discoveryRestock: 63  },
+  { id: 'unlock_bouncy_shelf',   label: 'Bouncy Shelf',  desc: 'Unlocks the Bouncy Shelf in the shop',  costTech: 63,  costMoney: 63,  unlocks: 'bouncy_shelf',   discoveryRestock: 80  },
+  { id: 'unlock_split_bumper',   label: 'Split Bumper',  desc: 'Unlocks the Split Bumper in the shop',  costTech: 125, costMoney: 125, unlocks: 'split_bumper',   discoveryRestock: 27  },
+  { id: 'unlock_one_way_shelf',  label: 'One-Way Shelf', desc: 'Unlocks the One-Way Shelf in the shop', costTech: 250, costMoney: 250, unlocks: 'one_way_shelf',  discoveryRestock: 115 },
 ];
 
 const DEFAULT_RESEARCH = {
   ballTime: 0, goldGain: 0, goldBounce: 0, techGain: 0, techBounce: 0,
   maxSlots: 0, platformSlots: 0, bouncyBalls: 0, goldBalls: 0, techBalls: 0,
+  timeBumperUses: 0, goldenTechUses: 0,
   unlock_split_bumper: false, unlock_long_shelf: false,
   unlock_bouncy_shelf: false, unlock_one_way_shelf: false,
   unlock_windmill_shelf: false, unlock_time_bumper: false,
 };
 
-function researchCost(baseCost, level) {
-  return Math.ceil(baseCost + 0.5 * baseCost * Math.pow(level, 1.5));
+function researchCost(baseCost, level, growthRate = 1) {
+  return Math.ceil(baseCost + 0.5 * baseCost * growthRate * Math.pow(level, 1.5));
 }
 
 function loadResearch() {
@@ -716,6 +878,14 @@ function saveResearch(r) {
   try { localStorage.setItem(LS_RESEARCH, JSON.stringify(r)); } catch(e) {}
 }
 
+function loadRestockCount() {
+  try { const v = localStorage.getItem(LS_RESTOCK); if (v !== null) return parseInt(v, 10) || 0; } catch(e) {}
+  return 0;
+}
+function saveRestockCount(n) {
+  try { localStorage.setItem(LS_RESTOCK, String(n)); } catch(e) {}
+}
+
 function loadWires() {
   try {
     const raw = localStorage.getItem(LS_WIRES);
@@ -726,6 +896,22 @@ function loadWires() {
 function saveWires(w) {
   try { localStorage.setItem(LS_WIRES, JSON.stringify(w)); } catch(e) {}
 }
+
+const GAME_W = 960;
+const GAME_H = 576;
+
+function updateScaleRoot() {
+  const root = document.getElementById('scale-root');
+  if (!root) return;
+  const scaleX = window.innerWidth  / GAME_W;
+  const scaleY = window.innerHeight / GAME_H;
+  const scale  = Math.min(scaleX, scaleY, 1.0); // never upscale beyond native
+  root.style.transform = `scale(${scale})`;
+}
+
+// ── Fixed game canvas dimensions (5:3 landscape) ─────────────────────────────
+updateScaleRoot();
+window.addEventListener('resize', updateScaleRoot);
 
 // ── p5 sketch ─────────────────────────────────────────────────────────────────
 new p5(function(p) {
@@ -752,6 +938,7 @@ new p5(function(p) {
   let maxBalls       = loadMaxBalls();
   let techPts        = loadTechPts();
   let researchLevels = loadResearch();
+  let restockCount   = loadRestockCount();
 
   // Returns true if this platform type has been unlocked (or needs no unlock)
   function isUnlocked(platformType) {
@@ -802,13 +989,11 @@ new p5(function(p) {
   const actionBar        = document.getElementById('action-bar');
   const moneyDisplay     = document.getElementById('money-display');
   const techDisplay      = document.getElementById('tech-display');
-  const researchBackdrop = null; // merged into panelBackdrop
-  const shopBackdrop     = null; // merged into panelBackdrop
   const panelBackdrop    = document.getElementById('panel-backdrop');
 
   // ── Setup ───────────────────────────────────────────────────────────────────
   p.setup = function() {
-    const cnv = p.createCanvas(window.innerWidth, window.innerHeight);
+    const cnv = p.createCanvas(GAME_W, GAME_H);
     cnv.parent('game-container');
     cnv.elt.addEventListener('contextmenu', e => e.preventDefault());
     cnv.elt.addEventListener('touchstart',  e => { e.preventDefault(); onTouchStart(e);   }, {passive:false});
@@ -822,13 +1007,13 @@ new p5(function(p) {
   };
 
   p.windowResized = function() {
-    p.resizeCanvas(window.innerWidth, window.innerHeight);
-    rebuildAfterResize();
+    // Canvas size never changes — just re-scale the root div
+    updateScaleRoot();
   };
 
   // ── Init / rebuild ───────────────────────────────────────────────────────────
   function initAll() {
-    W = p.width; H = p.height;
+    W = GAME_W; H = GAME_H;
     LAUNCH_H = Math.round(H * 0.25);
     FLOOR_Y  = H - LAUNCH_H;
     BR = Math.round(p.constrain(W * 0.027, 10, 18));
@@ -864,43 +1049,9 @@ new p5(function(p) {
 
     buildBg();
     updateMoneyDisplay();
-    updateBallRow();
   }
 
-  function rebuildAfterResize() {
-    const defs = shelves.map(s => s.def);
-    saveShelfDefs(defs);
-    saveWires(wires.map(w => w.def));
 
-    W = p.width; H = p.height;
-    LAUNCH_H = Math.round(H * 0.25);
-    FLOOR_Y  = H - LAUNCH_H;
-    BR = Math.round(p.constrain(W * 0.027, 10, 18));
-    resetInteraction();
-
-    World.clear(world); Engine.clear(engine);
-    balls = []; shelves = []; wires = [];
-
-    engine = Engine.create();
-    engine.gravity.x = cfg.gravityX;
-    engine.gravity.y = cfg.gravityY;
-    world  = engine.world;
-    Events.on(engine, 'afterUpdate', handleFallOff);
-    Events.on(engine, 'collisionStart',  handleBumperCollision);
-    Events.on(engine, 'collisionStart',  handleOneWayShelf);
-    Events.on(engine, 'collisionActive', handleOneWayShelf);
-    Events.on(engine, 'collisionStart',  handleSpecialBallCollision);
-
-    const wo = {isStatic:true, friction:0.1, restitution:0.45};
-    World.add(world, [
-      Bodies.rectangle(-25,   H/2,   50,  H*2, wo), // left
-      Bodies.rectangle(W+25,  H/2,   50,  H*2, wo), // right
-      Bodies.rectangle(W/2,  -25,   W*2,   50, wo), // top
-    ]);
-    for (const d of defs) spawnShelf(d);
-    for (const wd of loadWires()) spawnWire(wd);
-    buildBg();
-  }
 
   function spawnShelf(def) {
     const sx = def.fx * W, sy = def.fy * H;
@@ -922,7 +1073,9 @@ new p5(function(p) {
       // 'basic' (and any future rect types)
       const pd = PLATFORM_TYPES[pt] || PLATFORM_TYPES.basic;
       fw = (def.fw || pd.width) * W;
-      body = Bodies.rectangle(sx, sy, fw, 20, {
+      // Launcher body height matches the visual tube height
+      const bodyH = (pt === 'launcher') ? Math.round(fw * 1.4) : 20;
+      body = Bodies.rectangle(sx, sy, fw, bodyH, {
         isStatic: true, friction: pd.friction, restitution: pd.restitution,
         label: pt,
       });
@@ -938,7 +1091,14 @@ new p5(function(p) {
       lit: false,
       toggled: false,
       toggleCooldown: 0,
-      usesLeft: (pt === 'time_bumper') ? (def.usesLeft ?? PLATFORM_TYPES.time_bumper.maxUses) : undefined,
+      usesLeft: (pt === 'time_bumper')
+        ? (def.usesLeft ?? (PLATFORM_TYPES.time_bumper.maxUses + (researchLevels?.timeBumperUses || 0)))
+        : (pt === 'golden_tech_bumper')
+        ? (def.usesLeft ?? (PLATFORM_TYPES.golden_tech_bumper.maxUses + (researchLevels?.goldenTechUses || 0)))
+        : undefined,
+      heldBallId:    null,  // launcher: body id of held ball, or null
+      holdFrames:    0,     // launcher: frames remaining before firing
+      launchCooldown: 0,    // launcher: frames to ignore new collisions after firing
     });
   }
 
@@ -966,7 +1126,7 @@ new p5(function(p) {
     s.def.fw = s.fw / W;
     s.def.a  = s.body.angle * 180 / Math.PI;
     s.def.platformType = s.platformType;
-    if (s.platformType === 'time_bumper') s.def.usesLeft = s.usesLeft;
+    if (s.platformType === 'time_bumper' || s.platformType === 'golden_tech_bumper') s.def.usesLeft = s.usesLeft;
     saveAllDefs();
   }
   function saveAllDefs() {
@@ -1034,46 +1194,109 @@ new p5(function(p) {
     moneyDisplay.textContent = '$' + money;
     techDisplay.textContent  = '⬡ ' + techPts;
 
-    const effectiveMax      = maxBalls + (researchLevels.maxSlots || 0);
-    const full              = inventory.length >= effectiveMax;
-    const effectiveBallCost = BALL_TYPES.basic.cost + (researchLevels.ballTime || 0) * 5;
-    const buyBallBtn        = document.getElementById('btn-buy-basic');
-    if (buyBallBtn) {
-      buyBallBtn.textContent = `Ball $${effectiveBallCost}`;
-      buyBallBtn.disabled    = money < effectiveBallCost || full;
+    const restockCost = RESTOCK_BASE_COST + (researchLevels.ballTime || 0) * 15;
+    const effectiveMax = maxBalls + (researchLevels.maxSlots || 0);
+    const inventoryFull = inventory.length >= effectiveMax;
+    const restockBtn  = document.getElementById('btn-restock');
+    const restockSub  = document.getElementById('btn-restock-sub');
+    if (restockBtn) {
+      restockBtn.disabled = money < restockCost || inventoryFull;
+      if (restockSub) restockSub.textContent = `#${restockCount + 1} — $${restockCost}`;
     }
 
     // Refresh panel if open
     if (panelBackdrop.classList.contains('visible')) buildPanelUI();
   }
 
-  // Ball row is drawn on canvas — this just triggers a redraw flag (no-op; draw is per-frame)
-  function updateBallRow() { /* drawn in p.draw via drawInventoryRow() */ }
+  // Ball row is drawn on canvas per-frame via drawInventoryRow()
 
-  // Buy a ball of the given type id
-  function buyBall(type) {
-    const def = BALL_TYPES[type];
-    const effectiveCost = def.cost + (researchLevels.ballTime || 0) * 5;
-    if (!def || money < effectiveCost || inventory.length >= maxBalls + (researchLevels.maxSlots || 0)) return;
-    money -= effectiveCost;
+  // Restock: fill inventory to max with random balls (may include special variants)
+  function doRestock() {
+    const restockCost = RESTOCK_BASE_COST + (researchLevels.ballTime || 0) * 15;
+    if (money < restockCost) return;
+    money -= restockCost;
+    const prevCount = restockCount;
+    restockCount += 1;
+    saveRestockCount(restockCount);
 
-    // 5% chance per unlocked ball research to upgrade the ball type
-    let chosenType = type;
-    const roll = Math.random();
+    const effectiveMax = maxBalls + (researchLevels.maxSlots || 0);
+    inventory = inventory.slice(0, effectiveMax);
+    while (inventory.length < effectiveMax) {
+      inventory.push({ type: _rollBallType() });
+    }
+
+    saveMoney(money);
+    saveInventory(inventory);
+    updateMoneyDisplay();
+
+    // Check for newly discovered items and show toast
+    const newlyDiscovered = _getNewDiscoveries(prevCount, restockCount);
+    if (newlyDiscovered.length > 0) showDiscoveryToast(newlyDiscovered);
+  }
+
+  // Returns labels of all items that cross their discoveryRestock threshold this restock
+  function _getNewDiscoveries(prev, next) {
+    const labels = [];
+    for (const item of SHOP_ITEMS) {
+      const d = item.discoveryRestock ?? 0;
+      if (d > prev && d <= next) labels.push(item.label);
+    }
+    for (const r of RESEARCH) {
+      const d = r.discoveryRestock ?? 0;
+      if (d > prev && d <= next) labels.push(r.label);
+    }
+    for (const u of UNLOCK_RESEARCH) {
+      const d = u.discoveryRestock ?? 0;
+      if (d > prev && d <= next) labels.push(u.label + ' (unlock)');
+    }
+    return labels;
+  }
+
+  let _toastTimer = null;
+  function showDiscoveryToast(labels) {
+    const toast = document.getElementById('discovery-toast');
+    if (!toast) return;
+    toast.innerHTML = '';
+
+    // Header line
+    const header = document.createElement('div');
+    header.className = 'discovery-line';
+    header.textContent = labels.length === 1 ? '✦ Discovered!' : `✦ ${labels.length} things discovered!`;
+    toast.appendChild(header);
+
+    // One line per item
+    for (const label of labels) {
+      const line = document.createElement('div');
+      line.className = 'discovery-line';
+      line.style.fontSize = '11px';
+      line.style.opacity  = '0.80';
+      line.textContent = label;
+      toast.appendChild(line);
+    }
+
+    toast.classList.add('visible');
+    if (_toastTimer) clearTimeout(_toastTimer);
+    // Fade out after 8s (0.4s fade-in already handled by CSS transition)
+    _toastTimer = setTimeout(() => {
+      toast.classList.remove('visible');
+      _toastTimer = null;
+    }, 8000);
+  }
+
+  // Pick a ball type, applying special ball research chances
+  function _rollBallType() {
     const options = [];
     if (researchLevels.bouncyBalls > 0) options.push('bouncy_ball');
     if (researchLevels.goldBalls   > 0) options.push('gold_ball');
     if (researchLevels.techBalls   > 0) options.push('tech_ball');
-    const totalChance = options.length * 0.05;
-    if (options.length > 0 && roll < totalChance) {
-      const pick = Math.floor((roll / totalChance) * options.length);
-      chosenType = options[pick];
+    if (options.length > 0) {
+      const totalChance = options.length * 0.05;
+      const roll = Math.random();
+      if (roll < totalChance) {
+        return options[Math.floor((roll / totalChance) * options.length)];
+      }
     }
-
-    inventory.push({ type: chosenType });
-    saveMoney(money);
-    saveInventory(inventory);
-    updateMoneyDisplay();
+    return 'basic';
   }
 
   // ── Platform cost scaling ────────────────────────────────────────────────────
@@ -1096,7 +1319,7 @@ new p5(function(p) {
   // Buy a platform and place it centred in the play area
   function buyPlatform(type) {
     const def = PLATFORM_TYPES[type];
-    const platformLimit = BASE_PLATFORM_LIMIT + (researchLevels.platformSlots || 0);
+    const platformLimit = BASE_PLATFORM_LIMIT + (researchLevels.platformSlots || 0) * 3;
     const cost = platformCost(type);
     if (!def || money < cost || !canEdit || !isUnlocked(type)) return;
 
@@ -1132,7 +1355,9 @@ new p5(function(p) {
   // ── Bumper collision ─────────────────────────────────────────────────────────
   // Awards $10 every time a ball hits a bumper from any direction.
   // ── Bouncy shelf speed constant ───────────────────────────────────────────────
-  const BOUNCY_MIN_SPEED = 18; // px/frame — minimum speed after hitting a bouncy shelf
+  const BOUNCY_MIN_SPEED     = 18; // px/frame — minimum speed after hitting a bouncy shelf
+  const BOUNCY_BALL_MAX_SPEED = 30; // px/frame — hard cap for bouncy_ball + bouncy_shelf combo
+  const LAUNCHER_SPEED       = 16; // px/frame — fixed launch speed from launcher
 
   function handleBumperCollision(event) {
     for (const pair of event.pairs) {
@@ -1148,11 +1373,31 @@ new p5(function(p) {
         saveTechPts(techPts);
         updateMoneyDisplay();
       } else if (labelA === 'golden_tech_bumper' || labelB === 'golden_tech_bumper') {
+        const shelfBody = labelA === 'golden_tech_bumper' ? bodyA : bodyB;
+        const shelfIdx  = shelves.findIndex(s => s.body === shelfBody);
+        if (shelfIdx === -1) continue;
+        const s = shelves[shelfIdx];
+        if ((s.usesLeft ?? 1) <= 0) continue;
+
         money   = Math.max(0, money - 10);
         techPts += 10;
         saveMoney(money);
         saveTechPts(techPts);
         updateMoneyDisplay();
+
+        if (s.usesLeft !== undefined) {
+          s.usesLeft -= 1;
+          s.def.usesLeft = s.usesLeft;
+          saveAllDefs();
+          if (s.usesLeft <= 0) pendingTimeBumperRemovals.push(shelfIdx);
+        }
+      } else if (labelA === 'soft_shelf' || labelB === 'soft_shelf') {
+        const ballBody = labelA === 'soft_shelf' ? bodyB : bodyA;
+        const spd = Math.hypot(ballBody.velocity.x, ballBody.velocity.y);
+        if (spd > 0.5) {
+          const scale = Math.max(0.12, 1 - 0.78); // keep ~22% of speed
+          Body.setVelocity(ballBody, { x: ballBody.velocity.x * scale, y: ballBody.velocity.y * scale });
+        }
       } else if (labelA === 'bouncy_shelf' || labelB === 'bouncy_shelf') {
         const ballBody  = labelA === 'bouncy_shelf' ? bodyB : bodyA;
         const shelfBody = labelA === 'bouncy_shelf' ? bodyA : bodyB;
@@ -1165,7 +1410,10 @@ new p5(function(p) {
         const dist = Math.hypot(dx, dy) || 1;
         const nx = dx / dist, ny = dy / dist;
         const curSpeed = Math.hypot(ballBody.velocity.x, ballBody.velocity.y);
-        const speed    = Math.max(curSpeed, BOUNCY_MIN_SPEED);
+        // Bouncy balls get a hard cap to prevent runaway speed
+        const isBouncy = ballBody._ballType === 'bouncy_ball';
+        const maxSpeed = isBouncy ? BOUNCY_BALL_MAX_SPEED : Infinity;
+        const speed    = Math.min(Math.max(curSpeed, BOUNCY_MIN_SPEED), maxSpeed);
         Body.setVelocity(ballBody, { x: nx * speed, y: ny * speed });
       } else if (labelA === 'split_bumper' || labelB === 'split_bumper') {
         const ballBody = labelA === 'split_bumper' ? bodyB : bodyA;
@@ -1196,6 +1444,31 @@ new p5(function(p) {
           pendingTimeBumperRemovals.push(shelfIdx);
         }
         updateMoneyDisplay();
+      } else if (labelA === 'launcher' || labelB === 'launcher') {
+        const shelfBody = labelA === 'launcher' ? bodyA : bodyB;
+        const ballBody  = labelA === 'launcher' ? bodyB : bodyA;
+        const shelfEntry = shelves.find(s => s.body === shelfBody);
+        if (!shelfEntry) continue;
+        // Ignore if already holding a ball or in post-fire cooldown
+        if (shelfEntry.heldBallId !== null || shelfEntry.launchCooldown > 0) continue;
+
+        // Muzzle direction: local (0,-th/2) rotated by body.angle using p5's convention
+        // p5 rotate(a): world = (lx*cos a - ly*sin a, lx*sin a + ly*cos a)
+        // Local muzzle tip is (0, -th/2), so world offset = (th/2 * sin a, -th/2 * cos a)
+        const a   = shelfBody.angle;
+        const muzzDirX =  Math.sin(a);
+        const muzzDirY = -Math.cos(a);
+        const th  = shelfEntry.fw * 1.4;
+        const muzzleX = shelfBody.position.x + muzzDirX * (th / 2);
+        const muzzleY = shelfBody.position.y + muzzDirY * (th / 2);
+
+        // Snap ball to muzzle and freeze it
+        Body.setPosition(ballBody, { x: muzzleX, y: muzzleY });
+        Body.setVelocity(ballBody, { x: 0, y: 0 });
+        Body.setStatic(ballBody, true);
+
+        shelfEntry.heldBallId = ballBody.id;
+        shelfEntry.holdFrames = 60; // 1 second at 60fps
       }
     }
   }
@@ -1393,7 +1666,41 @@ new p5(function(p) {
     saveAllDefs();
     updateMoneyDisplay();
   }
-  // We test by projecting the ball→shelf vector onto the shelf's up-normal.
+
+  function processLaunchers() {
+    for (const s of shelves) {
+      if (s.platformType !== 'launcher') continue;
+
+      // Count down post-fire cooldown
+      if (s.launchCooldown > 0) { s.launchCooldown -= 1; continue; }
+
+      if (s.heldBallId === null) continue;
+
+      const ballObj = balls.find(b => b.body.id === s.heldBallId);
+      if (!ballObj) { s.heldBallId = null; s.holdFrames = 0; continue; }
+
+      // Keep ball pinned at muzzle every frame
+      const a      = s.body.angle;
+      const muzzDirX =  Math.sin(a);
+      const muzzDirY = -Math.cos(a);
+      const th   = s.fw * 1.4;
+      const muzzleX = s.body.position.x + muzzDirX * (th / 2);
+      const muzzleY = s.body.position.y + muzzDirY * (th / 2);
+      Body.setPosition(ballObj.body, { x: muzzleX, y: muzzleY });
+      Body.setVelocity(ballObj.body, { x: 0, y: 0 });
+
+      s.holdFrames -= 1;
+      if (s.holdFrames <= 0) {
+        // Unfreeze and launch
+        Body.setStatic(ballObj.body, false);
+        Body.setVelocity(ballObj.body, { x: muzzDirX * LAUNCHER_SPEED, y: muzzDirY * LAUNCHER_SPEED });
+        ballObj.body.frictionAir = cfg.airFriction;
+        s.heldBallId     = null;
+        s.holdFrames     = 0;
+        s.launchCooldown = 30; // 0.5s — ball clears the barrel before it can grab again
+      }
+    }
+  }
   // If the ball is on the lower side (positive projection with downward normal),
   // we cancel the collision so the ball passes through.
   function handleOneWayShelf(event) {
@@ -1567,9 +1874,12 @@ new p5(function(p) {
 
     document.getElementById('btn-reset-settings').addEventListener('click', resetSettings);
     document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+    document.getElementById('btn-export-save').addEventListener('click', exportSave);
+    document.getElementById('btn-import-save').addEventListener('click', () => document.getElementById('import-file-input').click());
+    document.getElementById('import-file-input').addEventListener('change', importSave);
     document.getElementById('btn-restart-game').addEventListener('click', restartGame);
     document.getElementById('btn-clear-data').addEventListener('click', clearAllData);
-    document.getElementById('btn-buy-basic').addEventListener('click', () => buyBall('basic'));
+    document.getElementById('btn-restock').addEventListener('click', doRestock);
   }
 
   function openModal() {
@@ -1583,32 +1893,23 @@ new p5(function(p) {
     paused = false;
   }
 
-  function openResearch() {
-    paused = true;
-    aiming = false;
-    buildResearchUI();
-    researchBackdrop.classList.add('visible');
-  }
-  function closeResearch() {
-    researchBackdrop.classList.remove('visible');
-    paused = false;
-  }
-
-  // ── Shop modal ────────────────────────────────────────────────────────────────
-  // Registry of all purchasable platform items — drives buildShopUI dynamically.
+  // ── Shop / Research / Unlocks item registry ───────────────────────────────────
+  // Registry of all purchasable platform items — drives buildPanelUI dynamically.
   const SHOP_ITEMS = [
-    { type: 'basic',             label: 'Shelf',              desc: 'Standard platform'                          }, // $10
-    { type: 'connection_wire',   label: 'Wire',               desc: 'Carries signals between detectors and objects' }, // $50
-    { type: 'bumper',            label: 'Gold Bumper',        desc: 'Earns $5 per hit'                           }, // $50
-    { type: 'tech_bumper',       label: 'Tech Bumper',        desc: 'Earns 1 ⬡ per hit'                        }, // $50
-    { type: 'long_shelf',        label: 'Long Shelf',         desc: '3× wider than a standard shelf'             }, // $50
-    { type: 'time_bumper',       label: 'Time Bumper',        desc: 'Doubles ball lifetime on hit (10 uses)'     }, // $50
-    { type: 'bouncy_shelf',      label: 'Bouncy Shelf',       desc: 'Launches balls away with high force'        }, // $100
-    { type: 'golden_tech_bumper',label: 'Golden Tech Bumper', desc: 'Converts $10 → 10 ⬡ per hit'             }, // $150
-    { type: 'detector_shelf',    label: 'Detector',           desc: 'Emits a signal when a ball is above it'    }, // $150
-    { type: 'windmill_shelf',    label: 'Windmill',           desc: 'Blows wind upward from its face'            }, // $333
-    { type: 'split_bumper',      label: 'Split Bumper',       desc: 'Splits ball into two smaller balls'         }, // $400
-    { type: 'one_way_shelf',     label: 'One-Way Shelf',      desc: 'Blocks from above, passes from below'       }, // $500
+    { type: 'basic',             label: 'Shelf',              desc: 'Standard platform',                              discoveryRestock: 2   },
+    { type: 'soft_shelf',        label: 'Soft Shelf',         desc: 'Greatly slows balls that hit it',                discoveryRestock: 5   },
+    { type: 'bumper',            label: 'Gold Bumper',        desc: 'Earns $5 per hit',                               discoveryRestock: 1   },
+    { type: 'tech_bumper',       label: 'Tech Bumper',        desc: 'Earns 1 ⬡ per hit',                            discoveryRestock: 7   },
+    { type: 'launcher',          label: 'Launcher',           desc: 'Redirects any ball that touches it',             discoveryRestock: 14  },
+    { type: 'golden_tech_bumper',label: 'Golden Tech Bumper', desc: 'Converts $10 → 10 ⬡ per hit',                 discoveryRestock: 52  },
+    { type: 'split_bumper',      label: 'Split Bumper',       desc: 'Splits ball into two smaller balls',             discoveryRestock: 27  }, // = unlock_split_bumper
+    { type: 'long_shelf',        label: 'Long Shelf',         desc: '3× wider than a standard shelf',                discoveryRestock: 52  }, // = unlock_long_shelf
+    { type: 'detector_shelf',    label: 'Detector',           desc: 'Emits a signal when a ball is above it',         discoveryRestock: 75  },
+    { type: 'connection_wire',   label: 'Wire',               desc: 'Carries signals between detectors and objects',  discoveryRestock: 75  },
+    { type: 'time_bumper',       label: 'Time Bumper',        desc: 'Doubles ball lifetime on hit (10 uses)',         discoveryRestock: 40  }, // = unlock_time_bumper
+    { type: 'windmill_shelf',    label: 'Windmill',           desc: 'Blows wind upward from its face',                discoveryRestock: 63  }, // = unlock_windmill_shelf
+    { type: 'bouncy_shelf',      label: 'Bouncy Shelf',       desc: 'Launches balls away with high force',            discoveryRestock: 80  }, // = unlock_bouncy_shelf
+    { type: 'one_way_shelf',     label: 'One-Way Shelf',      desc: 'Blocks from above, passes from below',           discoveryRestock: 115 }, // = unlock_one_way_shelf
   ];
 
   // ── Unified panel (Shop / Research / Unlocks) ────────────────────────────────
@@ -1627,25 +1928,28 @@ new p5(function(p) {
   }
 
   function buildPanelUI() {
+    // Apply theme class to modal
+    const modal = document.getElementById('panel-modal');
+    modal.classList.remove('tab-shop', 'tab-research', 'tab-unlocks');
+    modal.classList.add('tab-' + panelActiveTab);
 
     // Update status row
     document.getElementById('panel-money-display').textContent = '$' + money;
     document.getElementById('panel-tech-display').textContent  = '⬡ ' + techPts;
 
-    const platformLimit = BASE_PLATFORM_LIMIT + (researchLevels.platformSlots || 0);
+    const platformLimit = BASE_PLATFORM_LIMIT + (researchLevels.platformSlots || 0) * 3;
     const platformsFull = shelves.length >= platformLimit;
     const limitEl = document.getElementById('panel-limit-display');
     if (limitEl) {
       limitEl.textContent   = platformsFull
         ? `Platform limit: ${shelves.length} / ${platformLimit}`
         : `Platforms: ${shelves.length} / ${platformLimit}`;
-      limitEl.style.color      = platformsFull ? 'rgba(255,80,80,0.95)'   : 'rgba(180,165,220,0.45)';
+      limitEl.style.color      = platformsFull ? 'rgba(255,80,80,0.95)' : 'rgba(180,165,220,0.45)';
       limitEl.style.fontWeight = platformsFull ? '700' : '';
     }
 
-    // Tab highlight
+    // Tab buttons — wire onclick, no active class needed (CSS uses data-tab attribute)
     document.querySelectorAll('#panel-tabs .res-tab').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === panelActiveTab);
       btn.onclick = () => { panelActiveTab = btn.dataset.tab; buildPanelUI(); };
     });
 
@@ -1661,8 +1965,30 @@ new p5(function(p) {
     }
   }
 
+  // ── Discovery system ─────────────────────────────────────────────────────────
+  // An item is discovered once restockCount has reached its discoveryRestock threshold.
+  function isDiscovered(discoveryRestock) {
+    return restockCount >= (discoveryRestock ?? 0);
+  }
+
   function _buildShopContent(content, platformsFull) {
+    if (!canEdit) {
+      const warn = document.createElement('div');
+      warn.style.cssText = `
+        background:rgba(200,30,30,0.22);
+        border:1px solid rgba(255,80,80,0.55);
+        border-radius:12px;
+        padding:10px 14px;
+        color:rgba(255,150,150,0.95);
+        font-size:12px; font-weight:600; letter-spacing:0.06em;
+        text-align:center;
+      `;
+      warn.textContent = '⚠ Balls in play — platforms cannot be placed';
+      content.appendChild(warn);
+    }
+
     for (const item of SHOP_ITEMS) {
+      if (!isDiscovered(item.discoveryRestock)) continue;
       const unlocked = isUnlocked(item.type);
       const cost     = platformCost(item.type);
       // Wires don't count against platform limit
@@ -1687,8 +2013,9 @@ new p5(function(p) {
 
   function _buildResearchContent(content) {
     for (const r of RESEARCH) {
+      if (!isDiscovered(r.discoveryRestock)) continue;
       const level     = researchLevels[r.id] || 0;
-      const cost      = researchCost(r.baseCost, level);
+      const cost      = researchCost(r.baseCost, level, r.growthRate);
       const canAfford = techPts >= cost;
 
       const card = document.createElement('div');
@@ -1709,6 +2036,7 @@ new p5(function(p) {
 
   function _buildUnlocksContent(content) {
     for (const u of UNLOCK_RESEARCH) {
+      if (!isDiscovered(u.discoveryRestock)) continue;
       const done      = !!researchLevels[u.id];
       const canAfford = !done && techPts >= u.costTech && money >= u.costMoney;
 
@@ -1731,13 +2059,6 @@ new p5(function(p) {
     });
   }
 
-  // Legacy aliases so other code calling buildResearchUI/buildShopUI still works
-  function buildShopUI()     { buildPanelUI(); }
-  function buildResearchUI() { buildPanelUI(); }
-  function openShop()        { openPanel('shop'); }
-  function closeShop()       { closePanel(); }
-  function openResearch()    { openPanel('research'); }
-
   function buyResearch(id) {
     // Unlock research (one-time) — costs both tech and money
     const unlock = UNLOCK_RESEARCH.find(x => x.id === id);
@@ -1757,7 +2078,7 @@ new p5(function(p) {
     const r = RESEARCH.find(x => x.id === id);
     if (!r) return;
     const level = researchLevels[id] || 0;
-    const cost  = researchCost(r.baseCost, level);
+    const cost  = researchCost(r.baseCost, level, r.growthRate);
     if (techPts < cost) return;
     techPts -= cost;
     researchLevels[id] = level + 1;
@@ -1769,6 +2090,68 @@ new p5(function(p) {
     buildPanelUI();
   }
 
+
+  // ── Export / Import save ─────────────────────────────────────────────────────
+  function exportSave() {
+    const data = {
+      version: 1,
+      money,
+      techPts,
+      maxBalls,
+      restockCount,
+      inventory,
+      researchLevels,
+      settings: cfg,
+      shelves: shelves.map(s => s.def),
+      wires: wires.map(w => w.def),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'driftpool-save.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importSave(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data || typeof data !== 'object') throw new Error('Invalid save file');
+
+        // Apply all fields
+        if (typeof data.money        === 'number') { money        = data.money;        saveMoney(money); }
+        if (typeof data.techPts      === 'number') { techPts      = data.techPts;      saveTechPts(techPts); }
+        if (typeof data.maxBalls     === 'number') { maxBalls     = data.maxBalls;     saveMaxBalls(maxBalls); }
+        if (typeof data.restockCount === 'number') { restockCount = data.restockCount; saveRestockCount(restockCount); }
+        if (Array.isArray(data.inventory))         { inventory    = data.inventory;    saveInventory(inventory); }
+        if (data.researchLevels && typeof data.researchLevels === 'object') {
+          researchLevels = Object.assign({}, DEFAULT_RESEARCH, data.researchLevels);
+          saveResearch(researchLevels);
+        }
+        if (data.settings && typeof data.settings === 'object') {
+          Object.assign(cfg, DEFAULT_SETTINGS, data.settings);
+          saveSettings(cfg);
+        }
+        if (Array.isArray(data.shelves)) saveShelfDefs(data.shelves);
+        if (Array.isArray(data.wires))   saveWires(data.wires);
+
+        closeModal();
+        initAll();
+        buildSettingsUI();
+        alert('Save imported successfully!');
+      } catch(err) {
+        alert('Failed to import save: ' + err.message);
+      }
+      // Reset file input so the same file can be re-imported
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  }
 
   function resetSettings() {
     Object.assign(cfg, DEFAULT_SETTINGS);
@@ -1793,6 +2176,8 @@ new p5(function(p) {
     saveSettings(cfg);
     saveShelfDefs(DEFAULT_SHELVES.map(d => ({...d})));
     saveWires([]);
+    restockCount = 0;
+    saveRestockCount(0);
     // Close modal, then fully reinitialise the scene
     closeModal();
     initAll();
@@ -1810,6 +2195,7 @@ new p5(function(p) {
       localStorage.removeItem(LS_TECH_PTS);
       localStorage.removeItem(LS_RESEARCH);
       localStorage.removeItem(LS_WIRES);
+      localStorage.removeItem(LS_RESTOCK);
     } catch(e) {}
     location.reload();
   }
@@ -1896,15 +2282,24 @@ new p5(function(p) {
   }
 
   function updateSellButton() {
-    const btn = document.getElementById('sa-sell');
+    const btn     = document.getElementById('sa-sell');
+    const rotL    = document.getElementById('sa-rot-left');
+    const rotR    = document.getElementById('sa-rot-right');
     if (!btn) return;
+
     if (selectedWire !== null) {
+      // Wire selected: hide rotate buttons, show sell
+      if (rotL) rotL.style.display = 'none';
+      if (rotR) rotR.style.display = 'none';
       const refund = Math.floor(PLATFORM_TYPES.connection_wire.cost * 0.5);
       btn.textContent = `Sell $${refund}`; return;
     }
+    // Shelf (or nothing): show rotate buttons
+    if (rotL) rotL.style.display = '';
+    if (rotR) rotR.style.display = '';
     if (selectedShelf === null) { btn.textContent = 'Sell'; return; }
-    const s     = shelves[selectedShelf];
-    const ptDef = PLATFORM_TYPES[s.platformType];
+    const s      = shelves[selectedShelf];
+    const ptDef  = PLATFORM_TYPES[s.platformType];
     const refund = ptDef ? Math.floor(ptDef.cost * 0.5) : 0;
     btn.textContent = `Sell $${refund}`;
   }
@@ -1920,25 +2315,43 @@ new p5(function(p) {
   // ── Input helpers ────────────────────────────────────────────────────────────
   function resetInteraction() { aiming = false; dragShelf = null; dragWireEp = null; }
 
+  // Convert any client (screen) coordinate to game canvas coordinates.
+  // Works regardless of CSS scale — uses the canvas's actual rendered rect.
+  function clientToGame(clientX, clientY) {
+    const rect = p.canvas.getBoundingClientRect();
+    const scaleX = GAME_W / rect.width;
+    const scaleY = GAME_H / rect.height;
+    return {
+      x: fin((clientX - rect.left) * scaleX, W / 2),
+      y: fin((clientY - rect.top)  * scaleY, H / 2),
+    };
+  }
+
   function isOverUI(x, y) {
-    const cr = p.canvas.getBoundingClientRect();
+    // x,y are in game space; UI elements' rects are in screen space — convert via canvas scale
+    const cr     = p.canvas.getBoundingClientRect();
+    const scaleX = GAME_W / cr.width;
+    const scaleY = GAME_H / cr.height;
     function hits(el) {
       if (!el) return false;
       const r = el.getBoundingClientRect();
-      return x >= r.left-cr.left && x <= r.right-cr.left &&
-             y >= r.top-cr.top   && y <= r.bottom-cr.top;
+      const elLeft   = (r.left   - cr.left) * scaleX;
+      const elRight  = (r.right  - cr.left) * scaleX;
+      const elTop    = (r.top    - cr.top)  * scaleY;
+      const elBottom = (r.bottom - cr.top)  * scaleY;
+      return x >= elLeft && x <= elRight && y >= elTop && y <= elBottom;
     }
-    const modalOpen    = modalBackdrop.classList.contains('visible');
-    const panelOpen    = panelBackdrop.classList.contains('visible');
+    const modalOpen = modalBackdrop.classList.contains('visible');
+    const panelOpen = panelBackdrop.classList.contains('visible');
     return hits(shelfActions) || hits(actionBar) ||
-           (modalOpen  && hits(modalBackdrop)) ||
-           (panelOpen  && hits(panelBackdrop));
+           hits(document.getElementById('btn-restock')) ||
+           (modalOpen && hits(modalBackdrop)) ||
+           (panelOpen && hits(panelBackdrop));
   }
 
   function getTouchPos(e) {
-    const rect = p.canvas.getBoundingClientRect();
     const t = (e.changedTouches && e.changedTouches.length) ? e.changedTouches[0] : e.touches[0];
-    return { x: fin(t.clientX - rect.left, W/2), y: fin(t.clientY - rect.top, H/2) };
+    return clientToGame(t.clientX, t.clientY);
   }
 
   // ── Touch ────────────────────────────────────────────────────────────────────
@@ -1955,10 +2368,19 @@ new p5(function(p) {
     handleReleaseAt(pos.x, pos.y);
   }
 
-  // ── Mouse ────────────────────────────────────────────────────────────────────
-  p.mousePressed  = function() { handlePressAt(p.mouseX, p.mouseY); };
-  p.mouseDragged  = function() { handleMoveAt(p.mouseX, p.mouseY); };
-  p.mouseReleased = function() { handleReleaseAt(p.mouseX, p.mouseY); };
+  // ── Mouse — use clientToGame so scale is always accounted for ────────────────
+  p.mousePressed  = function() {
+    const pos = clientToGame(p.winMouseX, p.winMouseY);
+    handlePressAt(pos.x, pos.y);
+  };
+  p.mouseDragged  = function() {
+    const pos = clientToGame(p.winMouseX, p.winMouseY);
+    handleMoveAt(pos.x, pos.y);
+  };
+  p.mouseReleased = function() {
+    const pos = clientToGame(p.winMouseX, p.winMouseY);
+    handleReleaseAt(pos.x, pos.y);
+  };
 
   // ── Wire hit test ────────────────────────────────────────────────────────────
   const WIRE_HIT_R = 18; // px — radius for clicking a wire endpoint
@@ -1995,7 +2417,8 @@ new p5(function(p) {
         selectedWire  = wireHit.wireIdx;
         selectedShelf = null;
         dragWireEp    = wireHit;
-        shelfActions.classList.remove('visible');
+        shelfActions.classList.add('visible');
+        updateSellButton();
         return;
       }
 
@@ -2059,28 +2482,31 @@ new p5(function(p) {
     const dist = Math.hypot(dx, dy);
     if (!isFinite(dist) || dist < 6) return;
 
+    // Cancel if shot direction is downward (ny > 0 means pointing down in screen coords)
+    const ny = dy / dist;
+    if (ny > 0) return; // silently cancel — drawAim already showed the indicator
+
     // Consume the next ball from inventory
     const ballDef = inventory.shift();
     saveInventory(inventory);
-    updateBallRow();
 
     // canEdit becomes false the moment a ball is in play
     canEdit = false;
     updateMoneyDisplay();
 
     const ballTypeDef = BALL_TYPES[ballDef.type] || BALL_TYPES.basic;
-    const lifeBonus   = 1 + (researchLevels.ballTime || 0) * 0.01;
+    const lifeBonus   = 1 + (researchLevels.ballTime || 0) * 0.05;
     const lifeFrames  = Math.round((ballTypeDef.lifetime || 5) * lifeBonus * 60);
 
     const palette = getBallPalette(ballDef.type);
     const spd = p.constrain(dist * cfg.powerMult, 1, 22);
-    const nx = dx / dist, ny = dy / dist;
+    const nx = dx / dist;
     const sx = p.constrain(startX, BR + 20, W - BR - 20);
     const sy = FLOOR_Y - BR - 2;
 
     // Bouncy ball restitution scales with research level: 3.0 + 0.1 per extra level
     const bouncyMult = ballDef.type === 'bouncy_ball'
-      ? 3.0 + Math.max(0, (researchLevels.bouncyBalls || 0) - 1) * 0.1
+      ? 2.0 + Math.max(0, (researchLevels.bouncyBalls || 0) - 1) * 0.1
       : (ballTypeDef.restitutionMult || 1);
 
     const body = Bodies.circle(sx, sy, BR, {
@@ -2102,6 +2528,7 @@ new p5(function(p) {
     if (!paused) {
       processPendingSplits();
       processTimeBumperRemovals();
+      processLaunchers();
       applyWindForces();
       Engine.update(engine, 1000/60);
     }
@@ -2173,11 +2600,17 @@ new p5(function(p) {
       } else if (s.platformType === 'tech_bumper') {
         drawTechBumper(gc, pos.x, pos.y, s.fw / 2, sel);
       } else if (s.platformType === 'golden_tech_bumper') {
-        drawGoldenTechBumper(gc, pos.x, pos.y, s.fw / 2, sel);
+        drawGoldenTechBumper(gc, pos.x, pos.y, s.fw / 2, sel, s.usesLeft ?? PLATFORM_TYPES.golden_tech_bumper.maxUses);
       } else if (s.platformType === 'split_bumper') {
         drawSplitBumper(gc, pos.x, pos.y, s.fw / 2, sel);
       } else if (s.platformType === 'time_bumper') {
         drawTimeBumper(gc, pos.x, pos.y, s.fw / 2, sel, s.usesLeft ?? 0);
+      } else if (s.platformType === 'soft_shelf') {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawSoftShelf(gc, s.fw, sel);
+        p.pop();
       } else if (s.platformType === 'bouncy_shelf') {
         p.push();
         p.translate(pos.x, pos.y);
@@ -2213,6 +2646,12 @@ new p5(function(p) {
         p.translate(pos.x, pos.y);
         p.rotate(s.body.angle);
         drawDetectorShelf(gc, s.fw, sel, s.lit);
+        p.pop();
+      } else if (s.platformType === 'launcher') {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawLauncher(gc, s.fw, sel, s.heldBallId !== null, s.holdFrames / 60);
         p.pop();
       } else {
         p.push();
@@ -2297,20 +2736,23 @@ new p5(function(p) {
     gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.stroke();
   }
 
-  function drawGoldenTechBumper(gc, cx, cy, r, sel) {
+  function drawGoldenTechBumper(gc, cx, cy, r, sel, usesLeft) {
+    const maxUses  = PLATFORM_TYPES.golden_tech_bumper.maxUses;
+    const deplete  = usesLeft !== undefined ? 1 - usesLeft / maxUses : 0;
+
     // Selection ring
     if (sel) {
       gc.strokeStyle = 'rgba(255,220,60,0.80)';
       gc.lineWidth   = 2;
       gc.beginPath(); gc.arc(cx, cy, r + 12, 0, Math.PI * 2); gc.stroke();
     }
-    // Outer glow rings — gold-tinted cyan
+    // Outer glow rings — gold-tinted cyan, fade with depletion
     for (let j = 5; j > 0; j--) {
-      gc.strokeStyle = `rgba(200,210,40,${0.05 * j})`;
+      gc.strokeStyle = `rgba(200,210,40,${0.05 * j * (1 - deplete * 0.7)})`;
       gc.lineWidth   = j * 2.5;
       gc.beginPath(); gc.arc(cx, cy, r + j * 2, 0, Math.PI * 2); gc.stroke();
     }
-    // Body — same cyan/blue as tech bumper
+    // Body — cyan/blue
     const gr = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r);
     gr.addColorStop(0,   'rgba(180,245,255,0.98)');
     gr.addColorStop(0.4, 'rgba(30,200,255,0.99)');
@@ -2325,21 +2767,35 @@ new p5(function(p) {
     sp.addColorStop(1, 'rgba(255,255,255,0)');
     gc.fillStyle = sp;
     gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
-    // Gold rim — double stroke: thick gold + thin bright
-    gc.strokeStyle = 'rgba(255,200,30,0.90)';
+    // Depletion dark sweep
+    if (deplete > 0) {
+      gc.fillStyle = 'rgba(0,0,0,0.30)';
+      gc.beginPath();
+      gc.moveTo(cx, cy);
+      gc.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + deplete * Math.PI * 2);
+      gc.closePath(); gc.fill();
+    }
+    // Gold rim — double stroke
+    gc.strokeStyle = `rgba(255,200,30,${0.90 - deplete * 0.5})`;
     gc.lineWidth   = 2.5;
     gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.stroke();
     gc.strokeStyle = 'rgba(255,240,120,0.55)';
     gc.lineWidth   = 0.8;
     gc.beginPath(); gc.arc(cx, cy, r - 1.5, 0, Math.PI * 2); gc.stroke();
-    // $ symbol in centre
-    gc.fillStyle = 'rgba(255,220,50,0.95)';
-    gc.font      = `bold ${Math.round(r * 1.1)}px system-ui`;
-    gc.textAlign    = 'center';
-    gc.textBaseline = 'middle';
+    // $ symbol
+    gc.fillStyle = `rgba(255,220,50,${0.95 - deplete * 0.4})`;
+    gc.font = `bold ${Math.round(r * 1.1)}px system-ui`;
+    gc.textAlign = 'center'; gc.textBaseline = 'middle';
     gc.fillText('$', cx, cy + r * 0.06);
-    gc.textAlign    = 'left';
-    gc.textBaseline = 'alphabetic';
+    gc.textAlign = 'left'; gc.textBaseline = 'alphabetic';
+    // Uses badge
+    if (usesLeft !== undefined) {
+      gc.fillStyle = 'rgba(255,240,160,0.85)';
+      gc.font = `bold ${Math.round(r * 0.55)}px system-ui`;
+      gc.textAlign = 'center'; gc.textBaseline = 'middle';
+      gc.fillText(String(usesLeft), cx + r * 0.58, cy - r * 0.58);
+      gc.textAlign = 'left'; gc.textBaseline = 'alphabetic';
+    }
   }
 
   function drawSplitBumper(gc, cx, cy, r, sel) {
@@ -2465,6 +2921,125 @@ new p5(function(p) {
     gc.strokeStyle = 'rgba(255,255,255,0.5)';
     gc.lineWidth   = 0.8;
     gc.beginPath(); gc.moveTo(-fw/2 + 5, -8); gc.lineTo(fw/2 - 5, -8); gc.stroke();
+  }
+
+  function drawSoftShelf(gc, fw, sel) {
+    if (sel) {
+      gc.strokeStyle = 'rgba(160,230,180,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-fw/2 - 10, -24, fw + 20, 48, 9); gc.stroke();
+    }
+    // Soft green glow
+    for (let j = 6; j > 0; j--) {
+      gc.fillStyle = `rgba(80,200,120,${0.018 * j})`;
+      gc.beginPath(); gc.roundRect(-fw/2 - j, -12 - j, fw + j*2, 24 + j*2, 7); gc.fill();
+    }
+    // Body — teal/green gradient, thick and spongy-looking
+    const g = gc.createLinearGradient(-fw/2, -12, fw/2, 12);
+    g.addColorStop(0,   'rgba(100,210,145,0.88)');
+    g.addColorStop(0.5, 'rgba(140,235,175,0.96)');
+    g.addColorStop(1,   'rgba(80,185,120,0.82)');
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-fw/2, -12, fw, 24, 7); gc.fill();
+    // Wavy inner lines to suggest softness
+    gc.strokeStyle = 'rgba(255,255,255,0.30)';
+    gc.lineWidth   = 1;
+    gc.lineCap     = 'round';
+    const step = fw / 4;
+    for (let i = 0; i < 3; i++) {
+      const cx = -fw/2 + step * (i + 0.9);
+      gc.beginPath();
+      gc.moveTo(cx,      -5);
+      gc.bezierCurveTo(cx + 4, -1, cx - 4, 3, cx, 7);
+      gc.stroke();
+    }
+    gc.strokeStyle = 'rgba(120,230,160,0.55)';
+    gc.lineWidth   = 0.8;
+    gc.beginPath(); gc.roundRect(-fw/2, -12, fw, 24, 7); gc.stroke();
+  }
+
+  function drawLauncher(gc, fw, sel, held, chargeT) {
+    // fw is narrower now (~half ball width). Tube height = fw * 1.4.
+    const th = fw * 1.4;
+    const hw = fw / 2;
+
+    // Selection ring
+    if (sel) {
+      gc.strokeStyle = 'rgba(100,220,255,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-hw - 8, -th/2 - 8, fw + 16, th + 16, hw + 4); gc.stroke();
+    }
+
+    // Charge glow — pulses when holding a ball
+    if (held) {
+      const pulse = (Math.sin(Date.now() * 0.012) + 1) * 0.5;
+      for (let j = 4; j > 0; j--) {
+        gc.fillStyle = `rgba(255,220,80,${0.04 * j * (0.5 + pulse * 0.5)})`;
+        gc.beginPath(); gc.roundRect(-hw - j*2, -th/2 - j*2, fw + j*4, th + j*4, hw + j); gc.fill();
+      }
+    } else {
+      // Normal idle glow
+      for (let j = 4; j > 0; j--) {
+        gc.fillStyle = `rgba(60,180,255,${0.015 * j})`;
+        gc.beginPath(); gc.roundRect(-hw - j, -th/2 - j, fw + j*2, th + j*2, hw + 1); gc.fill();
+      }
+    }
+
+    // Barrel body — steel-blue gradient
+    const g = gc.createLinearGradient(-hw, 0, hw, 0);
+    g.addColorStop(0,   'rgba(50,80,120,0.95)');
+    g.addColorStop(0.3, 'rgba(90,140,200,0.99)');
+    g.addColorStop(0.7, 'rgba(70,120,180,0.99)');
+    g.addColorStop(1,   'rgba(40,65,110,0.92)');
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-hw, -th/2, fw, th, hw); gc.fill();
+
+    // Specular sheen
+    const sp = gc.createLinearGradient(-hw, 0, -hw + fw * 0.35, 0);
+    sp.addColorStop(0, 'rgba(255,255,255,0.28)');
+    sp.addColorStop(1, 'rgba(255,255,255,0)');
+    gc.fillStyle = sp;
+    gc.beginPath(); gc.roundRect(-hw, -th/2, fw, th, hw); gc.fill();
+
+    // Muzzle ring
+    gc.strokeStyle = held ? 'rgba(255,220,80,0.95)' : 'rgba(140,220,255,0.90)';
+    gc.lineWidth   = 2;
+    gc.beginPath(); gc.arc(0, -th/2, hw * 0.88, Math.PI, 0); gc.stroke();
+
+    // Bore
+    const bore = gc.createRadialGradient(0, -th/2, 0, 0, -th/2, hw * 0.55);
+    bore.addColorStop(0, 'rgba(4,8,20,0.95)');
+    bore.addColorStop(1, 'rgba(20,40,80,0.50)');
+    gc.fillStyle = bore;
+    gc.beginPath(); gc.arc(0, -th/2, hw * 0.55, 0, Math.PI * 2); gc.fill();
+
+    // Charge timer arc around muzzle (fills as time passes)
+    if (held && chargeT !== undefined) {
+      const elapsed = 1 - chargeT; // chargeT goes 1→0, elapsed goes 0→1
+      gc.strokeStyle = 'rgba(255,220,80,0.85)';
+      gc.lineWidth   = 2;
+      gc.beginPath();
+      gc.arc(0, -th/2, hw * 1.4, -Math.PI / 2, -Math.PI / 2 + elapsed * Math.PI * 2);
+      gc.stroke();
+    }
+
+    // Direction arrow
+    gc.strokeStyle = held ? 'rgba(255,220,80,0.65)' : 'rgba(140,220,255,0.65)';
+    gc.lineWidth   = 1.2;
+    const arrTip  = -th/2 + hw * 0.5;
+    const arrBase = th * 0.12;
+    gc.beginPath(); gc.moveTo(0, arrBase); gc.lineTo(0, arrTip); gc.stroke();
+    const arrW = hw * 0.35;
+    gc.beginPath();
+    gc.moveTo(-arrW, arrTip + arrW * 0.9);
+    gc.lineTo(0, arrTip);
+    gc.lineTo( arrW, arrTip + arrW * 0.9);
+    gc.stroke();
+
+    // Outer rim
+    gc.strokeStyle = 'rgba(80,160,220,0.50)';
+    gc.lineWidth   = 1;
+    gc.beginPath(); gc.roundRect(-hw, -th/2, fw, th, hw); gc.stroke();
   }
 
   function drawDetectorShelf(gc, fw, sel, lit) {
@@ -2729,7 +3304,8 @@ new p5(function(p) {
   function drawIdlePreview() {
     if (inventory.length === 0) return; // nothing to throw
     const pal = getBallPalette(inventory[0].type);
-    let px=fin(p.mouseX, W/2);
+    const mouse = clientToGame(p.winMouseX, p.winMouseY);
+    let px = fin(mouse.x, W/2);
     if (px<20||px>W-20) px=W/2;
     const py=FLOOR_Y+LAUNCH_H*0.35;
     const gc=p.drawingContext;
@@ -2759,6 +3335,20 @@ new p5(function(p) {
     const sx=p.constrain(fin(startX,W/2), BR+20, W-BR-20);
     const sy=FLOOR_Y-BR-2;
     const gc=p.drawingContext;
+
+    const isCancelled = ny > 0; // downward — shot would be cancelled
+
+    if (isCancelled) {
+      // Greyed-out ball + ✕ symbol
+      gc.fillStyle = 'rgba(255,255,255,0.18)';
+      gc.beginPath(); gc.arc(sx, sy, BR, 0, Math.PI * 2); gc.fill();
+      gc.strokeStyle = 'rgba(255,80,80,0.80)';
+      gc.lineWidth   = 2.5; gc.lineCap = 'round';
+      const cr = BR * 0.5;
+      gc.beginPath(); gc.moveTo(sx - cr, sy - cr); gc.lineTo(sx + cr, sy + cr); gc.stroke();
+      gc.beginPath(); gc.moveTo(sx + cr, sy - cr); gc.lineTo(sx - cr, sy + cr); gc.stroke();
+      return;
+    }
 
     // Trajectory
     let vx=nx*pwr, vy=ny*pwr, bx=sx, by=sy;
