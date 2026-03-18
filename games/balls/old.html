@@ -1,0 +1,3442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Drift Pool</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      width:100%; height:100%;
+      overflow:hidden;
+      touch-action:none;
+      background:#1a1228;
+      font-family: system-ui, sans-serif;
+      user-select:none; -webkit-user-select:none;
+    }
+    #game-container { position:fixed; inset:0; }
+    #game-container canvas { display:block; position:absolute; top:0; left:0; touch-action:none; }
+
+    /* ── Centered action bar ── */
+    #action-bar {
+      position:fixed; top:10px; left:50%; transform:translateX(-50%);
+      z-index:30;
+      display:flex; align-items:center; gap:8px;
+      background:rgba(14,8,28,0.82);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:24px; padding:6px 12px;
+      backdrop-filter:blur(8px);
+      white-space:nowrap;
+      pointer-events:auto;
+    }
+    .top-bar-sep {
+      width:1px; height:16px;
+      background:rgba(255,255,255,0.12);
+    }
+    /* Settings button */
+    #btn-settings {
+      position:static; font-size:15px; color:rgba(255,255,255,0.50);
+      background:none; border:none; cursor:pointer; padding:2px 6px;
+      -webkit-tap-highlight-color:transparent;
+    }
+    #btn-settings:hover { color:rgba(255,255,255,0.80); }
+    /* Clear button — same bare style as settings */
+    #btn-clear-balls {
+      background:none; border:none;
+      color:rgba(200,190,220,0.50);
+      font-size:15px; cursor:pointer; padding:2px 6px;
+      -webkit-tap-highlight-color:transparent;
+      transition:color 0.15s;
+    }
+    #btn-clear-balls:hover { color:rgba(200,190,220,0.85); }
+    /* Currency displays */
+    #money-display {
+      color:rgba(250,230,100,0.95);
+      font-size:13px; font-weight:600; letter-spacing:0.04em;
+      min-width:62px; text-align:center;
+    }
+    #tech-display {
+      color:rgba(120,220,255,0.95);
+      font-size:13px; font-weight:600; letter-spacing:0.04em;
+      min-width:62px; text-align:center;
+    }
+    /* Panel button group */
+    #action-bar-panel-btns { display:flex; gap:6px; }
+    .action-btn {
+      font-size:11px; font-weight:600; letter-spacing:0.06em;
+      padding:5px 0; border-radius:14px;
+      cursor:pointer; white-space:nowrap; width:82px; text-align:center;
+      transition:background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .action-btn:disabled { opacity:0.35; cursor:default; }
+    /* Shop button — yellow */
+    #btn-shop {
+      background:rgba(245,200,60,0.14);
+      border:1px solid rgba(245,200,60,0.38);
+      color:rgba(255,230,100,0.90);
+    }
+    #btn-shop:active { background:rgba(245,200,60,0.28); }
+    /* Research button — blue */
+    #btn-research {
+      background:rgba(56,189,248,0.12);
+      border:1px solid rgba(56,189,248,0.32);
+      color:rgba(140,225,255,0.90);
+    }
+    #btn-research:active { background:rgba(56,189,248,0.26); }
+    /* Unlocks button — purple */
+    #btn-unlocks {
+      background:rgba(167,139,250,0.14);
+      border:1px solid rgba(167,139,250,0.38);
+      color:rgba(210,195,255,0.90);
+    }
+    #btn-unlocks:active { background:rgba(167,139,250,0.28); }
+
+    /* ── Restock button (bottom-right corner, large) ── */
+    #btn-restock {
+      position:fixed; bottom:0; right:0; z-index:30;
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      background:rgba(14,8,28,0.92);
+      border:1px solid rgba(180,140,255,0.35);
+      border-top-left-radius:18px; border-top-right-radius:0;
+      border-bottom-right-radius:0; border-bottom-left-radius:0;
+      padding:12px 22px 10px;
+      cursor:pointer; backdrop-filter:blur(8px);
+      -webkit-tap-highlight-color:transparent;
+      transition:background 0.15s, border-color 0.15s;
+      pointer-events:auto;
+    }
+    #btn-restock:active { background:rgba(180,120,255,0.22); }
+    #btn-restock:disabled { opacity:0.38; cursor:default; border-color:rgba(255,255,255,0.10); }
+    #btn-restock-label { font-size:17px; font-weight:700; letter-spacing:0.06em; color:rgba(230,215,255,0.95); line-height:1; }
+    #btn-restock-sub   { font-size:14px; font-weight:600; letter-spacing:0.04em; color:rgba(200,185,245,0.85); line-height:1; }
+
+    /* ── Panel modal ── */
+    #panel-backdrop {
+      position:fixed; inset:0; z-index:50;
+      background:rgba(6,4,18,0.82);
+      backdrop-filter:blur(8px);
+      display:none; align-items:center; justify-content:center;
+    }
+    #panel-backdrop.visible { display:flex; }
+    #panel-modal {
+      border-radius:20px;
+      padding:18px 20px 0;
+      width:min(92vw, 480px);
+      height:75vh;
+      display:flex; flex-direction:column; gap:0;
+      position:relative;
+      transition:background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    /* Chrome: tabs + status — fixed, no scroll */
+    #panel-header { flex-shrink:0; display:flex; flex-direction:column; gap:10px; padding-bottom:12px; }
+    #panel-tabs   { display:flex; gap:6px; }
+    #panel-status-row {
+      display:flex; align-items:center; gap:10px; font-size:12px;
+    }
+    #panel-money-display { color:rgba(250,230,100,0.9); font-weight:600; }
+    #panel-tech-display  { color:rgba(120,220,255,0.9); font-weight:600; }
+    #panel-limit-display { margin-left:auto; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; }
+    /* Content area: fills remaining height and scrolls */
+    #panel-content {
+      flex:1; overflow-y:auto; min-height:0;
+      display:flex; flex-direction:column; gap:10px;
+      padding-bottom:16px;
+    }
+
+    /* ── Scrollbar base (size + track — shared, thumb overridden per theme) ── */
+    #panel-content { scrollbar-width:thin; }
+    #settings-modal { scrollbar-width:thin; scrollbar-color:rgba(160,120,255,0.35) transparent; }
+    #panel-content::-webkit-scrollbar,
+    #settings-modal::-webkit-scrollbar { width:5px; }
+    #panel-content::-webkit-scrollbar-track,
+    #settings-modal::-webkit-scrollbar-track { background:transparent; }
+    #settings-modal::-webkit-scrollbar-thumb { background:rgba(160,120,255,0.30); border-radius:10px; }
+    #settings-modal::-webkit-scrollbar-thumb:hover { background:rgba(180,140,255,0.55); }
+
+    /* ── Base structural styles for card types (layout only, no color) ── */
+    .shop-item-card {
+      display:flex; align-items:center; gap:12px;
+      border-radius:14px; padding:10px 14px;
+    }
+    .shop-item-info { flex:1; display:flex; flex-direction:column; gap:3px; }
+    .shop-item-label { font-size:13px; font-weight:600; letter-spacing:0.04em; }
+    .shop-item-desc  { font-size:10px; letter-spacing:0.03em; }
+    .shop-item-btn {
+      font-size:12px; font-weight:600; letter-spacing:0.05em;
+      padding:7px 14px; border-radius:12px;
+      cursor:pointer; white-space:nowrap;
+      transition:background 0.15s;
+      -webkit-tap-highlight-color:transparent;
+      flex-shrink:0;
+    }
+    .res-card {
+      display:flex; align-items:center; gap:12px;
+      border-radius:14px; padding:12px 14px;
+      transition:background 0.15s;
+    }
+    .res-card.res-cant-afford { opacity:0.55; }
+    .res-card-info { flex:1; display:flex; flex-direction:column; gap:3px; }
+    .res-card-label { font-size:13px; font-weight:600; letter-spacing:0.04em; }
+    .res-card-desc  { font-size:11px; letter-spacing:0.03em; }
+    .res-card-level { font-size:10px; letter-spacing:0.06em; text-transform:uppercase; margin-top:2px; }
+    .res-buy-btn {
+      font-size:12px; font-weight:600; letter-spacing:0.06em;
+      padding:7px 14px; border-radius:12px;
+      cursor:pointer; white-space:nowrap;
+      transition:background 0.15s;
+      -webkit-tap-highlight-color:transparent;
+      flex-shrink:0;
+    }
+    .res-buy-btn:disabled { opacity:0.30; cursor:default; }
+
+    /* ── Tab base style (overridden per theme) ── */
+    .res-tab {
+      flex:1; font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
+      padding:7px 0; border-radius:10px;
+      cursor:pointer; transition:background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    /* ══════════════════════════════════════════
+       SHOP THEME — amber / yellow
+       ══════════════════════════════════════════ */
+    #panel-modal.tab-shop {
+      background:rgba(24,18,6,0.97);
+      border:1px solid rgba(245,200,60,0.30);
+      box-shadow:0 0 60px rgba(245,190,40,0.12);
+    }
+    /* Tab bar in shop mode */
+    #panel-modal.tab-shop .res-tab[data-tab="shop"] {
+      background:rgba(245,200,60,0.28); border:1px solid rgba(245,200,60,0.60);
+      color:rgba(255,235,110,0.98);
+    }
+    #panel-modal.tab-shop .res-tab[data-tab="research"],
+    #panel-modal.tab-shop .res-tab[data-tab="unlocks"] {
+      background:rgba(245,200,60,0.06); border:1px solid rgba(245,200,60,0.18);
+      color:rgba(200,170,80,0.60);
+    }
+    #panel-modal.tab-shop .res-tab:active { background:rgba(245,200,60,0.40); }
+    /* Scrollbar thumb */
+    #panel-modal.tab-shop { scrollbar-color:rgba(200,160,40,0.40) transparent; }
+    #panel-modal.tab-shop #panel-content::-webkit-scrollbar-thumb { background:rgba(200,160,40,0.38); border-radius:10px; }
+    #panel-modal.tab-shop #panel-content::-webkit-scrollbar-thumb:hover { background:rgba(230,190,50,0.65); }
+    /* Item cards */
+    #panel-modal.tab-shop .shop-item-card {
+      background:rgba(245,200,60,0.07); border:1px solid rgba(245,180,40,0.22);
+    }
+    #panel-modal.tab-shop .shop-item-label { color:rgba(255,235,120,0.96); }
+    #panel-modal.tab-shop .shop-item-desc  { color:rgba(210,180,90,0.60); }
+    #panel-modal.tab-shop .shop-item-btn {
+      background:rgba(230,180,30,0.20); border:1px solid rgba(230,180,30,0.50);
+      color:rgba(255,235,110,0.95);
+    }
+    #panel-modal.tab-shop .shop-item-btn:active { background:rgba(230,180,30,0.38); }
+    #panel-modal.tab-shop .shop-item-btn:disabled { opacity:0.30; cursor:default; }
+    #panel-modal.tab-shop .shop-item-card.locked { opacity:0.38; }
+
+    /* ══════════════════════════════════════════
+       RESEARCH THEME — cyan / blue
+       ══════════════════════════════════════════ */
+    #panel-modal.tab-research {
+      background:rgba(4,16,30,0.97);
+      border:1px solid rgba(56,189,248,0.28);
+      box-shadow:0 0 60px rgba(20,160,255,0.12);
+    }
+    #panel-modal.tab-research .res-tab[data-tab="research"] {
+      background:rgba(56,189,248,0.26); border:1px solid rgba(56,189,248,0.60);
+      color:rgba(160,235,255,0.98);
+    }
+    #panel-modal.tab-research .res-tab[data-tab="shop"],
+    #panel-modal.tab-research .res-tab[data-tab="unlocks"] {
+      background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.18);
+      color:rgba(80,165,210,0.60);
+    }
+    #panel-modal.tab-research .res-tab:active { background:rgba(56,189,248,0.40); }
+    #panel-modal.tab-research { scrollbar-color:rgba(40,160,220,0.40) transparent; }
+    #panel-modal.tab-research #panel-content::-webkit-scrollbar-thumb { background:rgba(40,160,220,0.38); border-radius:10px; }
+    #panel-modal.tab-research #panel-content::-webkit-scrollbar-thumb:hover { background:rgba(60,190,255,0.65); }
+    /* Research cards */
+    #panel-modal.tab-research .res-card {
+      display:flex; align-items:center; gap:12px;
+      background:rgba(20,140,200,0.10); border:1px solid rgba(40,180,255,0.22);
+      border-radius:14px; padding:12px 14px; transition:background 0.15s;
+    }
+    #panel-modal.tab-research .res-card.res-cant-afford { opacity:0.55; }
+    #panel-modal.tab-research .res-card-info { flex:1; display:flex; flex-direction:column; gap:3px; }
+    #panel-modal.tab-research .res-card-label { color:rgba(160,230,255,0.95); font-size:13px; font-weight:600; letter-spacing:0.04em; }
+    #panel-modal.tab-research .res-card-desc  { color:rgba(120,195,230,0.65); font-size:11px; letter-spacing:0.03em; }
+    #panel-modal.tab-research .res-card-level { color:rgba(80,170,220,0.50); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; margin-top:2px; }
+    #panel-modal.tab-research .res-buy-btn {
+      background:rgba(30,160,220,0.18); border:1px solid rgba(40,190,255,0.40);
+      color:rgba(140,220,255,0.92); font-size:12px; font-weight:600; letter-spacing:0.06em;
+      padding:7px 14px; border-radius:12px; cursor:pointer; white-space:nowrap;
+      transition:background 0.15s; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+    }
+    #panel-modal.tab-research .res-buy-btn:active { background:rgba(30,160,220,0.36); }
+    #panel-modal.tab-research .res-buy-btn:disabled { opacity:0.30; cursor:default; }
+
+    /* ══════════════════════════════════════════
+       UNLOCKS THEME — violet / purple
+       ══════════════════════════════════════════ */
+    #panel-modal.tab-unlocks {
+      background:rgba(14,6,28,0.97);
+      border:1px solid rgba(167,139,250,0.30);
+      box-shadow:0 0 60px rgba(130,80,255,0.14);
+    }
+    #panel-modal.tab-unlocks .res-tab[data-tab="unlocks"] {
+      background:rgba(167,139,250,0.28); border:1px solid rgba(167,139,250,0.65);
+      color:rgba(220,205,255,0.98);
+    }
+    #panel-modal.tab-unlocks .res-tab[data-tab="shop"],
+    #panel-modal.tab-unlocks .res-tab[data-tab="research"] {
+      background:rgba(167,139,250,0.06); border:1px solid rgba(167,139,250,0.20);
+      color:rgba(150,120,220,0.60);
+    }
+    #panel-modal.tab-unlocks .res-tab:active { background:rgba(167,139,250,0.42); }
+    #panel-modal.tab-unlocks { scrollbar-color:rgba(140,100,220,0.40) transparent; }
+    #panel-modal.tab-unlocks #panel-content::-webkit-scrollbar-thumb { background:rgba(140,100,220,0.38); border-radius:10px; }
+    #panel-modal.tab-unlocks #panel-content::-webkit-scrollbar-thumb:hover { background:rgba(170,130,255,0.65); }
+    /* Unlock cards */
+    #panel-modal.tab-unlocks .res-card {
+      display:flex; align-items:center; gap:12px;
+      background:rgba(120,60,180,0.12); border:1px solid rgba(160,100,255,0.28);
+      border-radius:14px; padding:12px 14px; transition:background 0.15s;
+    }
+    #panel-modal.tab-unlocks .res-card.res-cant-afford { opacity:0.55; }
+    #panel-modal.tab-unlocks .res-card-info { flex:1; display:flex; flex-direction:column; gap:3px; }
+    #panel-modal.tab-unlocks .res-card-label { color:rgba(210,180,255,0.95); font-size:13px; font-weight:600; letter-spacing:0.04em; }
+    #panel-modal.tab-unlocks .res-card-desc  { color:rgba(170,140,220,0.65); font-size:11px; letter-spacing:0.03em; }
+    #panel-modal.tab-unlocks .res-card-level { color:rgba(140,100,200,0.55); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; margin-top:2px; }
+    #panel-modal.tab-unlocks .res-buy-btn {
+      background:rgba(140,60,220,0.18); border:1px solid rgba(160,100,255,0.40);
+      color:rgba(200,170,255,0.92); font-size:12px; font-weight:600; letter-spacing:0.06em;
+      padding:7px 14px; border-radius:12px; cursor:pointer; white-space:nowrap;
+      transition:background 0.15s; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+    }
+    #panel-modal.tab-unlocks .res-buy-btn:active { background:rgba(140,60,220,0.36); }
+    #panel-modal.tab-unlocks .res-buy-btn:disabled { opacity:0.30; cursor:default; }
+
+    /* ── Shop area overlay (balls in play — legacy, keep for compat) ── */
+    #shop-area {
+      position:relative;
+      display:flex; align-items:center; gap:8px;
+    }
+    #shop-overlay {
+      display:none;
+      position:absolute;
+      inset:-6px -8px;
+      border-radius:16px;
+      background:rgba(8,4,20,0.76);
+      backdrop-filter:blur(3px);
+      z-index:10;
+      align-items:center; justify-content:center;
+      pointer-events:auto;
+    }
+    #shop-overlay.visible { display:flex; }
+    #shop-overlay span {
+      color:rgba(200,185,255,0.72);
+      font-size:10px; letter-spacing:0.10em; text-transform:uppercase;
+      text-align:center; line-height:1.4;
+      pointer-events:none;
+    }
+    /* Platform limit warning — appears below the top-bar when at capacity */
+    #platform-limit-warning {
+      position:fixed; top:54px; left:50%; transform:translateX(-50%);
+      z-index:29;
+      display:none;
+      background:rgba(180,30,30,0.82);
+      border:1px solid rgba(255,100,100,0.45);
+      border-radius:12px; padding:4px 14px;
+      color:rgba(255,200,200,0.95);
+      font-size:10px; font-weight:600; letter-spacing:0.10em; text-transform:uppercase;
+      backdrop-filter:blur(4px);
+      pointer-events:none;
+      white-space:nowrap;
+    }
+    #platform-limit-warning.visible { display:block; }
+
+    /* ── Settings modal ── */
+    #modal-backdrop {
+      position:fixed; inset:0; z-index:50;
+      background:rgba(8,4,18,0.72);
+      backdrop-filter:blur(8px);
+      display:none; align-items:center; justify-content:center;
+    }
+    #modal-backdrop.visible { display:flex; }
+    #settings-modal {
+      background:rgba(22,12,42,0.97);
+      border:1px solid rgba(200,160,255,0.25);
+      border-radius:20px;
+      padding:24px 24px 20px;
+      width:min(92vw, 420px);
+      max-height:88vh;
+      overflow-y:auto;
+      display:flex; flex-direction:column; gap:18px;
+      box-shadow:0 0 60px rgba(140,80,255,0.18);
+    }
+    .modal-title {
+      color:rgba(230,210,255,0.9);
+      font-size:15px; font-weight:600; letter-spacing:0.1em;
+      text-transform:uppercase; text-align:center;
+    }
+    .modal-close {
+      position:absolute; top:14px; right:18px;
+      background:none; border:none;
+      color:rgba(255,255,255,0.4); font-size:20px;
+      cursor:pointer; line-height:1;
+      -webkit-tap-highlight-color:transparent;
+    }
+    #settings-modal { position:relative; }
+    .s-section {
+      display:flex; flex-direction:column; gap:10px;
+    }
+    .s-label {
+      color:rgba(200,180,240,0.55);
+      font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    }
+    .s-row {
+      display:flex; align-items:center; gap:10px;
+    }
+    .s-row-label {
+      color:rgba(220,205,255,0.75);
+      font-size:12px; min-width:110px;
+    }
+    .s-val {
+      color:rgba(230,215,255,0.9);
+      font-size:12px; min-width:36px; text-align:right;
+    }
+    input[type=range] {
+      flex:1; accent-color:#c084fc;
+      height:4px; cursor:pointer;
+    }
+    /* Toggle */
+    .s-toggle {
+      display:flex; align-items:center; gap:10px; cursor:pointer;
+    }
+    .toggle-track {
+      width:40px; height:22px; border-radius:11px;
+      background:rgba(255,255,255,0.12);
+      border:1px solid rgba(255,255,255,0.18);
+      position:relative; transition:background 0.2s;
+      flex-shrink:0; cursor:pointer;
+    }
+    .toggle-track.on { background:rgba(180,120,255,0.55); border-color:rgba(200,150,255,0.5); }
+    .toggle-thumb {
+      width:16px; height:16px; border-radius:50%;
+      background:rgba(255,255,255,0.85);
+      position:absolute; top:2px; left:2px;
+      transition:transform 0.2s;
+    }
+    .toggle-track.on .toggle-thumb { transform:translateX(18px); }
+    .toggle-label { color:rgba(220,205,255,0.75); font-size:12px; }
+    /* Reset button */
+    .reset-btn {
+      align-self:center;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.15);
+      color:rgba(200,180,240,0.6);
+      font-size:11px; letter-spacing:0.08em;
+      padding:6px 16px; border-radius:12px;
+      cursor:pointer; margin-top:4px;
+    }
+    .reset-btn:active { background:rgba(255,255,255,0.14); }
+    /* Divider */
+    .s-divider { border:none; border-top:1px solid rgba(255,255,255,0.07); margin:2px 0; }
+
+    /* ── Shelf action bar ── */
+    #shelf-actions {
+      position:fixed; bottom:0; left:0; right:0; z-index:20;
+      display:none; justify-content:center; align-items:center;
+      gap:8px; padding:10px 12px 18px; flex-wrap:wrap;
+      background:linear-gradient(to top, rgba(15,8,30,0.95) 65%, transparent);
+      pointer-events:none;
+    }
+    #shelf-actions.visible { display:flex; pointer-events:auto; }
+    .sa-btn {
+      background:rgba(255,255,255,0.10);
+      border:1px solid rgba(255,255,255,0.18);
+      color:rgba(255,255,255,0.82);
+      font-size:13px; border-radius:10px;
+      padding:8px 14px; cursor:pointer;
+      backdrop-filter:blur(4px);
+      transition:background 0.15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .sa-btn:active { background:rgba(255,255,255,0.22); }
+    .sa-btn.danger { border-color:rgba(255,120,120,0.35); color:rgba(255,160,160,0.9); }
+    .sa-btn.accent { border-color:rgba(180,140,255,0.45); color:rgba(210,190,255,0.9); }
+
+    /* ── Discovery toast ── */
+    #discovery-toast {
+      position:fixed; top:60px; left:50%; transform:translateX(-50%);
+      z-index:60;
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      pointer-events:none;
+      opacity:0; transition:opacity 0.4s;
+    }
+    #discovery-toast.visible { opacity:1; }
+    .discovery-line {
+      background:rgba(255,255,255,0.12);
+      border:1px solid rgba(255,255,255,0.30);
+      border-radius:20px;
+      padding:5px 18px;
+      color:rgba(255,255,255,0.92);
+      font-size:13px; font-weight:600; letter-spacing:0.06em;
+      white-space:nowrap;
+      text-shadow:0 0 12px rgba(255,255,255,0.60);
+      backdrop-filter:blur(6px);
+    }
+
+    /* ── Ball row (canvas-drawn; this div is just a hit-test spacer) ── */
+    #ball-row-spacer {
+      position:fixed; bottom:0; left:0; right:0;
+      height:52px; z-index:14; pointer-events:none;
+    }
+
+  </style>
+</head>
+<body>
+<div id="game-container"></div>
+
+<!-- Settings modal -->
+<div id="modal-backdrop">
+  <div id="settings-modal">
+    <button class="modal-close" id="btn-modal-close">✕</button>
+    <div class="modal-title">Settings</div>
+
+    <div class="s-section">
+      <div class="s-label">Physics</div>
+      <div class="s-row">
+        <span class="s-row-label">Gravity down</span>
+        <input type="range" id="sl-gravity-y" min="0.01" max="0.40" step="0.01">
+        <span class="s-val" id="val-gravity-y"></span>
+      </div>
+      <div class="s-row">
+        <span class="s-row-label">Side drift <span style="color:rgba(180,160,230,0.45);font-size:9px;font-weight:400;">(tilts gravity left/right, like a sloped table)</span></span>
+        <input type="range" id="sl-gravity-x" min="-0.010" max="0.010" step="0.0005">
+        <span class="s-val" id="val-gravity-x"></span>
+      </div>
+      <div class="s-row">
+        <span class="s-row-label">Air friction</span>
+        <input type="range" id="sl-air" min="0.001" max="0.04" step="0.001">
+        <span class="s-val" id="val-air"></span>
+      </div>
+      <div class="s-row">
+        <span class="s-row-label">Bounciness</span>
+        <input type="range" id="sl-restitution" min="0.1" max="0.95" step="0.05">
+        <span class="s-val" id="val-restitution"></span>
+      </div>
+      <div class="s-row">
+        <span class="s-row-label">Shot power</span>
+        <input type="range" id="sl-power" min="0.05" max="0.40" step="0.01">
+        <span class="s-val" id="val-power"></span>
+      </div>
+    </div>
+
+    <button class="reset-btn" id="btn-reset-settings">Reset physics to defaults</button>
+    <button class="reset-btn" id="btn-fullscreen" style="margin-top:0">⛶ Fullscreen</button>
+    <button class="reset-btn" id="btn-export-save" style="margin-top:0; border-color:rgba(80,200,140,0.35); color:rgba(120,240,180,0.85);">⬇ Export save</button>
+    <button class="reset-btn" id="btn-import-save" style="margin-top:0; border-color:rgba(80,160,255,0.35); color:rgba(120,200,255,0.85);">⬆ Import save</button>
+    <input type="file" id="import-file-input" accept=".json" style="display:none">
+    <button class="reset-btn" id="btn-restart-game" style="margin-top:0; border-color:rgba(255,180,50,0.35); color:rgba(255,210,100,0.85);">↺ Restart game</button>
+    <button class="reset-btn" id="btn-clear-data" style="margin-top:0; border-color:rgba(255,100,100,0.3); color:rgba(255,140,140,0.7);">🗑 Clear all saved data</button>
+  </div>
+</div>
+
+<div id="top-left-btns" style="display:none"></div>
+
+<!-- Centered action bar -->
+<div id="action-bar">
+  <button id="btn-settings" title="Settings">⚙</button>
+  <div class="top-bar-sep"></div>
+  <div id="action-bar-panel-btns">
+    <button class="action-btn" id="btn-shop">Shop</button>
+    <button class="action-btn" id="btn-research">Research</button>
+    <button class="action-btn" id="btn-unlocks">Unlocks</button>
+  </div>
+  <div class="top-bar-sep"></div>
+  <span id="money-display">$0</span>
+  <div class="top-bar-sep"></div>
+  <span id="tech-display">⬡ 0</span>
+  <div class="top-bar-sep"></div>
+  <button id="btn-clear-balls" title="Clear balls"><i class="fa fa-broom"></i></button>
+</div>
+
+<!-- Restock button — fixed bottom-right -->
+<button id="btn-restock" disabled>
+  <span id="btn-restock-label">Restock</span>
+  <span id="btn-restock-sub">#1 — $25</span>
+</button>
+
+<!-- Unified panel modal (Shop / Research / Unlocks tabs) -->
+<div id="panel-backdrop">
+  <div id="panel-modal">
+    <button class="modal-close" id="btn-panel-close">✕</button>
+    <div id="panel-header">
+      <div id="panel-tabs">
+        <button class="res-tab" data-tab="shop">Shop</button>
+        <button class="res-tab" data-tab="research">Research</button>
+        <button class="res-tab" data-tab="unlocks">Unlocks</button>
+      </div>
+      <div id="panel-status-row">
+        <span id="panel-money-display">$0</span>
+        <span id="panel-tech-display">⬡ 0</span>
+        <span id="panel-limit-display"></span>
+      </div>
+    </div>
+    <div id="panel-content"></div>
+  </div>
+</div>
+
+<!-- Shelf rotate/delete actions (shown when a platform is selected) -->
+<div id="shelf-actions">
+  <button class="sa-btn" id="sa-rot-left">↺</button>
+  <button class="sa-btn" id="sa-rot-right">↻</button>
+  <button class="sa-btn danger" id="sa-sell">Sell $0</button>
+</div>
+
+<!-- Ball row spacer (actual balls drawn on canvas) -->
+<div id="ball-row-spacer"></div>
+
+<!-- Discovery toast -->
+<div id="discovery-toast"></div>
+
+<script>
+'use strict';
+const { Engine, Bodies, Body, World, Events } = Matter;
+
+// ── Storage keys ──────────────────────────────────────────────────────────────
+const LS_SHELVES    = 'driftpool_shelves_v3';
+const LS_SETTINGS   = 'driftpool_settings_v2';
+const LS_INVENTORY  = 'driftpool_inventory_v1';
+const LS_MONEY      = 'driftpool_money_v1';
+const LS_MAX_BALLS  = 'driftpool_maxballs_v1';
+const LS_TECH_PTS   = 'driftpool_techpts_v1';
+const LS_RESEARCH   = 'driftpool_research_v1';
+const LS_RESTOCK    = 'driftpool_restock_v1';
+const RESTOCK_BASE_COST = 25;
+const LS_WIRES      = 'driftpool_wires_v1';
+
+// ── Ball type registry ────────────────────────────────────────────────────────
+const BALL_TYPES = {
+  basic:       { label: 'Basic',      cost: 5, paletteIdx: 0, lifetime: 10 },
+  bouncy_ball: { label: 'Bouncy Ball',cost: 5, paletteIdx: 7, lifetime: 10, restitutionMult: 2.0 },
+  gold_ball:   { label: 'Gold Ball',  cost: 5, paletteIdx: 3, lifetime: 10 },
+  tech_ball:   { label: 'Tech Ball',  cost: 5, paletteIdx: 1, lifetime: 10 },
+};
+function getBallPalette(type) {
+  const def = BALL_TYPES[type];
+  return ALL_PALETTES[def ? def.paletteIdx : 0];
+}
+
+// ── Platform type registry ────────────────────────────────────────────────────
+// Each entry: { label, cost, restitution, friction }
+// 'bumper'             — static circle, earns $5 per ball hit
+// 'tech_bumper'        — static circle, earns 1 Tech Point per ball hit
+// 'golden_tech_bumper' — static circle, consumes $10 and earns 10 Tech Points per ball hit
+// 'basic'              — static rectangle shelf, moderate restitution
+const PLATFORM_TYPES = {
+  bumper: {
+    label:       'Gold Bumper',
+    cost:        50,
+    restitution: 0.98,
+    friction:    0.0,
+  },
+  tech_bumper: {
+    label:       'Tech Bumper',
+    cost:        50,
+    restitution: 0.98,
+    friction:    0.0,
+  },
+  golden_tech_bumper: {
+    label:       'Golden Tech Bumper',
+    cost:        150,
+    restitution: 0.98,
+    friction:    0.0,
+    maxUses:     8,
+  },
+  basic: {
+    label:       'Shelf',
+    cost:        10,
+    width:       0.09,
+    restitution: 0.65,
+    friction:    0.35,
+  },
+  bouncy_shelf: {
+    label:       'Bouncy Shelf',
+    cost:        100,
+    width:       0.09,
+    restitution: 1.0,
+    friction:    0.0,
+  },
+  long_shelf: {
+    label:       'Long Shelf',
+    cost:        50,
+    width:       0.27,
+    restitution: 0.65,
+    friction:    0.35,
+  },
+  one_way_shelf: {
+    label:       'One-Way Shelf',
+    cost:        500,
+    width:       0.09,
+    restitution: 0.65,
+    friction:    0.35,
+  },
+  split_bumper: {
+    label:       'Split Bumper',
+    cost:        400,
+    restitution: 0.85,
+    friction:    0.0,
+  },
+  windmill_shelf: {
+    label:       'Windmill',
+    cost:        333,
+    width:       0.09,
+    restitution: 0.5,
+    friction:    0.1,
+  },
+  detector_shelf: {
+    label:       'Detector',
+    cost:        150,
+    width:       0.09,
+    restitution: 0.65,
+    friction:    0.35,
+  },
+  connection_wire: {
+    label:       'Wire',
+    cost:        50,
+  },
+  time_bumper: {
+    label:       'Time Bumper',
+    cost:        50,
+    restitution: 0.98,
+    friction:    0.0,
+    maxUses:     10,
+  },
+  soft_shelf: {
+    label:       'Soft Shelf',
+    cost:        75,
+    width:       0.09,
+    restitution: 0.05,
+    friction:    0.9,
+  },
+  launcher: {
+    label:       'Launcher',
+    cost:        200,
+    width:       0.028,       // ~half ball diameter wide
+    restitution: 0.1,
+    friction:    0.05,
+  },
+};
+
+// ── Default settings ──────────────────────────────────────────────────────────
+const DEFAULT_SETTINGS = {
+  gravityY:     0.20,
+  gravityX:     0.0003,
+  airFriction:  0.008,
+  restitution:  0.55,
+  powerMult:    0.16,
+};
+
+// ── Default shelf layout ──────────────────────────────────────────────────────
+// No default platforms — players buy them in edit mode.
+const DEFAULT_SHELVES = [
+  { fx:0.35, fy:0.65, fw:0.20, a:-3, platformType:'basic'  },
+  { fx:0.65, fy:0.45, fw:0.08, a: 0, platformType:'bumper' },
+];
+
+// ── 8 player palettes ─────────────────────────────────────────────────────────
+const ALL_PALETTES = [
+  ['#fda4c4','#f472b6','#e879f9'], // 1 pink→fuchsia
+  ['#93d9fc','#38bdf8','#6366f1'], // 2 sky→indigo
+  ['#86efac','#34d399','#06b6d4'], // 3 green→teal
+  ['#fde68a','#fbbf24','#f97316'], // 4 amber→orange
+  ['#c4b5fd','#a78bfa','#7c3aed'], // 5 lavender→violet
+  ['#fca5a5','#f87171','#e11d48'], // 6 red→rose
+  ['#5eead4','#2dd4bf','#0891b2'], // 7 teal→cyan
+  ['#fcd34d','#a3e635','#4ade80'], // 8 yellow→lime
+];
+
+// ── Physics constants ─────────────────────────────────────────────────────────
+const BASE_PLATFORM_LIMIT = 10; // max static platforms on the board
+const WIDTH_STEP = 0.02; // fraction of W
+const MIN_FW     = 0.07;
+const MAX_FW     = 0.38;
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function hexA(hex, a) {
+  hex = hex.replace('#','');
+  return `rgba(${parseInt(hex.slice(0,2),16)},${parseInt(hex.slice(2,4),16)},${parseInt(hex.slice(4,6),16)},${a})`;
+}
+function fin(v, fb=0) { return (isFinite(v) && !isNaN(v)) ? v : fb; }
+
+// ── Persistence ───────────────────────────────────────────────────────────────
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(LS_SETTINGS);
+    if (raw) return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(raw));
+  } catch(e) {}
+  return Object.assign({}, DEFAULT_SETTINGS);
+}
+function saveSettings(s) {
+  try { localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); } catch(e) {}
+}
+function loadShelfDefs() {
+  try {
+    const raw = localStorage.getItem(LS_SHELVES);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch(e) {}
+  return DEFAULT_SHELVES.map(d => ({...d}));
+}
+function saveShelfDefs(defs) {
+  try { localStorage.setItem(LS_SHELVES, JSON.stringify(defs)); } catch(e) {}
+}
+function loadInventory() {
+  try {
+    const raw = localStorage.getItem(LS_INVENTORY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch(e) {}
+  // Default starting inventory: no balls
+  return [];
+}
+function saveInventory(inv) {
+  try { localStorage.setItem(LS_INVENTORY, JSON.stringify(inv)); } catch(e) {}
+}
+function loadMoney() {
+  try {
+    const raw = localStorage.getItem(LS_MONEY);
+    if (raw !== null) return parseInt(raw, 10) || 0;
+  } catch(e) {}
+  return 50; // starting money
+}
+function saveMoney(m) {
+  try { localStorage.setItem(LS_MONEY, String(m)); } catch(e) {}
+}
+function loadMaxBalls() {
+  try {
+    const raw = localStorage.getItem(LS_MAX_BALLS);
+    if (raw !== null) return parseInt(raw, 10) || 5;
+  } catch(e) {}
+  return 5;
+}
+function saveMaxBalls(n) {
+  try { localStorage.setItem(LS_MAX_BALLS, String(n)); } catch(e) {}
+}
+function loadTechPts() {
+  try {
+    const raw = localStorage.getItem(LS_TECH_PTS);
+    if (raw !== null) return parseInt(raw, 10) || 0;
+  } catch(e) {}
+  return 0;
+}
+function saveTechPts(n) {
+  try { localStorage.setItem(LS_TECH_PTS, String(n)); } catch(e) {}
+}
+
+// ── Research registry (sorted by baseCost ascending) ──────────────────────────
+const RESEARCH = [
+  { id: 'goldGain',       label: 'Gold Rush',             desc: '+$1 per Gold Bumper hit',                    baseCost: 3,   growthRate: 3, discoveryRestock: 11 },
+  { id: 'platformSlots',  label: 'Platform Capacity',     desc: '+3 max static platforms on the board',       baseCost: 5,   discoveryRestock: 4  },
+  { id: 'ballTime',       label: 'Extended Life',          desc: '+5% ball lifetime, +$15 restock cost',       baseCost: 3,   discoveryRestock: 17 },
+  { id: 'goldBounce',     label: 'Gold Spring',            desc: '+0.05 bounciness on Gold Bumpers',           baseCost: 8,   discoveryRestock: 34 },
+  { id: 'techBounce',     label: 'Tech Spring',            desc: '+0.05 bounciness on Tech Bumpers',           baseCost: 8,   discoveryRestock: 43 },
+  { id: 'bouncyBalls',    label: 'Bouncy Balls',           desc: '+5% chance: ball is bouncier (+0.1× per level)', baseCost: 10, discoveryRestock: 47 },
+  { id: 'goldBalls',      label: 'Gold Balls',             desc: '+5% chance: ball earns $1 per bounce (+$1/level)', baseCost: 15, discoveryRestock: 58 },
+  { id: 'maxSlots',       label: 'Extra Slot',             desc: '+1 max ball inventory slot',                 baseCost: 46,  discoveryRestock: 63 },
+  { id: 'techBalls',      label: 'Tech Balls',             desc: '+5% chance: ball earns 1⬡ per bounce (+1⬡/level)', baseCost: 55, discoveryRestock: 70 },
+  { id: 'techGain',       label: 'Tech Surge',             desc: '+1 Tech Point per Tech Bumper hit',          baseCost: 55,  discoveryRestock: 80 },
+  { id: 'timeBumperUses', label: 'Time Capacity',          desc: '+1 max uses on new Time Bumpers',            baseCost: 20,  discoveryRestock: 90 },
+  { id: 'goldenTechUses', label: 'Golden Capacity',        desc: '+1 max uses on new Golden Tech Bumpers',     baseCost: 25,  discoveryRestock: 101},
+];
+
+// ── One-time unlock researches (sorted by total cost ascending) ───────────────
+// Each unlock costs half in ⬡ and half in $
+const UNLOCK_RESEARCH = [
+  { id: 'unlock_time_bumper',    label: 'Time Bumper',   desc: 'Unlocks the Time Bumper in the shop',   costTech: 24,  costMoney: 24,  unlocks: 'time_bumper',    discoveryRestock: 40  },
+  { id: 'unlock_long_shelf',     label: 'Long Shelf',    desc: 'Unlocks the Long Shelf in the shop',    costTech: 38,  costMoney: 38,  unlocks: 'long_shelf',     discoveryRestock: 52  },
+  { id: 'unlock_windmill_shelf', label: 'Windmill',      desc: 'Unlocks the Windmill in the shop',      costTech: 50,  costMoney: 50,  unlocks: 'windmill_shelf', discoveryRestock: 63  },
+  { id: 'unlock_bouncy_shelf',   label: 'Bouncy Shelf',  desc: 'Unlocks the Bouncy Shelf in the shop',  costTech: 63,  costMoney: 63,  unlocks: 'bouncy_shelf',   discoveryRestock: 80  },
+  { id: 'unlock_split_bumper',   label: 'Split Bumper',  desc: 'Unlocks the Split Bumper in the shop',  costTech: 125, costMoney: 125, unlocks: 'split_bumper',   discoveryRestock: 27  },
+  { id: 'unlock_one_way_shelf',  label: 'One-Way Shelf', desc: 'Unlocks the One-Way Shelf in the shop', costTech: 250, costMoney: 250, unlocks: 'one_way_shelf',  discoveryRestock: 115 },
+];
+
+const DEFAULT_RESEARCH = {
+  ballTime: 0, goldGain: 0, goldBounce: 0, techGain: 0, techBounce: 0,
+  maxSlots: 0, platformSlots: 0, bouncyBalls: 0, goldBalls: 0, techBalls: 0,
+  timeBumperUses: 0, goldenTechUses: 0,
+  unlock_split_bumper: false, unlock_long_shelf: false,
+  unlock_bouncy_shelf: false, unlock_one_way_shelf: false,
+  unlock_windmill_shelf: false, unlock_time_bumper: false,
+};
+
+function researchCost(baseCost, level, growthRate = 1) {
+  return Math.ceil(baseCost + 0.5 * baseCost * growthRate * Math.pow(level, 1.5));
+}
+
+function loadResearch() {
+  try {
+    const raw = localStorage.getItem(LS_RESEARCH);
+    if (raw) return Object.assign({}, DEFAULT_RESEARCH, JSON.parse(raw));
+  } catch(e) {}
+  return Object.assign({}, DEFAULT_RESEARCH);
+}
+function saveResearch(r) {
+  try { localStorage.setItem(LS_RESEARCH, JSON.stringify(r)); } catch(e) {}
+}
+
+function loadRestockCount() {
+  try { const v = localStorage.getItem(LS_RESTOCK); if (v !== null) return parseInt(v, 10) || 0; } catch(e) {}
+  return 0;
+}
+function saveRestockCount(n) {
+  try { localStorage.setItem(LS_RESTOCK, String(n)); } catch(e) {}
+}
+
+function loadWires() {
+  try {
+    const raw = localStorage.getItem(LS_WIRES);
+    if (raw) { const a = JSON.parse(raw); if (Array.isArray(a)) return a; }
+  } catch(e) {}
+  return [];
+}
+function saveWires(w) {
+  try { localStorage.setItem(LS_WIRES, JSON.stringify(w)); } catch(e) {}
+}
+
+// ── p5 sketch ─────────────────────────────────────────────────────────────────
+new p5(function(p) {
+
+  // Live settings object
+  let cfg = loadSettings();
+
+  // Dimensions
+  let W, H, FLOOR_Y, LAUNCH_H, BR;
+
+  // Physics
+  let engine, world;
+
+  // Game objects
+  let balls   = [];  // {body, palette}  — in-flight physics balls
+  let shelves = [];  // {body, fw(px), def{fx,fy,fw,a}, lit, toggled}
+  let wires   = [];  // {p1:{x,y}, p2:{x,y}, lit, def:{p1fx,p1fy,p2fx,p2fy}}
+
+  // ── Incremental game state ────────────────────────────────────────────────────
+  // inventory: array of BallDef objects { type: string }
+  // The first element is the next ball to be thrown.
+  let inventory      = loadInventory();
+  let money          = loadMoney();
+  let maxBalls       = loadMaxBalls();
+  let techPts        = loadTechPts();
+  let researchLevels = loadResearch();
+  let restockCount   = loadRestockCount();
+
+  // Returns true if this platform type has been unlocked (or needs no unlock)
+  function isUnlocked(platformType) {
+    const entry = UNLOCK_RESEARCH.find(u => u.unlocks === platformType);
+    if (!entry) return true; // no unlock required
+    return !!researchLevels[entry.id];
+  }
+
+  // Compute effective restitution for a bumper type including research bonuses
+  function getBumperRestitution(type) {
+    const base = PLATFORM_TYPES[type] ? PLATFORM_TYPES[type].restitution : 0.98;
+    if (type === 'bumper')      return base + (researchLevels.goldBounce || 0) * 0.05;
+    if (type === 'tech_bumper') return base + (researchLevels.techBounce || 0) * 0.05;
+    return base;
+  }
+
+  // Update restitution on all existing bodies of a given bumper type
+  function applyBumperRestitution(type) {
+    for (const s of shelves) {
+      if (s.platformType === type) {
+        s.body.restitution = getBumperRestitution(type);
+      }
+    }
+  }
+
+  // Visuals
+  let bgGfx;
+
+  // Aiming
+  let aiming = false;
+  let startX=0, startY=0, curX=0, curY=0;
+
+  // Edit availability — true only when no balls are in flight
+  let canEdit         = true;
+  let selectedShelf   = null;
+  let dragShelf       = null;
+  let selectedWire    = null;   // index into wires[]
+  let dragWireEp      = null;   // { wireIdx, ep:'p1'|'p2' }
+
+  // Modal pause
+  let paused = false;
+
+  // ── DOM refs ────────────────────────────────────────────────────────────────
+  const btnSettings      = document.getElementById('btn-settings');
+  const modalBackdrop    = document.getElementById('modal-backdrop');
+  const btnModalClose    = document.getElementById('btn-modal-close');
+  const shelfActions     = document.getElementById('shelf-actions');
+  const actionBar        = document.getElementById('action-bar');
+  const moneyDisplay     = document.getElementById('money-display');
+  const techDisplay      = document.getElementById('tech-display');
+  const researchBackdrop = null; // merged into panelBackdrop
+  const shopBackdrop     = null; // merged into panelBackdrop
+  const panelBackdrop    = document.getElementById('panel-backdrop');
+
+  // ── Setup ───────────────────────────────────────────────────────────────────
+  p.setup = function() {
+    const cnv = p.createCanvas(window.innerWidth, window.innerHeight);
+    cnv.parent('game-container');
+    cnv.elt.addEventListener('contextmenu', e => e.preventDefault());
+    cnv.elt.addEventListener('touchstart',  e => { e.preventDefault(); onTouchStart(e);   }, {passive:false});
+    cnv.elt.addEventListener('touchmove',   e => { e.preventDefault(); onTouchMove(e);    }, {passive:false});
+    cnv.elt.addEventListener('touchend',    e => { e.preventDefault(); onTouchEnd(e);     }, {passive:false});
+    cnv.elt.addEventListener('touchcancel', e => { e.preventDefault(); resetInteraction();}, {passive:false});
+
+    buildSettingsUI();
+    wireUI();
+    initAll();
+  };
+
+  p.windowResized = function() {
+    p.resizeCanvas(window.innerWidth, window.innerHeight);
+    rebuildAfterResize();
+  };
+
+  // ── Init / rebuild ───────────────────────────────────────────────────────────
+  function initAll() {
+    W = p.width; H = p.height;
+    LAUNCH_H = Math.round(H * 0.25);
+    FLOOR_Y  = H - LAUNCH_H;
+    BR = Math.round(p.constrain(W * 0.027, 10, 18));
+
+    resetInteraction();
+
+    if (engine) { World.clear(world); Engine.clear(engine); }
+    balls = []; shelves = []; wires = [];
+
+    engine = Engine.create();
+    engine.gravity.x = cfg.gravityX;
+    engine.gravity.y = cfg.gravityY;
+    world  = engine.world;
+
+    Events.on(engine, 'afterUpdate', handleFallOff);
+    Events.on(engine, 'collisionStart',  handleBumperCollision);
+    Events.on(engine, 'collisionStart',  handleOneWayShelf);
+    Events.on(engine, 'collisionActive', handleOneWayShelf);
+    Events.on(engine, 'collisionStart',  handleSpecialBallCollision);
+
+    const wo = {isStatic:true, friction:0.1, restitution:0.45};
+    World.add(world, [
+      Bodies.rectangle(-25,   H/2,   50,  H*2, wo), // left
+      Bodies.rectangle(W+25,  H/2,   50,  H*2, wo), // right
+      Bodies.rectangle(W/2,  -25,   W*2,   50, wo), // top
+    ]);
+
+    const defs = loadShelfDefs();
+    for (const d of defs) spawnShelf(d);
+
+    const wireDefs = loadWires();
+    for (const wd of wireDefs) spawnWire(wd);
+
+    buildBg();
+    updateMoneyDisplay();
+    updateBallRow();
+  }
+
+  function rebuildAfterResize() {
+    const defs = shelves.map(s => s.def);
+    saveShelfDefs(defs);
+    saveWires(wires.map(w => w.def));
+
+    W = p.width; H = p.height;
+    LAUNCH_H = Math.round(H * 0.25);
+    FLOOR_Y  = H - LAUNCH_H;
+    BR = Math.round(p.constrain(W * 0.027, 10, 18));
+    resetInteraction();
+
+    World.clear(world); Engine.clear(engine);
+    balls = []; shelves = []; wires = [];
+
+    engine = Engine.create();
+    engine.gravity.x = cfg.gravityX;
+    engine.gravity.y = cfg.gravityY;
+    world  = engine.world;
+    Events.on(engine, 'afterUpdate', handleFallOff);
+    Events.on(engine, 'collisionStart',  handleBumperCollision);
+    Events.on(engine, 'collisionStart',  handleOneWayShelf);
+    Events.on(engine, 'collisionActive', handleOneWayShelf);
+    Events.on(engine, 'collisionStart',  handleSpecialBallCollision);
+
+    const wo = {isStatic:true, friction:0.1, restitution:0.45};
+    World.add(world, [
+      Bodies.rectangle(-25,   H/2,   50,  H*2, wo), // left
+      Bodies.rectangle(W+25,  H/2,   50,  H*2, wo), // right
+      Bodies.rectangle(W/2,  -25,   W*2,   50, wo), // top
+    ]);
+    for (const d of defs) spawnShelf(d);
+    for (const wd of loadWires()) spawnWire(wd);
+    buildBg();
+  }
+
+  function spawnShelf(def) {
+    const sx = def.fx * W, sy = def.fy * H;
+    const pt = def.platformType || 'basic';
+    let body, fw;
+
+    if (pt === 'bumper' || pt === 'tech_bumper' || pt === 'split_bumper' || pt === 'golden_tech_bumper' || pt === 'time_bumper') {
+      const pd = PLATFORM_TYPES[pt];
+      const radius = BR;
+      fw = radius * 2;
+      const restitution = (pt === 'bumper' || pt === 'tech_bumper')
+        ? getBumperRestitution(pt)
+        : pd.restitution;
+      body = Bodies.circle(sx, sy, radius, {
+        isStatic: true, friction: pd.friction, restitution,
+        label: pt,
+      });
+    } else {
+      // 'basic' (and any future rect types)
+      const pd = PLATFORM_TYPES[pt] || PLATFORM_TYPES.basic;
+      fw = (def.fw || pd.width) * W;
+      // Launcher body height matches the visual tube height
+      const bodyH = (pt === 'launcher') ? Math.round(fw * 1.4) : 20;
+      body = Bodies.rectangle(sx, sy, fw, bodyH, {
+        isStatic: true, friction: pd.friction, restitution: pd.restitution,
+        label: pt,
+      });
+      Body.setAngle(body, (def.a || 0) * Math.PI / 180);
+    }
+
+    World.add(world, body);
+    shelves.push({
+      body,
+      fw,
+      platformType: pt,
+      def: { ...def, fw: fw / W, platformType: pt },
+      lit: false,
+      toggled: false,
+      toggleCooldown: 0,
+      usesLeft: (pt === 'time_bumper')
+        ? (def.usesLeft ?? (PLATFORM_TYPES.time_bumper.maxUses + (researchLevels?.timeBumperUses || 0)))
+        : (pt === 'golden_tech_bumper')
+        ? (def.usesLeft ?? (PLATFORM_TYPES.golden_tech_bumper.maxUses + (researchLevels?.goldenTechUses || 0)))
+        : undefined,
+      heldBallId:    null,  // launcher: body id of held ball, or null
+      holdFrames:    0,     // launcher: frames remaining before firing
+      launchCooldown: 0,    // launcher: frames to ignore new collisions after firing
+    });
+  }
+
+  function spawnWire(def) {
+    const w = {
+      p1: { x: def.p1fx * W, y: def.p1fy * H },
+      p2: { x: def.p2fx * W, y: def.p2fy * H },
+      lit: false,
+      def: { ...def },
+    };
+    wires.push(w);
+  }
+
+  function syncWireDef(idx) {
+    const w = wires[idx];
+    w.def.p1fx = w.p1.x / W; w.def.p1fy = w.p1.y / H;
+    w.def.p2fx = w.p2.x / W; w.def.p2fy = w.p2.y / H;
+    saveAllDefs();
+  }
+
+  function syncDef(idx) {
+    const s = shelves[idx];
+    s.def.fx = s.body.position.x / W;
+    s.def.fy = s.body.position.y / H;
+    s.def.fw = s.fw / W;
+    s.def.a  = s.body.angle * 180 / Math.PI;
+    s.def.platformType = s.platformType;
+    if (s.platformType === 'time_bumper' || s.platformType === 'golden_tech_bumper') s.def.usesLeft = s.usesLeft;
+    saveAllDefs();
+  }
+  function saveAllDefs() {
+    saveShelfDefs(shelves.map(s => s.def));
+    saveWires(wires.map(w => w.def));
+  }
+
+  // ── Background ──────────────────────────────────────────────────────────────
+  function buildBg() {
+    if (bgGfx) bgGfx.remove();
+    bgGfx = p.createGraphics(W, H);
+    for (let y=0; y<H; y++) {
+      const t=y/H;
+      bgGfx.stroke(p.lerp(20,38,t), p.lerp(14,22,t), p.lerp(40,58,t));
+      bgGfx.line(0,y,W,y);
+    }
+    bgGfx.noStroke();
+    const cr=Math.min(W,H)*0.55;
+    for (let r=cr; r>0; r-=5) {
+      bgGfx.fill(110,70,175, p.map(r,0,cr,14,0));
+      bgGfx.ellipse(W/2, H*0.42, r*2, r*1.5);
+    }
+    for (let y=FLOOR_Y; y<H; y++) {
+      const t=(y-FLOOR_Y)/LAUNCH_H;
+      bgGfx.stroke(65,30,120, p.lerp(0,90,t));
+      bgGfx.line(0,y,W,y);
+    }
+  }
+
+  // ── Physics ──────────────────────────────────────────────────────────────────
+
+  function handleFallOff() {
+    for (let i = balls.length - 1; i >= 0; i--) {
+      const b = balls[i];
+
+      // Remove if fallen off the bottom
+      if (b.body.position.y > H + 80) {
+        World.remove(world, b.body);
+        balls.splice(i, 1);
+        continue;
+      }
+
+      // Count down lifetime (in frames at 60 fps)
+      b.lifeFrames -= 1;
+      if (b.lifeFrames <= 0) {
+        World.remove(world, b.body);
+        balls.splice(i, 1);
+      }
+    }
+    // Update canEdit whenever ball count changes
+    const nowCanEdit = balls.length === 0;
+    if (nowCanEdit !== canEdit) {
+      canEdit = nowCanEdit;
+      if (!canEdit) {
+        selectedShelf = null;
+        dragShelf = null;
+        shelfActions.classList.remove('visible');
+      }
+      updateMoneyDisplay();
+    }
+  }
+
+  // ── Inventory UI ─────────────────────────────────────────────────────────────
+  function updateMoneyDisplay() {
+    moneyDisplay.textContent = '$' + money;
+    techDisplay.textContent  = '⬡ ' + techPts;
+
+    const restockCost = RESTOCK_BASE_COST + (researchLevels.ballTime || 0) * 15;
+    const effectiveMax = maxBalls + (researchLevels.maxSlots || 0);
+    const inventoryFull = inventory.length >= effectiveMax;
+    const restockBtn  = document.getElementById('btn-restock');
+    const restockSub  = document.getElementById('btn-restock-sub');
+    if (restockBtn) {
+      restockBtn.disabled = money < restockCost || inventoryFull;
+      if (restockSub) restockSub.textContent = `#${restockCount + 1} — $${restockCost}`;
+    }
+
+    // Refresh panel if open
+    if (panelBackdrop.classList.contains('visible')) buildPanelUI();
+  }
+
+  // Ball row is drawn on canvas — this just triggers a redraw flag (no-op; draw is per-frame)
+  function updateBallRow() { /* drawn in p.draw via drawInventoryRow() */ }
+
+  // Restock: fill inventory to max with random balls (may include special variants)
+  function doRestock() {
+    const restockCost = RESTOCK_BASE_COST + (researchLevels.ballTime || 0) * 15;
+    if (money < restockCost) return;
+    money -= restockCost;
+    const prevCount = restockCount;
+    restockCount += 1;
+    saveRestockCount(restockCount);
+
+    const effectiveMax = maxBalls + (researchLevels.maxSlots || 0);
+    inventory = inventory.slice(0, effectiveMax);
+    while (inventory.length < effectiveMax) {
+      inventory.push({ type: _rollBallType() });
+    }
+
+    saveMoney(money);
+    saveInventory(inventory);
+    updateMoneyDisplay();
+
+    // Check for newly discovered items and show toast
+    const newlyDiscovered = _getNewDiscoveries(prevCount, restockCount);
+    if (newlyDiscovered.length > 0) showDiscoveryToast(newlyDiscovered);
+  }
+
+  // Returns labels of all items that cross their discoveryRestock threshold this restock
+  function _getNewDiscoveries(prev, next) {
+    const labels = [];
+    for (const item of SHOP_ITEMS) {
+      const d = item.discoveryRestock ?? 0;
+      if (d > prev && d <= next) labels.push(item.label);
+    }
+    for (const r of RESEARCH) {
+      const d = r.discoveryRestock ?? 0;
+      if (d > prev && d <= next) labels.push(r.label);
+    }
+    for (const u of UNLOCK_RESEARCH) {
+      const d = u.discoveryRestock ?? 0;
+      if (d > prev && d <= next) labels.push(u.label + ' (unlock)');
+    }
+    return labels;
+  }
+
+  let _toastTimer = null;
+  function showDiscoveryToast(labels) {
+    const toast = document.getElementById('discovery-toast');
+    if (!toast) return;
+    toast.innerHTML = '';
+
+    // Header line
+    const header = document.createElement('div');
+    header.className = 'discovery-line';
+    header.textContent = labels.length === 1 ? '✦ Discovered!' : `✦ ${labels.length} things discovered!`;
+    toast.appendChild(header);
+
+    // One line per item
+    for (const label of labels) {
+      const line = document.createElement('div');
+      line.className = 'discovery-line';
+      line.style.fontSize = '11px';
+      line.style.opacity  = '0.80';
+      line.textContent = label;
+      toast.appendChild(line);
+    }
+
+    toast.classList.add('visible');
+    if (_toastTimer) clearTimeout(_toastTimer);
+    // Fade out after 8s (0.4s fade-in already handled by CSS transition)
+    _toastTimer = setTimeout(() => {
+      toast.classList.remove('visible');
+      _toastTimer = null;
+    }, 8000);
+  }
+
+  // Pick a ball type, applying special ball research chances
+  function _rollBallType() {
+    const options = [];
+    if (researchLevels.bouncyBalls > 0) options.push('bouncy_ball');
+    if (researchLevels.goldBalls   > 0) options.push('gold_ball');
+    if (researchLevels.techBalls   > 0) options.push('tech_ball');
+    if (options.length > 0) {
+      const totalChance = options.length * 0.05;
+      const roll = Math.random();
+      if (roll < totalChance) {
+        return options[Math.floor((roll / totalChance) * options.length)];
+      }
+    }
+    return 'basic';
+  }
+
+  // ── Platform cost scaling ────────────────────────────────────────────────────
+  function platformCost(type) {
+    const def = PLATFORM_TYPES[type];
+    if (!def) return Infinity;
+    if (type === 'connection_wire') {
+      const count = wires.length;
+      return Math.ceil(def.cost + 0.5 * def.cost * Math.pow(count, 1.5));
+    }
+    if (type === 'time_bumper') {
+      // Count only bumpers with uses remaining; price resets when all are gone
+      const count = shelves.filter(s => s.platformType === 'time_bumper' && (s.usesLeft ?? 0) > 0).length;
+      return Math.ceil(def.cost + 0.5 * def.cost * Math.pow(count, 1.5));
+    }
+    const count = shelves.filter(s => s.platformType === type).length;
+    return Math.ceil(def.cost + 0.5 * def.cost * Math.pow(count, 1.5));
+  }
+
+  // Buy a platform and place it centred in the play area
+  function buyPlatform(type) {
+    const def = PLATFORM_TYPES[type];
+    const platformLimit = BASE_PLATFORM_LIMIT + (researchLevels.platformSlots || 0) * 3;
+    const cost = platformCost(type);
+    if (!def || money < cost || !canEdit || !isUnlocked(type)) return;
+
+    // Wires don't use the platform body limit
+    if (type === 'connection_wire') {
+      money -= cost;
+      saveMoney(money);
+      const cx = 0.5, cy = 0.4;
+      spawnWire({ p1fx: cx - 0.08, p1fy: cy, p2fx: cx + 0.08, p2fy: cy });
+      selectedWire  = wires.length - 1;
+      selectedShelf = null;
+      shelfActions.classList.add('visible');
+      updateSellButton();
+      saveAllDefs();
+      updateMoneyDisplay();
+      return;
+    }
+
+    if (shelves.length >= platformLimit) return;
+    money -= cost;
+    saveMoney(money);
+    updateMoneyDisplay();
+    const isCircle = type === 'bumper' || type === 'tech_bumper' || type === 'split_bumper' || type === 'golden_tech_bumper' || type === 'time_bumper';
+    const fw = isCircle ? (BR * 2) / W : (def.width || 0.09);
+    spawnShelf({ fx: 0.5, fy: 0.5, fw, a: 0, platformType: type });
+    selectedShelf = shelves.length - 1;
+    selectedWire  = null;
+    shelfActions.classList.add('visible');
+    updateSellButton();
+    saveAllDefs();
+  }
+
+  // ── Bumper collision ─────────────────────────────────────────────────────────
+  // Awards $10 every time a ball hits a bumper from any direction.
+  // ── Bouncy shelf speed constant ───────────────────────────────────────────────
+  const BOUNCY_MIN_SPEED     = 18; // px/frame — minimum speed after hitting a bouncy shelf
+  const BOUNCY_BALL_MAX_SPEED = 30; // px/frame — hard cap for bouncy_ball + bouncy_shelf combo
+  const LAUNCHER_SPEED       = 16; // px/frame — fixed launch speed from launcher
+
+  function handleBumperCollision(event) {
+    for (const pair of event.pairs) {
+      const { bodyA, bodyB } = pair;
+      const labelA = bodyA.label, labelB = bodyB.label;
+
+      if (labelA === 'bumper' || labelB === 'bumper') {
+        money += 5 + (researchLevels.goldGain || 0);
+        saveMoney(money);
+        updateMoneyDisplay();
+      } else if (labelA === 'tech_bumper' || labelB === 'tech_bumper') {
+        techPts += 1 + (researchLevels.techGain || 0);
+        saveTechPts(techPts);
+        updateMoneyDisplay();
+      } else if (labelA === 'golden_tech_bumper' || labelB === 'golden_tech_bumper') {
+        const shelfBody = labelA === 'golden_tech_bumper' ? bodyA : bodyB;
+        const shelfIdx  = shelves.findIndex(s => s.body === shelfBody);
+        if (shelfIdx === -1) continue;
+        const s = shelves[shelfIdx];
+        if ((s.usesLeft ?? 1) <= 0) continue;
+
+        money   = Math.max(0, money - 10);
+        techPts += 10;
+        saveMoney(money);
+        saveTechPts(techPts);
+        updateMoneyDisplay();
+
+        if (s.usesLeft !== undefined) {
+          s.usesLeft -= 1;
+          s.def.usesLeft = s.usesLeft;
+          saveAllDefs();
+          if (s.usesLeft <= 0) pendingTimeBumperRemovals.push(shelfIdx);
+        }
+      } else if (labelA === 'soft_shelf' || labelB === 'soft_shelf') {
+        const ballBody = labelA === 'soft_shelf' ? bodyB : bodyA;
+        const spd = Math.hypot(ballBody.velocity.x, ballBody.velocity.y);
+        if (spd > 0.5) {
+          const scale = Math.max(0.12, 1 - 0.78); // keep ~22% of speed
+          Body.setVelocity(ballBody, { x: ballBody.velocity.x * scale, y: ballBody.velocity.y * scale });
+        }
+      } else if (labelA === 'bouncy_shelf' || labelB === 'bouncy_shelf') {
+        const ballBody  = labelA === 'bouncy_shelf' ? bodyB : bodyA;
+        const shelfBody = labelA === 'bouncy_shelf' ? bodyA : bodyB;
+        // If toggled off by a wire signal, act as a normal shelf (no kick)
+        const shelfEntry = shelves.find(s => s.body === shelfBody);
+        if (shelfEntry && shelfEntry.toggled) break;
+
+        const dx = ballBody.position.x - shelfBody.position.x;
+        const dy = ballBody.position.y - shelfBody.position.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const nx = dx / dist, ny = dy / dist;
+        const curSpeed = Math.hypot(ballBody.velocity.x, ballBody.velocity.y);
+        // Bouncy balls get a hard cap to prevent runaway speed
+        const isBouncy = ballBody._ballType === 'bouncy_ball';
+        const maxSpeed = isBouncy ? BOUNCY_BALL_MAX_SPEED : Infinity;
+        const speed    = Math.min(Math.max(curSpeed, BOUNCY_MIN_SPEED), maxSpeed);
+        Body.setVelocity(ballBody, { x: nx * speed, y: ny * speed });
+      } else if (labelA === 'split_bumper' || labelB === 'split_bumper') {
+        const ballBody = labelA === 'split_bumper' ? bodyB : bodyA;
+        // Defer split so Matter.js finishes this collision step cleanly
+        pendingSplits.push(ballBody.id);
+      } else if (labelA === 'time_bumper' || labelB === 'time_bumper') {
+        const shelfBody = labelA === 'time_bumper' ? bodyA : bodyB;
+        const ballBody  = labelA === 'time_bumper' ? bodyB : bodyA;
+        const shelfIdx  = shelves.findIndex(s => s.body === shelfBody);
+        if (shelfIdx === -1) continue;
+        const s = shelves[shelfIdx];
+        if (s.usesLeft <= 0) continue;
+
+        // Double the ball's remaining lifetime
+        const ballObj = balls.find(b => b.body === ballBody);
+        if (ballObj) {
+          ballObj.lifeFrames      = ballObj.lifeFrames * 2;
+          ballObj.totalLifeFrames = Math.max(ballObj.totalLifeFrames, ballObj.lifeFrames);
+        }
+
+        // Consume one use
+        s.usesLeft -= 1;
+        s.def.usesLeft = s.usesLeft;
+        saveAllDefs();
+
+        // Schedule removal if depleted
+        if (s.usesLeft <= 0) {
+          pendingTimeBumperRemovals.push(shelfIdx);
+        }
+        updateMoneyDisplay();
+      } else if (labelA === 'launcher' || labelB === 'launcher') {
+        const shelfBody = labelA === 'launcher' ? bodyA : bodyB;
+        const ballBody  = labelA === 'launcher' ? bodyB : bodyA;
+        const shelfEntry = shelves.find(s => s.body === shelfBody);
+        if (!shelfEntry) continue;
+        // Ignore if already holding a ball or in post-fire cooldown
+        if (shelfEntry.heldBallId !== null || shelfEntry.launchCooldown > 0) continue;
+
+        // Muzzle direction: local (0,-th/2) rotated by body.angle using p5's convention
+        // p5 rotate(a): world = (lx*cos a - ly*sin a, lx*sin a + ly*cos a)
+        // Local muzzle tip is (0, -th/2), so world offset = (th/2 * sin a, -th/2 * cos a)
+        const a   = shelfBody.angle;
+        const muzzDirX =  Math.sin(a);
+        const muzzDirY = -Math.cos(a);
+        const th  = shelfEntry.fw * 1.4;
+        const muzzleX = shelfBody.position.x + muzzDirX * (th / 2);
+        const muzzleY = shelfBody.position.y + muzzDirY * (th / 2);
+
+        // Snap ball to muzzle and freeze it
+        Body.setPosition(ballBody, { x: muzzleX, y: muzzleY });
+        Body.setVelocity(ballBody, { x: 0, y: 0 });
+        Body.setStatic(ballBody, true);
+
+        shelfEntry.heldBallId = ballBody.id;
+        shelfEntry.holdFrames = 60; // 1 second at 60fps
+      }
+    }
+  }
+
+  // ── Signal system constants ───────────────────────────────────────────────────
+  const DETECT_DEPTH    = 60;   // px above the detector shelf face that counts as "in range"
+  const DETECT_WIDTH_PAD = 8;   // extra px either side of fw/2 for detection
+  const WIRE_SNAP_R     = 26;   // px — how close an endpoint must be to connect to an object
+
+  const TOGGLEABLE_TYPES = new Set(['windmill_shelf', 'bouncy_shelf', 'one_way_shelf']);
+
+  // Called every frame before rendering — computes s.lit, wire.lit, s.toggled
+  function updateSignals() {
+    // 1. Detector shelves: lit if any ball is in front (upward face corridor)
+    for (const s of shelves) {
+      s.lit     = false;
+      s.toggled = false;
+      if (s.platformType !== 'detector_shelf') continue;
+      const px = s.body.position.x, py = s.body.position.y;
+      const ang = s.body.angle;
+      const cosA = Math.cos(-ang), sinA = Math.sin(-ang);
+      const halfW = s.fw / 2 + DETECT_WIDTH_PAD;
+      for (const b of balls) {
+        const dx = b.body.position.x - px, dy = b.body.position.y - py;
+        const lx =  dx * cosA - dy * sinA;
+        const ly =  dx * sinA + dy * cosA;
+        if (Math.abs(lx) <= halfW && ly >= -DETECT_DEPTH && ly <= 10) {
+          s.lit = true; break;
+        }
+      }
+    }
+
+    // 2. Wire lit: an endpoint is within WIRE_SNAP_R of a lit detector OR another lit wire ep.
+    //    We propagate until stable (max 8 passes for chained wires).
+    for (const w of wires) w.lit = false;
+    for (let pass = 0; pass < 8; pass++) {
+      let changed = false;
+      for (const w of wires) {
+        if (w.lit) continue;
+        if (_wireEpNearLit(w.p1) || _wireEpNearLit(w.p2)) {
+          w.lit = true; changed = true;
+        }
+      }
+      if (!changed) break;
+    }
+
+    // 3. Toggleable shelves: toggled if any lit wire endpoint is within WIRE_SNAP_R
+    //    Cooldown of ~3s (180 frames) prevents rapid re-toggling.
+    const TOGGLE_COOLDOWN = 180;
+    for (const s of shelves) {
+      if (!TOGGLEABLE_TYPES.has(s.platformType)) continue;
+
+      // Count down cooldown
+      if (s.toggleCooldown > 0) { s.toggleCooldown -= 1; continue; }
+
+      const wantToggled = wires.some(w => {
+        if (!w.lit) return false;
+        const cx = s.body.position.x, cy = s.body.position.y;
+        return Math.hypot(w.p1.x - cx, w.p1.y - cy) <= WIRE_SNAP_R ||
+               Math.hypot(w.p2.x - cx, w.p2.y - cy) <= WIRE_SNAP_R;
+      });
+
+      if (wantToggled !== s.toggled) {
+        s.toggled = wantToggled;
+        s.toggleCooldown = TOGGLE_COOLDOWN;
+      }
+    }
+  }
+
+  // Helper: is this point near any lit detector or lit wire endpoint?
+  function _wireEpNearLit(pt) {
+    for (const s of shelves) {
+      if (s.platformType !== 'detector_shelf' || !s.lit) continue;
+      if (Math.hypot(pt.x - s.body.position.x, pt.y - s.body.position.y) <= WIRE_SNAP_R) return true;
+    }
+    for (const w of wires) {
+      if (!w.lit) continue;
+      if (Math.hypot(pt.x - w.p1.x, pt.y - w.p1.y) <= WIRE_SNAP_R) return true;
+      if (Math.hypot(pt.x - w.p2.x, pt.y - w.p2.y) <= WIRE_SNAP_R) return true;
+    }
+    return false;
+  }
+  const WIND_LENGTH    = 320;   // how far the corridor extends (px)
+  const WIND_WIDTH_PAD = 14;    // extra px either side beyond fw/2
+  const WIND_STRENGTH  = 0.28;  // velocity impulse per frame (px/frame)
+
+  // Applies wind impulses to all balls in range of each windmill shelf.
+  // Called once per physics frame (inside processPendingSplits is fine).
+  function applyWindForces() {
+    for (const s of shelves) {
+      if (s.platformType !== 'windmill_shelf') continue;
+      if (s.toggled) continue; // suppressed by wire signal
+      const px  = s.body.position.x;
+      const py  = s.body.position.y;
+      const ang = s.body.angle;
+      // Shelf up-normal in world space (direction wind blows toward)
+      const upNx = -Math.sin(ang);
+      const upNy = -Math.cos(ang);
+      const halfW = s.fw / 2 + WIND_WIDTH_PAD;
+
+      for (const b of balls) {
+        const dx = b.body.position.x - px;
+        const dy = b.body.position.y - py;
+        // Transform to shelf local space
+        const cosA = Math.cos(-ang), sinA = Math.sin(-ang);
+        const lx   =  dx * cosA - dy * sinA;  // along shelf length
+        const ly   =  dx * sinA + dy * cosA;  // perpendicular (+ = above in screen, - = below)
+
+        // Ball must be within width and in the upward corridor (ly negative = above shelf)
+        if (Math.abs(lx) > halfW) continue;
+        if (ly > -10) continue;            // below or on the shelf surface — skip
+        if (ly < -(WIND_LENGTH + 10)) continue; // too far away
+
+        // Fade force linearly from full at the shelf to 0 at WIND_LENGTH
+        const dist   = Math.abs(ly);
+        const factor = 1 - dist / WIND_LENGTH;
+        const force  = WIND_STRENGTH * factor;
+
+        Body.setVelocity(b.body, {
+          x: fin(b.body.velocity.x + upNx * force),
+          y: fin(b.body.velocity.y + upNy * force),
+        });
+      }
+    }
+  }
+  let pendingSplits = [];
+  let pendingTimeBumperRemovals = [];
+
+  function processPendingSplits() {
+    if (pendingSplits.length === 0) return;
+    const ids = pendingSplits;
+    pendingSplits = [];
+
+    for (const id of ids) {
+      const idx = balls.findIndex(b => b.body.id === id);
+      if (idx === -1) continue; // already removed
+      const b = balls[idx];
+
+      const x   = fin(b.body.position.x);
+      const y   = fin(b.body.position.y);
+      const vx  = b.body.velocity.x;
+      const vy  = b.body.velocity.y;
+      const spd = Math.hypot(vx, vy) || 8;
+      const parentRadius = b.radius ?? BR;
+
+      // Only split balls that are still full-size (don't chain-split)
+      if (parentRadius < BR * 0.75) continue;
+
+      const childRadius = parentRadius * 0.5;
+      const childLife   = Math.ceil(b.lifeFrames * 0.5);
+
+      // Two outgoing directions: rotate velocity ±60°
+      const angle = Math.atan2(vy, vx);
+      const spread = Math.PI / 3; // 60°
+
+      for (const sign of [-1, 1]) {
+        const a  = angle + sign * spread;
+        const cb = Bodies.circle(x, y, childRadius, {
+          restitution: cfg.restitution,
+          friction:    0.04,
+          frictionAir: cfg.airFriction,
+          density:     0.002,
+        });
+        Body.setVelocity(cb, { x: Math.cos(a) * spd, y: Math.sin(a) * spd });
+        World.add(world, cb);
+        balls.push({
+          body:            cb,
+          palette:         b.palette,
+          lifeFrames:      childLife,
+          totalLifeFrames: childLife,
+          radius:          childRadius,
+        });
+      }
+
+      // Remove the original ball
+      World.remove(world, b.body);
+      balls.splice(idx, 1);
+    }
+  }
+
+  function processTimeBumperRemovals() {
+    if (pendingTimeBumperRemovals.length === 0) return;
+    // Sort descending so splice indices stay valid
+    const indices = [...new Set(pendingTimeBumperRemovals)].sort((a, b) => b - a);
+    pendingTimeBumperRemovals = [];
+    for (const idx of indices) {
+      if (idx < 0 || idx >= shelves.length) continue;
+      World.remove(world, shelves[idx].body);
+      shelves.splice(idx, 1);
+    }
+    if (selectedShelf !== null && selectedShelf >= shelves.length) {
+      selectedShelf = null;
+      shelfActions.classList.remove('visible');
+    }
+    saveAllDefs();
+    updateMoneyDisplay();
+  }
+
+  function processLaunchers() {
+    for (const s of shelves) {
+      if (s.platformType !== 'launcher') continue;
+
+      // Count down post-fire cooldown
+      if (s.launchCooldown > 0) { s.launchCooldown -= 1; continue; }
+
+      if (s.heldBallId === null) continue;
+
+      const ballObj = balls.find(b => b.body.id === s.heldBallId);
+      if (!ballObj) { s.heldBallId = null; s.holdFrames = 0; continue; }
+
+      // Keep ball pinned at muzzle every frame
+      const a      = s.body.angle;
+      const muzzDirX =  Math.sin(a);
+      const muzzDirY = -Math.cos(a);
+      const th   = s.fw * 1.4;
+      const muzzleX = s.body.position.x + muzzDirX * (th / 2);
+      const muzzleY = s.body.position.y + muzzDirY * (th / 2);
+      Body.setPosition(ballObj.body, { x: muzzleX, y: muzzleY });
+      Body.setVelocity(ballObj.body, { x: 0, y: 0 });
+
+      s.holdFrames -= 1;
+      if (s.holdFrames <= 0) {
+        // Unfreeze and launch
+        Body.setStatic(ballObj.body, false);
+        Body.setVelocity(ballObj.body, { x: muzzDirX * LAUNCHER_SPEED, y: muzzDirY * LAUNCHER_SPEED });
+        ballObj.body.frictionAir = cfg.airFriction;
+        s.heldBallId     = null;
+        s.holdFrames     = 0;
+        s.launchCooldown = 30; // 0.5s — ball clears the barrel before it can grab again
+      }
+    }
+  }
+  // If the ball is on the lower side (positive projection with downward normal),
+  // we cancel the collision so the ball passes through.
+  function handleOneWayShelf(event) {
+    for (const pair of event.pairs) {
+      const { bodyA, bodyB } = pair;
+      const labelA = bodyA.label, labelB = bodyB.label;
+      if (labelA !== 'one_way_shelf' && labelB !== 'one_way_shelf') continue;
+
+      const shelfBody = labelA === 'one_way_shelf' ? bodyA : bodyB;
+      const ballBody  = labelA === 'one_way_shelf' ? bodyB : bodyA;
+
+      // If toggled by wire, behave as a normal solid shelf — don't cancel any collisions
+      const shelfEntry = shelves.find(s => s.body === shelfBody);
+      if (shelfEntry && shelfEntry.toggled) continue;
+
+      const a    = shelfBody.angle;
+      const upNx = -Math.sin(a), upNy = -Math.cos(a);
+      const dx   = ballBody.position.x - shelfBody.position.x;
+      const dy   = ballBody.position.y - shelfBody.position.y;
+      const dot  = dx * upNx + dy * upNy;
+      if (dot < 0) pair.isActive = false; // ball below — pass through
+    }
+  }
+
+  // ── Special ball collision effects ───────────────────────────────────────────
+  // Gold balls earn $1, tech balls earn 1⬡ on any collision with a static body.
+  function handleSpecialBallCollision(event) {
+    for (const pair of event.pairs) {
+      const { bodyA, bodyB } = pair;
+      // Find which is a special ball (check our balls array)
+      let ballBody = null;
+      if (bodyA._ballType && bodyA._ballType !== 'basic' && bodyA._ballType !== 'bouncy_ball') ballBody = bodyA;
+      else if (bodyB._ballType && bodyB._ballType !== 'basic' && bodyB._ballType !== 'bouncy_ball') ballBody = bodyB;
+      if (!ballBody) continue;
+
+      if (ballBody._ballType === 'gold_ball') {
+        money += researchLevels.goldBalls || 1;
+        saveMoney(money);
+        updateMoneyDisplay();
+      } else if (ballBody._ballType === 'tech_ball') {
+        techPts += researchLevels.techBalls || 1;
+        saveTechPts(techPts);
+        updateMoneyDisplay();
+      }
+    }
+  }
+
+  function drawInventoryRow() {
+    const gc  = p.drawingContext;
+    const r   = BR;
+    const gap = r * 2.6;
+    const maxW = W - 40;
+    const effectiveMax = maxBalls + (researchLevels.maxSlots || 0);
+    const visCount = Math.min(effectiveMax, Math.floor(maxW / gap) || 1);
+    const rowW  = visCount * gap - (gap - r * 2);
+    const row0X = W / 2 - rowW / 2 + r;
+    const cy    = H - r - 14;
+
+    for (let i = 0; i < visCount; i++) {
+      const cx      = row0X + i * gap;
+      const hasBall = i < inventory.length;
+      const isNext  = (i === 0) && hasBall;
+      const drawR   = isNext ? r * 1.22 : r;
+
+      if (hasBall) {
+        const ball = inventory[i];
+        const pal  = getBallPalette(ball.type);
+
+        // Outer glow for next ball
+        if (isNext) {
+          const gw = gc.createRadialGradient(cx, cy, 0, cx, cy, drawR * 2.4);
+          gw.addColorStop(0, hexA(pal[1], 0.22));
+          gw.addColorStop(1, 'rgba(0,0,0,0)');
+          gc.fillStyle = gw;
+          gc.beginPath(); gc.arc(cx, cy, drawR * 2.4, 0, Math.PI * 2); gc.fill();
+        }
+
+        // Ball body
+        const gr = gc.createRadialGradient(cx - drawR * .32, cy - drawR * .38, drawR * .04, cx, cy, drawR);
+        gr.addColorStop(0, pal[0]);
+        gr.addColorStop(0.55, pal[1]);
+        gr.addColorStop(1, pal[2]);
+        gc.globalAlpha = isNext ? 1.0 : 0.5;
+        gc.fillStyle = gr;
+        gc.beginPath(); gc.arc(cx, cy, drawR, 0, Math.PI * 2); gc.fill();
+
+        // Specular highlight
+        const sp = gc.createRadialGradient(cx - drawR*.3, cy - drawR*.4, 0, cx - drawR*.3, cy - drawR*.4, drawR*.48);
+        sp.addColorStop(0, 'rgba(255,255,255,0.78)');
+        sp.addColorStop(1, 'rgba(255,255,255,0)');
+        gc.fillStyle = sp;
+        gc.beginPath(); gc.arc(cx, cy, drawR, 0, Math.PI * 2); gc.fill();
+
+        gc.strokeStyle = 'rgba(255,255,255,0.12)'; gc.lineWidth = 0.7;
+        gc.beginPath(); gc.arc(cx, cy, drawR, 0, Math.PI * 2); gc.stroke();
+        gc.globalAlpha = 1;
+
+        // Pulse ring on next ball
+        if (isNext) {
+          const pulse = (Math.sin(p.frameCount * 0.065) + 1) / 2;
+          gc.strokeStyle = hexA(pal[1], 0.28 * (1 - pulse));
+          gc.lineWidth = 1.5;
+          gc.beginPath(); gc.arc(cx, cy, drawR + 4 + pulse * 6, 0, Math.PI * 2); gc.stroke();
+        }
+
+      } else {
+        // Empty slot — ghost circle
+        gc.globalAlpha = 1;
+        gc.strokeStyle = 'rgba(255,255,255,0.10)';
+        gc.lineWidth   = 1.2;
+        gc.setLineDash([3, 4]);
+        gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.stroke();
+        gc.setLineDash([]);
+
+        // Faint inner fill so the slot reads as a "hole"
+        gc.fillStyle = 'rgba(255,255,255,0.03)';
+        gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+      }
+    }
+  }
+
+  // ── Settings UI build ────────────────────────────────────────────────────────
+  function buildSettingsUI() {
+    setupSlider('sl-gravity-y', 'val-gravity-y', cfg.gravityY,     v => { cfg.gravityY = v; applyGravity(); });
+    setupSlider('sl-gravity-x', 'val-gravity-x', cfg.gravityX,     v => { cfg.gravityX = v; applyGravity(); });
+    setupSlider('sl-air',       'val-air',        cfg.airFriction,  v => { cfg.airFriction = v; });
+    setupSlider('sl-restitution','val-restitution',cfg.restitution, v => { cfg.restitution = v; });
+    setupSlider('sl-power',     'val-power',      cfg.powerMult,    v => { cfg.powerMult = v; });
+  }
+
+  function setupSlider(sliderId, valId, initVal, onChange) {
+    const sl  = document.getElementById(sliderId);
+    const val = document.getElementById(valId);
+    sl.value = initVal;
+    val.textContent = fmtVal(initVal);
+    sl.addEventListener('input', () => {
+      const v = parseFloat(sl.value);
+      val.textContent = fmtVal(v);
+      onChange(v);
+      saveSettings(cfg);
+    });
+  }
+
+  function fmtVal(v) {
+    if (Math.abs(v) < 0.01) return v.toFixed(4);
+    if (Math.abs(v) < 0.1)  return v.toFixed(3);
+    return v.toFixed(2);
+  }
+
+  function applyGravity() {
+    if (engine) { engine.gravity.x = cfg.gravityX; engine.gravity.y = cfg.gravityY; }
+  }
+
+  // ── UI wiring ────────────────────────────────────────────────────────────────
+  function wireUI() {
+    btnSettings.addEventListener('click', openModal);
+    btnModalClose.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop) closeModal(); });
+
+    document.getElementById('btn-research').addEventListener('click', () => openPanel('research'));
+    document.getElementById('btn-shop').addEventListener('click',     () => openPanel('shop'));
+    document.getElementById('btn-unlocks').addEventListener('click',  () => openPanel('unlocks'));
+    document.getElementById('btn-panel-close').addEventListener('click', closePanel);
+    panelBackdrop.addEventListener('click', e => { if (e.target === panelBackdrop) closePanel(); });
+
+    document.getElementById('btn-clear-balls').addEventListener('click', clearBalls);
+
+    wireRotateButton('sa-rot-left',  -1);
+    wireRotateButton('sa-rot-right',  1);
+    document.getElementById('sa-sell').addEventListener('click', sellSelected);
+
+    document.getElementById('btn-reset-settings').addEventListener('click', resetSettings);
+    document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+    document.getElementById('btn-export-save').addEventListener('click', exportSave);
+    document.getElementById('btn-import-save').addEventListener('click', () => document.getElementById('import-file-input').click());
+    document.getElementById('import-file-input').addEventListener('change', importSave);
+    document.getElementById('btn-restart-game').addEventListener('click', restartGame);
+    document.getElementById('btn-clear-data').addEventListener('click', clearAllData);
+    document.getElementById('btn-restock').addEventListener('click', doRestock);
+  }
+
+  function openModal() {
+    paused = true;
+    aiming = false;
+    buildSettingsUI();
+    modalBackdrop.classList.add('visible');
+  }
+  function closeModal() {
+    modalBackdrop.classList.remove('visible');
+    paused = false;
+  }
+
+  function openResearch() {
+    paused = true;
+    aiming = false;
+    buildResearchUI();
+    researchBackdrop.classList.add('visible');
+  }
+  function closeResearch() {
+    researchBackdrop.classList.remove('visible');
+    paused = false;
+  }
+
+  // ── Shop modal ────────────────────────────────────────────────────────────────
+  // Registry of all purchasable platform items — drives buildShopUI dynamically.
+  const SHOP_ITEMS = [
+    { type: 'basic',             label: 'Shelf',              desc: 'Standard platform',                              discoveryRestock: 2   },
+    { type: 'soft_shelf',        label: 'Soft Shelf',         desc: 'Greatly slows balls that hit it',                discoveryRestock: 5   },
+    { type: 'bumper',            label: 'Gold Bumper',        desc: 'Earns $5 per hit',                               discoveryRestock: 1   },
+    { type: 'tech_bumper',       label: 'Tech Bumper',        desc: 'Earns 1 ⬡ per hit',                            discoveryRestock: 7   },
+    { type: 'launcher',          label: 'Launcher',           desc: 'Redirects any ball that touches it',             discoveryRestock: 14  },
+    { type: 'golden_tech_bumper',label: 'Golden Tech Bumper', desc: 'Converts $10 → 10 ⬡ per hit',                 discoveryRestock: 52  },
+    { type: 'split_bumper',      label: 'Split Bumper',       desc: 'Splits ball into two smaller balls',             discoveryRestock: 27  }, // = unlock_split_bumper
+    { type: 'long_shelf',        label: 'Long Shelf',         desc: '3× wider than a standard shelf',                discoveryRestock: 52  }, // = unlock_long_shelf
+    { type: 'detector_shelf',    label: 'Detector',           desc: 'Emits a signal when a ball is above it',         discoveryRestock: 75  },
+    { type: 'connection_wire',   label: 'Wire',               desc: 'Carries signals between detectors and objects',  discoveryRestock: 75  },
+    { type: 'time_bumper',       label: 'Time Bumper',        desc: 'Doubles ball lifetime on hit (10 uses)',         discoveryRestock: 40  }, // = unlock_time_bumper
+    { type: 'windmill_shelf',    label: 'Windmill',           desc: 'Blows wind upward from its face',                discoveryRestock: 63  }, // = unlock_windmill_shelf
+    { type: 'bouncy_shelf',      label: 'Bouncy Shelf',       desc: 'Launches balls away with high force',            discoveryRestock: 80  }, // = unlock_bouncy_shelf
+    { type: 'one_way_shelf',     label: 'One-Way Shelf',      desc: 'Blocks from above, passes from below',           discoveryRestock: 115 }, // = unlock_one_way_shelf
+  ];
+
+  // ── Unified panel (Shop / Research / Unlocks) ────────────────────────────────
+  let panelActiveTab = 'shop';
+
+  function openPanel(tab) {
+    panelActiveTab = tab;
+    paused = true;
+    aiming = false;
+    panelBackdrop.classList.add('visible');
+    buildPanelUI();
+  }
+  function closePanel() {
+    panelBackdrop.classList.remove('visible');
+    paused = false;
+  }
+
+  function buildPanelUI() {
+    // Apply theme class to modal
+    const modal = document.getElementById('panel-modal');
+    modal.classList.remove('tab-shop', 'tab-research', 'tab-unlocks');
+    modal.classList.add('tab-' + panelActiveTab);
+
+    // Update status row
+    document.getElementById('panel-money-display').textContent = '$' + money;
+    document.getElementById('panel-tech-display').textContent  = '⬡ ' + techPts;
+
+    const platformLimit = BASE_PLATFORM_LIMIT + (researchLevels.platformSlots || 0) * 3;
+    const platformsFull = shelves.length >= platformLimit;
+    const limitEl = document.getElementById('panel-limit-display');
+    if (limitEl) {
+      limitEl.textContent   = platformsFull
+        ? `Platform limit: ${shelves.length} / ${platformLimit}`
+        : `Platforms: ${shelves.length} / ${platformLimit}`;
+      limitEl.style.color      = platformsFull ? 'rgba(255,80,80,0.95)' : 'rgba(180,165,220,0.45)';
+      limitEl.style.fontWeight = platformsFull ? '700' : '';
+    }
+
+    // Tab buttons — wire onclick, no active class needed (CSS uses data-tab attribute)
+    document.querySelectorAll('#panel-tabs .res-tab').forEach(btn => {
+      btn.onclick = () => { panelActiveTab = btn.dataset.tab; buildPanelUI(); };
+    });
+
+    const content = document.getElementById('panel-content');
+    content.innerHTML = '';
+
+    if (panelActiveTab === 'shop') {
+      _buildShopContent(content, platformsFull);
+    } else if (panelActiveTab === 'research') {
+      _buildResearchContent(content);
+    } else {
+      _buildUnlocksContent(content);
+    }
+  }
+
+  // ── Discovery system ─────────────────────────────────────────────────────────
+  // An item is discovered once restockCount has reached its discoveryRestock threshold.
+  function isDiscovered(discoveryRestock) {
+    return restockCount >= (discoveryRestock ?? 0);
+  }
+
+  function _buildShopContent(content, platformsFull) {
+    if (!canEdit) {
+      const warn = document.createElement('div');
+      warn.style.cssText = `
+        background:rgba(200,30,30,0.22);
+        border:1px solid rgba(255,80,80,0.55);
+        border-radius:12px;
+        padding:10px 14px;
+        color:rgba(255,150,150,0.95);
+        font-size:12px; font-weight:600; letter-spacing:0.06em;
+        text-align:center;
+      `;
+      warn.textContent = '⚠ Balls in play — platforms cannot be placed';
+      content.appendChild(warn);
+    }
+
+    for (const item of SHOP_ITEMS) {
+      if (!isDiscovered(item.discoveryRestock)) continue;
+      const unlocked = isUnlocked(item.type);
+      const cost     = platformCost(item.type);
+      // Wires don't count against platform limit
+      const blocked  = item.type !== 'connection_wire' && platformsFull;
+      const canBuy   = unlocked && !blocked && canEdit && money >= cost;
+
+      const card = document.createElement('div');
+      card.className = 'shop-item-card' + (unlocked ? '' : ' locked');
+      const lockNote = unlocked ? '' : ' <span style="color:rgba(255,160,80,0.7);font-size:10px;">🔒 Unlock required</span>';
+      card.innerHTML = `
+        <div class="shop-item-info">
+          <div class="shop-item-label">${item.label}${lockNote}</div>
+          <div class="shop-item-desc">${item.desc}</div>
+        </div>
+        <button class="shop-item-btn" data-type="${item.type}" ${canBuy ? '' : 'disabled'}>$${cost}</button>`;
+      content.appendChild(card);
+    }
+    content.querySelectorAll('.shop-item-btn').forEach(btn => {
+      btn.addEventListener('click', () => { buyPlatform(btn.dataset.type); buildPanelUI(); });
+    });
+  }
+
+  function _buildResearchContent(content) {
+    for (const r of RESEARCH) {
+      if (!isDiscovered(r.discoveryRestock)) continue;
+      const level     = researchLevels[r.id] || 0;
+      const cost      = researchCost(r.baseCost, level, r.growthRate);
+      const canAfford = techPts >= cost;
+
+      const card = document.createElement('div');
+      card.className = 'res-card' + (canAfford ? '' : ' res-cant-afford');
+      card.innerHTML = `
+        <div class="res-card-info">
+          <div class="res-card-label">${r.label}</div>
+          <div class="res-card-desc">${r.desc}</div>
+          <div class="res-card-level">Level ${level}</div>
+        </div>
+        <button class="res-buy-btn" data-id="${r.id}" ${canAfford ? '' : 'disabled'}>⬡ ${cost}</button>`;
+      content.appendChild(card);
+    }
+    content.querySelectorAll('.res-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => buyResearch(btn.dataset.id));
+    });
+  }
+
+  function _buildUnlocksContent(content) {
+    for (const u of UNLOCK_RESEARCH) {
+      if (!isDiscovered(u.discoveryRestock)) continue;
+      const done      = !!researchLevels[u.id];
+      const canAfford = !done && techPts >= u.costTech && money >= u.costMoney;
+
+      const card = document.createElement('div');
+      card.className = 'res-card unlock' + (canAfford || done ? '' : ' res-cant-afford');
+      const btnLabel = done
+        ? '✓ Unlocked'
+        : `⬡ ${u.costTech}  +  $${u.costMoney}`;
+      card.innerHTML = `
+        <div class="res-card-info">
+          <div class="res-card-label">${u.label}</div>
+          <div class="res-card-desc">${u.desc}</div>
+          <div class="res-card-level">${done ? 'Unlocked ✓' : `Costs ⬡${u.costTech} + $${u.costMoney}`}</div>
+        </div>
+        <button class="res-buy-btn" data-id="${u.id}" ${done || !canAfford ? 'disabled' : ''}>${btnLabel}</button>`;
+      content.appendChild(card);
+    }
+    content.querySelectorAll('.res-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => buyResearch(btn.dataset.id));
+    });
+  }
+
+  // Legacy aliases so other code calling buildResearchUI/buildShopUI still works
+  function buildShopUI()     { buildPanelUI(); }
+  function buildResearchUI() { buildPanelUI(); }
+  function openShop()        { openPanel('shop'); }
+  function closeShop()       { closePanel(); }
+  function openResearch()    { openPanel('research'); }
+
+  function buyResearch(id) {
+    // Unlock research (one-time) — costs both tech and money
+    const unlock = UNLOCK_RESEARCH.find(x => x.id === id);
+    if (unlock) {
+      if (researchLevels[id] || techPts < unlock.costTech || money < unlock.costMoney) return;
+      techPts -= unlock.costTech;
+      money   -= unlock.costMoney;
+      researchLevels[id] = true;
+      saveTechPts(techPts);
+      saveMoney(money);
+      saveResearch(researchLevels);
+      updateMoneyDisplay();
+      buildPanelUI();
+      return;
+    }
+    // Upgrade research (repeatable) — costs only tech
+    const r = RESEARCH.find(x => x.id === id);
+    if (!r) return;
+    const level = researchLevels[id] || 0;
+    const cost  = researchCost(r.baseCost, level, r.growthRate);
+    if (techPts < cost) return;
+    techPts -= cost;
+    researchLevels[id] = level + 1;
+    saveTechPts(techPts);
+    saveResearch(researchLevels);
+    if (id === 'goldBounce') applyBumperRestitution('bumper');
+    if (id === 'techBounce') applyBumperRestitution('tech_bumper');
+    updateMoneyDisplay();
+    buildPanelUI();
+  }
+
+
+  // ── Export / Import save ─────────────────────────────────────────────────────
+  function exportSave() {
+    const data = {
+      version: 1,
+      money,
+      techPts,
+      maxBalls,
+      restockCount,
+      inventory,
+      researchLevels,
+      settings: cfg,
+      shelves: shelves.map(s => s.def),
+      wires: wires.map(w => w.def),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'driftpool-save.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importSave(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data || typeof data !== 'object') throw new Error('Invalid save file');
+
+        // Apply all fields
+        if (typeof data.money        === 'number') { money        = data.money;        saveMoney(money); }
+        if (typeof data.techPts      === 'number') { techPts      = data.techPts;      saveTechPts(techPts); }
+        if (typeof data.maxBalls     === 'number') { maxBalls     = data.maxBalls;     saveMaxBalls(maxBalls); }
+        if (typeof data.restockCount === 'number') { restockCount = data.restockCount; saveRestockCount(restockCount); }
+        if (Array.isArray(data.inventory))         { inventory    = data.inventory;    saveInventory(inventory); }
+        if (data.researchLevels && typeof data.researchLevels === 'object') {
+          researchLevels = Object.assign({}, DEFAULT_RESEARCH, data.researchLevels);
+          saveResearch(researchLevels);
+        }
+        if (data.settings && typeof data.settings === 'object') {
+          Object.assign(cfg, DEFAULT_SETTINGS, data.settings);
+          saveSettings(cfg);
+        }
+        if (Array.isArray(data.shelves)) saveShelfDefs(data.shelves);
+        if (Array.isArray(data.wires))   saveWires(data.wires);
+
+        closeModal();
+        initAll();
+        buildSettingsUI();
+        alert('Save imported successfully!');
+      } catch(err) {
+        alert('Failed to import save: ' + err.message);
+      }
+      // Reset file input so the same file can be re-imported
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  function resetSettings() {
+    Object.assign(cfg, DEFAULT_SETTINGS);
+    saveSettings(cfg);
+    applyGravity();
+    buildSettingsUI();
+  }
+
+  function restartGame() {
+    // Reset all persisted values to defaults
+    money          = 50;
+    inventory      = [];
+    maxBalls       = 5;
+    techPts        = 0;
+    researchLevels = Object.assign({}, DEFAULT_RESEARCH);
+    Object.assign(cfg, DEFAULT_SETTINGS);
+    saveMoney(money);
+    saveInventory(inventory);
+    saveMaxBalls(maxBalls);
+    saveTechPts(techPts);
+    saveResearch(researchLevels);
+    saveSettings(cfg);
+    saveShelfDefs(DEFAULT_SHELVES.map(d => ({...d})));
+    saveWires([]);
+    restockCount = 0;
+    saveRestockCount(0);
+    // Close modal, then fully reinitialise the scene
+    closeModal();
+    initAll();
+    buildSettingsUI();
+  }
+
+  function clearAllData() {
+    if (!confirm('Clear all saved data and restart? This cannot be undone.')) return;
+    try {
+      localStorage.removeItem(LS_SHELVES);
+      localStorage.removeItem(LS_SETTINGS);
+      localStorage.removeItem(LS_INVENTORY);
+      localStorage.removeItem(LS_MONEY);
+      localStorage.removeItem(LS_MAX_BALLS);
+      localStorage.removeItem(LS_TECH_PTS);
+      localStorage.removeItem(LS_RESEARCH);
+      localStorage.removeItem(LS_WIRES);
+      localStorage.removeItem(LS_RESTOCK);
+    } catch(e) {}
+    location.reload();
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  // ── Shelf operations ─────────────────────────────────────────────────────────
+  // ── Rotate: 90 deg/s, time-based so framerate-independent ───────────────────
+  const ROT_DEG_PER_SEC = 90; // degrees per second while held
+
+  function rotateSelected(deg) {
+    if (selectedShelf === null) return;
+    const s = shelves[selectedShelf];
+    if (s.platformType === 'bumper' || s.platformType === 'one_way_shelf') return;
+    Body.setAngle(s.body, s.body.angle + deg * Math.PI / 180);
+    syncDef(selectedShelf);
+  }
+
+  function wireRotateButton(id, dir) {
+    const btn = document.getElementById(id);
+    let rafId   = null;
+    let lastT   = null;
+
+    function tick(ts) {
+      if (lastT === null) { lastT = ts; }
+      const dt  = (ts - lastT) / 1000; // seconds
+      lastT = ts;
+      rotateSelected(dir * ROT_DEG_PER_SEC * dt);
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function start(e) {
+      e.preventDefault();
+      if (rafId !== null) return; // already running
+      lastT = null;
+      // Immediate small step so it feels instant on tap
+      rotateSelected(dir * ROT_DEG_PER_SEC * (1 / 60));
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function stop() {
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+      lastT = null;
+    }
+
+    btn.addEventListener('pointerdown', start);
+    btn.addEventListener('pointerup',   stop);
+    btn.addEventListener('pointerleave', stop);
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  }
+
+  function sellSelected() {
+    // Wire selected
+    if (selectedWire !== null) {
+      const cost = PLATFORM_TYPES.connection_wire.cost;
+      const refund = Math.floor(cost * 0.5);
+      wires.splice(selectedWire, 1);
+      selectedWire = null;
+      shelfActions.classList.remove('visible');
+      saveAllDefs();
+      money += refund;
+      saveMoney(money);
+      updateMoneyDisplay();
+      return;
+    }
+    if (selectedShelf === null) return;
+    const s       = shelves[selectedShelf];
+    const ptDef   = PLATFORM_TYPES[s.platformType];
+    const refund  = ptDef ? Math.floor(ptDef.cost * 0.5) : 0;
+    World.remove(world, s.body);
+    shelves.splice(selectedShelf, 1);
+    selectedShelf = null;
+    shelfActions.classList.remove('visible');
+    saveAllDefs();
+    money += refund;
+    saveMoney(money);
+    updateMoneyDisplay();
+  }
+
+  function updateSellButton() {
+    const btn     = document.getElementById('sa-sell');
+    const rotL    = document.getElementById('sa-rot-left');
+    const rotR    = document.getElementById('sa-rot-right');
+    if (!btn) return;
+
+    if (selectedWire !== null) {
+      // Wire selected: hide rotate buttons, show sell
+      if (rotL) rotL.style.display = 'none';
+      if (rotR) rotR.style.display = 'none';
+      const refund = Math.floor(PLATFORM_TYPES.connection_wire.cost * 0.5);
+      btn.textContent = `Sell $${refund}`; return;
+    }
+    // Shelf (or nothing): show rotate buttons
+    if (rotL) rotL.style.display = '';
+    if (rotR) rotR.style.display = '';
+    if (selectedShelf === null) { btn.textContent = 'Sell'; return; }
+    const s      = shelves[selectedShelf];
+    const ptDef  = PLATFORM_TYPES[s.platformType];
+    const refund = ptDef ? Math.floor(ptDef.cost * 0.5) : 0;
+    btn.textContent = `Sell $${refund}`;
+  }
+
+  function clearBalls() {
+    for (const b of balls) World.remove(world, b.body);
+    balls = [];
+    canEdit = true;
+    aiming  = false;
+    updateMoneyDisplay();
+  }
+
+  // ── Input helpers ────────────────────────────────────────────────────────────
+  function resetInteraction() { aiming = false; dragShelf = null; dragWireEp = null; }
+
+  function isOverUI(x, y) {
+    const cr = p.canvas.getBoundingClientRect();
+    function hits(el) {
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return x >= r.left-cr.left && x <= r.right-cr.left &&
+             y >= r.top-cr.top   && y <= r.bottom-cr.top;
+    }
+    const modalOpen    = modalBackdrop.classList.contains('visible');
+    const panelOpen    = panelBackdrop.classList.contains('visible');
+    return hits(shelfActions) || hits(actionBar) ||
+           hits(document.getElementById('btn-restock')) ||
+           (modalOpen  && hits(modalBackdrop)) ||
+           (panelOpen  && hits(panelBackdrop));
+  }
+
+  function getTouchPos(e) {
+    const rect = p.canvas.getBoundingClientRect();
+    const t = (e.changedTouches && e.changedTouches.length) ? e.changedTouches[0] : e.touches[0];
+    return { x: fin(t.clientX - rect.left, W/2), y: fin(t.clientY - rect.top, H/2) };
+  }
+
+  // ── Touch ────────────────────────────────────────────────────────────────────
+  function onTouchStart(e) {
+    const pos = getTouchPos(e);
+    handlePressAt(pos.x, pos.y);
+  }
+  function onTouchMove(e) {
+    const pos = getTouchPos(e);
+    handleMoveAt(pos.x, pos.y);
+  }
+  function onTouchEnd(e) {
+    const pos = getTouchPos(e);
+    handleReleaseAt(pos.x, pos.y);
+  }
+
+  // ── Mouse ────────────────────────────────────────────────────────────────────
+  p.mousePressed  = function() { handlePressAt(p.mouseX, p.mouseY); };
+  p.mouseDragged  = function() { handleMoveAt(p.mouseX, p.mouseY); };
+  p.mouseReleased = function() { handleReleaseAt(p.mouseX, p.mouseY); };
+
+  // ── Wire hit test ────────────────────────────────────────────────────────────
+  const WIRE_HIT_R = 18; // px — radius for clicking a wire endpoint
+  function hitTestWireEndpoint(x, y) {
+    for (let i = wires.length - 1; i >= 0; i--) {
+      const w = wires[i];
+      if (Math.hypot(x - w.p1.x, y - w.p1.y) <= WIRE_HIT_R) return { wireIdx: i, ep: 'p1' };
+      if (Math.hypot(x - w.p2.x, y - w.p2.y) <= WIRE_HIT_R) return { wireIdx: i, ep: 'p2' };
+    }
+    return null;
+  }
+
+  // ── Shelf hit test ───────────────────────────────────────────────────────────
+  function hitTestShelf(x, y) {
+    for (let i = shelves.length - 1; i >= 0; i--) {
+      const s = shelves[i], pos = s.body.position, ang = s.body.angle;
+      const dx = x - pos.x, dy = y - pos.y;
+      const lx = dx * Math.cos(-ang) - dy * Math.sin(-ang);
+      const ly = dx * Math.sin(-ang) + dy * Math.cos(-ang);
+      if (Math.abs(lx) < s.fw / 2 + 22 && Math.abs(ly) < 24) return i;
+    }
+    return -1;
+  }
+
+  // ── Unified interactions ─────────────────────────────────────────────────────
+  // Press: try to grab a shelf first (if canEdit), otherwise start aiming
+  function handlePressAt(x, y) {
+    if (paused || isOverUI(x, y)) return;
+
+    if (canEdit) {
+      // Check wire endpoints first
+      const wireHit = hitTestWireEndpoint(x, y);
+      if (wireHit) {
+        selectedWire  = wireHit.wireIdx;
+        selectedShelf = null;
+        dragWireEp    = wireHit;
+        shelfActions.classList.add('visible');
+        updateSellButton();
+        return;
+      }
+
+      const hit = hitTestShelf(x, y);
+      if (hit >= 0) {
+        selectedShelf = hit;
+        selectedWire  = null;
+        shelfActions.classList.add('visible');
+        updateSellButton();
+        const pos = shelves[hit].body.position;
+        dragShelf = { idx: hit, offX: x - pos.x, offY: y - pos.y };
+        return;
+      } else {
+        selectedShelf = null;
+        selectedWire  = null;
+        dragShelf     = null;
+        shelfActions.classList.remove('visible');
+        updateSellButton();
+      }
+    }
+
+    if (inventory.length === 0) return;
+    if (y < FLOOR_Y - BR * 3) return;
+    aiming = true;
+    startX = fin(x, W/2); startY = fin(y, FLOOR_Y + LAUNCH_H * 0.5);
+    curX = startX; curY = startY;
+  }
+
+  function handleMoveAt(x, y) {
+    if (dragWireEp !== null) {
+      const w = wires[dragWireEp.wireIdx];
+      w[dragWireEp.ep] = { x: fin(x, w[dragWireEp.ep].x), y: fin(y, w[dragWireEp.ep].y) };
+      syncWireDef(dragWireEp.wireIdx);
+    } else if (dragShelf !== null) {
+      const s = shelves[dragShelf.idx];
+      Body.setPosition(s.body, {
+        x: fin(x - dragShelf.offX, s.body.position.x),
+        y: fin(y - dragShelf.offY, s.body.position.y),
+      });
+      syncDef(dragShelf.idx);
+    } else if (aiming) {
+      curX = x; curY = y;
+    }
+  }
+
+  function handleReleaseAt(x, y) {
+    if (isOverUI(x, y)) { dragShelf = null; dragWireEp = null; return; }
+    if (dragWireEp !== null) { syncWireDef(dragWireEp.wireIdx); dragWireEp = null; return; }
+    if (dragShelf !== null) { syncDef(dragShelf.idx); dragShelf = null; return; }
+    if (aiming) { curX = x; curY = y; gameRelease(); }
+  }
+
+  // ── Game: fire ball ──────────────────────────────────────────────────────────
+  function gameRelease() {
+    if (paused) return;
+    if (!aiming) return;
+    aiming = false;
+    if (inventory.length === 0) return;
+
+    const dx = startX - curX, dy = startY - curY;
+    const dist = Math.hypot(dx, dy);
+    if (!isFinite(dist) || dist < 6) return;
+
+    // Cancel if shot direction is downward (ny > 0 means pointing down in screen coords)
+    const ny = dy / dist;
+    if (ny > 0) return; // silently cancel — drawAim already showed the indicator
+
+    // Consume the next ball from inventory
+    const ballDef = inventory.shift();
+    saveInventory(inventory);
+    updateBallRow();
+
+    // canEdit becomes false the moment a ball is in play
+    canEdit = false;
+    updateMoneyDisplay();
+
+    const ballTypeDef = BALL_TYPES[ballDef.type] || BALL_TYPES.basic;
+    const lifeBonus   = 1 + (researchLevels.ballTime || 0) * 0.05;
+    const lifeFrames  = Math.round((ballTypeDef.lifetime || 5) * lifeBonus * 60);
+
+    const palette = getBallPalette(ballDef.type);
+    const spd = p.constrain(dist * cfg.powerMult, 1, 22);
+    const nx = dx / dist;
+    const sx = p.constrain(startX, BR + 20, W - BR - 20);
+    const sy = FLOOR_Y - BR - 2;
+
+    // Bouncy ball restitution scales with research level: 3.0 + 0.1 per extra level
+    const bouncyMult = ballDef.type === 'bouncy_ball'
+      ? 2.0 + Math.max(0, (researchLevels.bouncyBalls || 0) - 1) * 0.1
+      : (ballTypeDef.restitutionMult || 1);
+
+    const body = Bodies.circle(sx, sy, BR, {
+      restitution: cfg.restitution * bouncyMult,
+      friction: 0.04,
+      frictionAir: cfg.airFriction,
+      density: 0.002,
+      label: 'ball',
+    });
+    body._ballType = ballDef.type; // store type for collision handler lookup
+    Body.setVelocity(body, { x: fin(nx * spd), y: fin(ny * spd) });
+    World.add(world, body);
+    balls.push({ body, palette, lifeFrames, totalLifeFrames: lifeFrames, radius: BR, ballType: ballDef.type });
+  }
+
+
+  // ── Draw ─────────────────────────────────────────────────────────────────────
+  p.draw = function() {
+    if (!paused) {
+      processPendingSplits();
+      processTimeBumperRemovals();
+      processLaunchers();
+      applyWindForces();
+      Engine.update(engine, 1000/60);
+    }
+    updateSignals();
+    p.image(bgGfx, 0, 0);
+
+    drawWires();
+    drawShelves();
+    drawWallEdges();
+    drawLaunchZone();
+
+    for (const b of balls) drawBall(b);
+    if (aiming) drawAim(); else drawIdlePreview();
+    drawInventoryRow();
+    drawGlows();
+  };
+
+  // ── Render: wires ─────────────────────────────────────────────────────────────
+  function drawWires() {
+    const gc = p.drawingContext;
+    for (let i = 0; i < wires.length; i++) {
+      const w   = wires[i];
+      const sel = canEdit && selectedWire === i;
+      const lit = w.lit;
+
+      // Wire line
+      gc.save();
+      gc.lineCap = 'round';
+      if (lit) {
+        // Glowing orange wire
+        gc.strokeStyle = 'rgba(255,180,40,0.18)';
+        gc.lineWidth   = 10;
+        gc.beginPath(); gc.moveTo(w.p1.x, w.p1.y); gc.lineTo(w.p2.x, w.p2.y); gc.stroke();
+        gc.strokeStyle = 'rgba(255,210,80,0.85)';
+        gc.lineWidth   = 2.5;
+        gc.beginPath(); gc.moveTo(w.p1.x, w.p1.y); gc.lineTo(w.p2.x, w.p2.y); gc.stroke();
+      } else {
+        gc.strokeStyle = sel ? 'rgba(220,200,255,0.60)' : 'rgba(140,110,180,0.35)';
+        gc.lineWidth   = sel ? 2.5 : 1.5;
+        gc.setLineDash([6, 4]);
+        gc.beginPath(); gc.moveTo(w.p1.x, w.p1.y); gc.lineTo(w.p2.x, w.p2.y); gc.stroke();
+        gc.setLineDash([]);
+      }
+      gc.restore();
+
+      // Endpoint handles (always shown when canEdit)
+      if (canEdit) {
+        for (const pt of [w.p1, w.p2]) {
+          gc.fillStyle = lit ? 'rgba(255,210,80,0.92)' : 'rgba(180,150,255,0.75)';
+          gc.beginPath(); gc.arc(pt.x, pt.y, WIRE_HIT_R * 0.55, 0, Math.PI * 2); gc.fill();
+          gc.strokeStyle = lit ? 'rgba(255,240,120,0.8)' : 'rgba(220,200,255,0.45)';
+          gc.lineWidth   = 1.2;
+          gc.beginPath(); gc.arc(pt.x, pt.y, WIRE_HIT_R * 0.55, 0, Math.PI * 2); gc.stroke();
+        }
+      }
+    }
+  }
+
+  // ── Render: shelves ───────────────────────────────────────────────────────────
+  function drawShelves() {
+    for (let i = 0; i < shelves.length; i++) {
+      const s   = shelves[i];
+      const pos = s.body.position;
+      const sel = canEdit && selectedShelf === i;
+      const gc  = p.drawingContext;
+
+      if (s.platformType === 'bumper') {
+        drawBumper(gc, pos.x, pos.y, s.fw / 2, sel);
+      } else if (s.platformType === 'tech_bumper') {
+        drawTechBumper(gc, pos.x, pos.y, s.fw / 2, sel);
+      } else if (s.platformType === 'golden_tech_bumper') {
+        drawGoldenTechBumper(gc, pos.x, pos.y, s.fw / 2, sel, s.usesLeft ?? PLATFORM_TYPES.golden_tech_bumper.maxUses);
+      } else if (s.platformType === 'split_bumper') {
+        drawSplitBumper(gc, pos.x, pos.y, s.fw / 2, sel);
+      } else if (s.platformType === 'time_bumper') {
+        drawTimeBumper(gc, pos.x, pos.y, s.fw / 2, sel, s.usesLeft ?? 0);
+      } else if (s.platformType === 'soft_shelf') {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawSoftShelf(gc, s.fw, sel);
+        p.pop();
+      } else if (s.platformType === 'bouncy_shelf') {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawBouncyShelf(gc, s.fw, sel);
+        if (s.toggled) {
+          gc.fillStyle = 'rgba(40,30,60,0.52)';
+          gc.beginPath(); gc.roundRect(-s.fw/2, -10, s.fw, 20, 4); gc.fill();
+        }
+        p.pop();
+      } else if (s.platformType === 'one_way_shelf') {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawOneWayShelf(gc, s.fw, sel);
+        if (s.toggled) {
+          gc.fillStyle = 'rgba(40,30,60,0.52)';
+          gc.beginPath(); gc.roundRect(-s.fw/2, -10, s.fw, 20, 4); gc.fill();
+        }
+        p.pop();
+      } else if (s.platformType === 'windmill_shelf') {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawWindmillShelf(gc, s.fw, sel);
+        if (s.toggled) {
+          gc.fillStyle = 'rgba(40,30,60,0.52)';
+          gc.beginPath(); gc.roundRect(-s.fw/2, -10, s.fw, 20, 4); gc.fill();
+        }
+        p.pop();
+      } else if (s.platformType === 'detector_shelf') {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawDetectorShelf(gc, s.fw, sel, s.lit);
+        p.pop();
+      } else if (s.platformType === 'launcher') {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawLauncher(gc, s.fw, sel, s.heldBallId !== null, s.holdFrames / 60);
+        p.pop();
+      } else {
+        p.push();
+        p.translate(pos.x, pos.y);
+        p.rotate(s.body.angle);
+        drawBasicShelf(gc, s.fw, sel);
+        // Toggled overlay — grey tint when suppressed by wire
+        if (s.toggled) {
+          gc.fillStyle = 'rgba(40,30,60,0.52)';
+          gc.beginPath(); gc.roundRect(-s.fw/2, -10, s.fw, 20, 4); gc.fill();
+        }
+        p.pop();
+      }
+    }
+  }
+
+  function drawBumper(gc, cx, cy, r, sel) {
+    // Selection ring
+    if (sel) {
+      gc.strokeStyle = 'rgba(255,220,80,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.arc(cx, cy, r + 12, 0, Math.PI * 2); gc.stroke();
+    }
+    // Outer glow rings
+    for (let j = 5; j > 0; j--) {
+      gc.strokeStyle = `rgba(255,200,40,${0.06 * j})`;
+      gc.lineWidth   = j * 2.5;
+      gc.beginPath(); gc.arc(cx, cy, r + j * 2, 0, Math.PI * 2); gc.stroke();
+    }
+    // Body — radial gold gradient
+    const gr = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r);
+    gr.addColorStop(0,   'rgba(255,240,120,0.98)');
+    gr.addColorStop(0.4, 'rgba(255,200,30,0.99)');
+    gr.addColorStop(0.8, 'rgba(210,145,0,0.97)');
+    gr.addColorStop(1,   'rgba(160,100,0,0.90)');
+    gc.fillStyle = gr;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Specular highlight
+    const sp = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.38, 0,
+                                       cx - r * 0.3, cy - r * 0.38, r * 0.52);
+    sp.addColorStop(0, 'rgba(255,255,255,0.75)');
+    sp.addColorStop(1, 'rgba(255,255,255,0)');
+    gc.fillStyle = sp;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Rim
+    gc.strokeStyle = 'rgba(255,180,0,0.55)';
+    gc.lineWidth   = 1.2;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.stroke();
+  }
+
+  function drawTechBumper(gc, cx, cy, r, sel) {
+    // Selection ring
+    if (sel) {
+      gc.strokeStyle = 'rgba(80,220,255,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.arc(cx, cy, r + 12, 0, Math.PI * 2); gc.stroke();
+    }
+    // Outer glow rings — cyan
+    for (let j = 5; j > 0; j--) {
+      gc.strokeStyle = `rgba(40,210,255,${0.06 * j})`;
+      gc.lineWidth   = j * 2.5;
+      gc.beginPath(); gc.arc(cx, cy, r + j * 2, 0, Math.PI * 2); gc.stroke();
+    }
+    // Body — radial cyan/blue gradient
+    const gr = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r);
+    gr.addColorStop(0,   'rgba(180,245,255,0.98)');
+    gr.addColorStop(0.4, 'rgba(30,200,255,0.99)');
+    gr.addColorStop(0.8, 'rgba(0,130,210,0.97)');
+    gr.addColorStop(1,   'rgba(0,80,160,0.90)');
+    gc.fillStyle = gr;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Specular highlight
+    const sp = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.38, 0,
+                                       cx - r * 0.3, cy - r * 0.38, r * 0.52);
+    sp.addColorStop(0, 'rgba(255,255,255,0.75)');
+    sp.addColorStop(1, 'rgba(255,255,255,0)');
+    gc.fillStyle = sp;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Rim
+    gc.strokeStyle = 'rgba(40,200,255,0.60)';
+    gc.lineWidth   = 1.2;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.stroke();
+  }
+
+  function drawGoldenTechBumper(gc, cx, cy, r, sel, usesLeft) {
+    const maxUses  = PLATFORM_TYPES.golden_tech_bumper.maxUses;
+    const deplete  = usesLeft !== undefined ? 1 - usesLeft / maxUses : 0;
+
+    // Selection ring
+    if (sel) {
+      gc.strokeStyle = 'rgba(255,220,60,0.80)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.arc(cx, cy, r + 12, 0, Math.PI * 2); gc.stroke();
+    }
+    // Outer glow rings — gold-tinted cyan, fade with depletion
+    for (let j = 5; j > 0; j--) {
+      gc.strokeStyle = `rgba(200,210,40,${0.05 * j * (1 - deplete * 0.7)})`;
+      gc.lineWidth   = j * 2.5;
+      gc.beginPath(); gc.arc(cx, cy, r + j * 2, 0, Math.PI * 2); gc.stroke();
+    }
+    // Body — cyan/blue
+    const gr = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r);
+    gr.addColorStop(0,   'rgba(180,245,255,0.98)');
+    gr.addColorStop(0.4, 'rgba(30,200,255,0.99)');
+    gr.addColorStop(0.8, 'rgba(0,130,210,0.97)');
+    gr.addColorStop(1,   'rgba(0,80,160,0.90)');
+    gc.fillStyle = gr;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Specular highlight
+    const sp = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.38, 0,
+                                       cx - r * 0.3, cy - r * 0.38, r * 0.52);
+    sp.addColorStop(0, 'rgba(255,255,255,0.75)');
+    sp.addColorStop(1, 'rgba(255,255,255,0)');
+    gc.fillStyle = sp;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Depletion dark sweep
+    if (deplete > 0) {
+      gc.fillStyle = 'rgba(0,0,0,0.30)';
+      gc.beginPath();
+      gc.moveTo(cx, cy);
+      gc.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + deplete * Math.PI * 2);
+      gc.closePath(); gc.fill();
+    }
+    // Gold rim — double stroke
+    gc.strokeStyle = `rgba(255,200,30,${0.90 - deplete * 0.5})`;
+    gc.lineWidth   = 2.5;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.stroke();
+    gc.strokeStyle = 'rgba(255,240,120,0.55)';
+    gc.lineWidth   = 0.8;
+    gc.beginPath(); gc.arc(cx, cy, r - 1.5, 0, Math.PI * 2); gc.stroke();
+    // $ symbol
+    gc.fillStyle = `rgba(255,220,50,${0.95 - deplete * 0.4})`;
+    gc.font = `bold ${Math.round(r * 1.1)}px system-ui`;
+    gc.textAlign = 'center'; gc.textBaseline = 'middle';
+    gc.fillText('$', cx, cy + r * 0.06);
+    gc.textAlign = 'left'; gc.textBaseline = 'alphabetic';
+    // Uses badge
+    if (usesLeft !== undefined) {
+      gc.fillStyle = 'rgba(255,240,160,0.85)';
+      gc.font = `bold ${Math.round(r * 0.55)}px system-ui`;
+      gc.textAlign = 'center'; gc.textBaseline = 'middle';
+      gc.fillText(String(usesLeft), cx + r * 0.58, cy - r * 0.58);
+      gc.textAlign = 'left'; gc.textBaseline = 'alphabetic';
+    }
+  }
+
+  function drawSplitBumper(gc, cx, cy, r, sel) {
+    // Selection ring
+    if (sel) {
+      gc.strokeStyle = 'rgba(255,100,220,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.arc(cx, cy, r + 12, 0, Math.PI * 2); gc.stroke();
+    }
+    // Outer glow rings — magenta
+    for (let j = 5; j > 0; j--) {
+      gc.strokeStyle = `rgba(255,60,200,${0.06 * j})`;
+      gc.lineWidth   = j * 2.5;
+      gc.beginPath(); gc.arc(cx, cy, r + j * 2, 0, Math.PI * 2); gc.stroke();
+    }
+    // Body — radial magenta/violet gradient
+    const gr = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r);
+    gr.addColorStop(0,   'rgba(255,200,240,0.98)');
+    gr.addColorStop(0.4, 'rgba(240,60,200,0.99)');
+    gr.addColorStop(0.8, 'rgba(160,20,160,0.97)');
+    gr.addColorStop(1,   'rgba(90,0,110,0.90)');
+    gc.fillStyle = gr;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Specular
+    const sp = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.38, 0,
+                                       cx - r * 0.3, cy - r * 0.38, r * 0.52);
+    sp.addColorStop(0, 'rgba(255,255,255,0.75)');
+    sp.addColorStop(1, 'rgba(255,255,255,0)');
+    gc.fillStyle = sp;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Two split arrows pointing outward left/right
+    gc.strokeStyle = 'rgba(255,230,255,0.85)';
+    gc.lineWidth   = 1.4;
+    gc.lineCap     = 'round';
+    const ar = r * 0.45;
+    for (const sign of [-1, 1]) {
+      const ax = cx + sign * ar;
+      gc.beginPath(); gc.moveTo(cx, cy); gc.lineTo(ax, cy); gc.stroke();
+      gc.beginPath(); gc.moveTo(ax, cy); gc.lineTo(ax - sign * ar * 0.4, cy - ar * 0.4); gc.stroke();
+      gc.beginPath(); gc.moveTo(ax, cy); gc.lineTo(ax - sign * ar * 0.4, cy + ar * 0.4); gc.stroke();
+    }
+    // Rim
+    gc.strokeStyle = 'rgba(220,60,200,0.55)';
+    gc.lineWidth   = 1.2;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.stroke();
+  }
+
+  function drawTimeBumper(gc, cx, cy, r, sel, usesLeft) {
+    const maxUses = PLATFORM_TYPES.time_bumper.maxUses;
+    const deplete = 1 - usesLeft / maxUses; // 0=full, 1=empty
+
+    // Selection ring
+    if (sel) {
+      gc.strokeStyle = 'rgba(80,220,120,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.arc(cx, cy, r + 12, 0, Math.PI * 2); gc.stroke();
+    }
+    // Outer glow rings — green, fades as uses deplete
+    for (let j = 5; j > 0; j--) {
+      gc.strokeStyle = `rgba(60,220,100,${0.06 * j * (1 - deplete * 0.7)})`;
+      gc.lineWidth   = j * 2.5;
+      gc.beginPath(); gc.arc(cx, cy, r + j * 2, 0, Math.PI * 2); gc.stroke();
+    }
+    // Body — green gradient, greys out as depleted
+    const saturation = Math.round(180 * (1 - deplete * 0.6));
+    const gr = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r);
+    gr.addColorStop(0,   `rgba(${saturation + 70},240,${saturation + 50},0.98)`);
+    gr.addColorStop(0.4, `rgba(30,${saturation + 60},50,0.99)`);
+    gr.addColorStop(0.8, `rgba(10,${saturation},30,0.97)`);
+    gr.addColorStop(1,   `rgba(5,${Math.round(saturation*0.6)},15,0.90)`);
+    gc.fillStyle = gr;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Specular
+    const sp = gc.createRadialGradient(cx - r * 0.3, cy - r * 0.38, 0,
+                                       cx - r * 0.3, cy - r * 0.38, r * 0.52);
+    sp.addColorStop(0, 'rgba(255,255,255,0.70)');
+    sp.addColorStop(1, 'rgba(255,255,255,0)');
+    gc.fillStyle = sp;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.fill();
+    // Use-depletion arc (dark overlay sweeping clockwise as uses are consumed)
+    if (deplete > 0) {
+      gc.fillStyle = 'rgba(0,0,0,0.30)';
+      gc.beginPath();
+      gc.moveTo(cx, cy);
+      gc.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + deplete * Math.PI * 2);
+      gc.closePath();
+      gc.fill();
+    }
+    // Rim
+    gc.strokeStyle = `rgba(60,220,100,${0.7 - deplete * 0.4})`;
+    gc.lineWidth   = 1.2;
+    gc.beginPath(); gc.arc(cx, cy, r, 0, Math.PI * 2); gc.stroke();
+    // Hourglass symbol
+    gc.fillStyle = `rgba(220,255,230,${0.90 - deplete * 0.4})`;
+    gc.font = `bold ${Math.round(r * 0.9)}px system-ui`;
+    gc.textAlign = 'center'; gc.textBaseline = 'middle';
+    gc.fillText('⏳', cx, cy + r * 0.05);
+    gc.textAlign = 'left'; gc.textBaseline = 'alphabetic';
+    // Uses remaining badge
+    gc.fillStyle = 'rgba(220,255,230,0.85)';
+    gc.font = `bold ${Math.round(r * 0.55)}px system-ui`;
+    gc.textAlign = 'center'; gc.textBaseline = 'middle';
+    gc.fillText(String(usesLeft), cx + r * 0.58, cy - r * 0.58);
+    gc.textAlign = 'left'; gc.textBaseline = 'alphabetic';
+  }
+
+  function drawBasicShelf(gc, fw, sel) {
+    if (sel) {
+      gc.strokeStyle = 'rgba(200,170,255,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-fw/2 - 10, -24, fw + 20, 48, 9); gc.stroke();
+    }
+    for (let j = 7; j > 0; j--) {
+      gc.fillStyle = `rgba(180,140,255,${0.022 * j})`;
+      gc.beginPath(); gc.roundRect(-fw/2 - j, -10 - j, fw + j*2, 20 + j*2, 6); gc.fill();
+    }
+    const g = gc.createLinearGradient(-fw/2, -10, fw/2, 10);
+    g.addColorStop(0,   'rgba(215,195,255,0.82)');
+    g.addColorStop(0.5, 'rgba(245,225,255,0.96)');
+    g.addColorStop(1,   'rgba(185,162,235,0.75)');
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-fw/2, -10, fw, 20, 4); gc.fill();
+    gc.strokeStyle = 'rgba(255,255,255,0.5)';
+    gc.lineWidth   = 0.8;
+    gc.beginPath(); gc.moveTo(-fw/2 + 5, -8); gc.lineTo(fw/2 - 5, -8); gc.stroke();
+  }
+
+  function drawSoftShelf(gc, fw, sel) {
+    if (sel) {
+      gc.strokeStyle = 'rgba(160,230,180,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-fw/2 - 10, -24, fw + 20, 48, 9); gc.stroke();
+    }
+    // Soft green glow
+    for (let j = 6; j > 0; j--) {
+      gc.fillStyle = `rgba(80,200,120,${0.018 * j})`;
+      gc.beginPath(); gc.roundRect(-fw/2 - j, -12 - j, fw + j*2, 24 + j*2, 7); gc.fill();
+    }
+    // Body — teal/green gradient, thick and spongy-looking
+    const g = gc.createLinearGradient(-fw/2, -12, fw/2, 12);
+    g.addColorStop(0,   'rgba(100,210,145,0.88)');
+    g.addColorStop(0.5, 'rgba(140,235,175,0.96)');
+    g.addColorStop(1,   'rgba(80,185,120,0.82)');
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-fw/2, -12, fw, 24, 7); gc.fill();
+    // Wavy inner lines to suggest softness
+    gc.strokeStyle = 'rgba(255,255,255,0.30)';
+    gc.lineWidth   = 1;
+    gc.lineCap     = 'round';
+    const step = fw / 4;
+    for (let i = 0; i < 3; i++) {
+      const cx = -fw/2 + step * (i + 0.9);
+      gc.beginPath();
+      gc.moveTo(cx,      -5);
+      gc.bezierCurveTo(cx + 4, -1, cx - 4, 3, cx, 7);
+      gc.stroke();
+    }
+    gc.strokeStyle = 'rgba(120,230,160,0.55)';
+    gc.lineWidth   = 0.8;
+    gc.beginPath(); gc.roundRect(-fw/2, -12, fw, 24, 7); gc.stroke();
+  }
+
+  function drawLauncher(gc, fw, sel, held, chargeT) {
+    // fw is narrower now (~half ball width). Tube height = fw * 1.4.
+    const th = fw * 1.4;
+    const hw = fw / 2;
+
+    // Selection ring
+    if (sel) {
+      gc.strokeStyle = 'rgba(100,220,255,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-hw - 8, -th/2 - 8, fw + 16, th + 16, hw + 4); gc.stroke();
+    }
+
+    // Charge glow — pulses when holding a ball
+    if (held) {
+      const pulse = (Math.sin(Date.now() * 0.012) + 1) * 0.5;
+      for (let j = 4; j > 0; j--) {
+        gc.fillStyle = `rgba(255,220,80,${0.04 * j * (0.5 + pulse * 0.5)})`;
+        gc.beginPath(); gc.roundRect(-hw - j*2, -th/2 - j*2, fw + j*4, th + j*4, hw + j); gc.fill();
+      }
+    } else {
+      // Normal idle glow
+      for (let j = 4; j > 0; j--) {
+        gc.fillStyle = `rgba(60,180,255,${0.015 * j})`;
+        gc.beginPath(); gc.roundRect(-hw - j, -th/2 - j, fw + j*2, th + j*2, hw + 1); gc.fill();
+      }
+    }
+
+    // Barrel body — steel-blue gradient
+    const g = gc.createLinearGradient(-hw, 0, hw, 0);
+    g.addColorStop(0,   'rgba(50,80,120,0.95)');
+    g.addColorStop(0.3, 'rgba(90,140,200,0.99)');
+    g.addColorStop(0.7, 'rgba(70,120,180,0.99)');
+    g.addColorStop(1,   'rgba(40,65,110,0.92)');
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-hw, -th/2, fw, th, hw); gc.fill();
+
+    // Specular sheen
+    const sp = gc.createLinearGradient(-hw, 0, -hw + fw * 0.35, 0);
+    sp.addColorStop(0, 'rgba(255,255,255,0.28)');
+    sp.addColorStop(1, 'rgba(255,255,255,0)');
+    gc.fillStyle = sp;
+    gc.beginPath(); gc.roundRect(-hw, -th/2, fw, th, hw); gc.fill();
+
+    // Muzzle ring
+    gc.strokeStyle = held ? 'rgba(255,220,80,0.95)' : 'rgba(140,220,255,0.90)';
+    gc.lineWidth   = 2;
+    gc.beginPath(); gc.arc(0, -th/2, hw * 0.88, Math.PI, 0); gc.stroke();
+
+    // Bore
+    const bore = gc.createRadialGradient(0, -th/2, 0, 0, -th/2, hw * 0.55);
+    bore.addColorStop(0, 'rgba(4,8,20,0.95)');
+    bore.addColorStop(1, 'rgba(20,40,80,0.50)');
+    gc.fillStyle = bore;
+    gc.beginPath(); gc.arc(0, -th/2, hw * 0.55, 0, Math.PI * 2); gc.fill();
+
+    // Charge timer arc around muzzle (fills as time passes)
+    if (held && chargeT !== undefined) {
+      const elapsed = 1 - chargeT; // chargeT goes 1→0, elapsed goes 0→1
+      gc.strokeStyle = 'rgba(255,220,80,0.85)';
+      gc.lineWidth   = 2;
+      gc.beginPath();
+      gc.arc(0, -th/2, hw * 1.4, -Math.PI / 2, -Math.PI / 2 + elapsed * Math.PI * 2);
+      gc.stroke();
+    }
+
+    // Direction arrow
+    gc.strokeStyle = held ? 'rgba(255,220,80,0.65)' : 'rgba(140,220,255,0.65)';
+    gc.lineWidth   = 1.2;
+    const arrTip  = -th/2 + hw * 0.5;
+    const arrBase = th * 0.12;
+    gc.beginPath(); gc.moveTo(0, arrBase); gc.lineTo(0, arrTip); gc.stroke();
+    const arrW = hw * 0.35;
+    gc.beginPath();
+    gc.moveTo(-arrW, arrTip + arrW * 0.9);
+    gc.lineTo(0, arrTip);
+    gc.lineTo( arrW, arrTip + arrW * 0.9);
+    gc.stroke();
+
+    // Outer rim
+    gc.strokeStyle = 'rgba(80,160,220,0.50)';
+    gc.lineWidth   = 1;
+    gc.beginPath(); gc.roundRect(-hw, -th/2, fw, th, hw); gc.stroke();
+  }
+
+  function drawDetectorShelf(gc, fw, sel, lit) {
+    // Selection ring
+    if (sel) {
+      gc.strokeStyle = lit ? 'rgba(255,200,60,0.85)' : 'rgba(255,160,60,0.65)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-fw/2 - 10, -24, fw + 20, 48, 9); gc.stroke();
+    }
+    // Detection zone — faint orange cone above when lit
+    if (lit) {
+      const grad = gc.createLinearGradient(0, -10, 0, -10 - DETECT_DEPTH);
+      grad.addColorStop(0,   'rgba(255,180,40,0.22)');
+      grad.addColorStop(1,   'rgba(255,180,40,0)');
+      gc.fillStyle = grad;
+      gc.beginPath(); gc.roundRect(-(fw/2 + DETECT_WIDTH_PAD), -10 - DETECT_DEPTH,
+                                   fw + DETECT_WIDTH_PAD*2, DETECT_DEPTH, 4); gc.fill();
+    }
+    // Glow rings — orange when lit, dim when not
+    for (let j = 7; j > 0; j--) {
+      gc.fillStyle = lit
+        ? `rgba(255,160,30,${0.028 * j})`
+        : `rgba(180,100,40,${0.014 * j})`;
+      gc.beginPath(); gc.roundRect(-fw/2 - j, -10 - j, fw + j*2, 20 + j*2, 6); gc.fill();
+    }
+    // Body gradient — orange-amber
+    const g = gc.createLinearGradient(-fw/2, -10, fw/2, 10);
+    if (lit) {
+      g.addColorStop(0,   'rgba(255,220,100,0.95)');
+      g.addColorStop(0.5, 'rgba(255,180,40,0.99)');
+      g.addColorStop(1,   'rgba(210,120,10,0.90)');
+    } else {
+      g.addColorStop(0,   'rgba(160,100,60,0.85)');
+      g.addColorStop(0.5, 'rgba(130,80,40,0.90)');
+      g.addColorStop(1,   'rgba(100,60,20,0.80)');
+    }
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-fw/2, -10, fw, 20, 4); gc.fill();
+    // Specular stripe
+    gc.strokeStyle = lit ? 'rgba(255,240,160,0.70)' : 'rgba(200,140,80,0.40)';
+    gc.lineWidth   = 0.8;
+    gc.beginPath(); gc.moveTo(-fw/2 + 5, -8); gc.lineTo(fw/2 - 5, -8); gc.stroke();
+    // Rim
+    gc.strokeStyle = lit ? 'rgba(255,200,60,0.80)' : 'rgba(180,100,40,0.45)';
+    gc.lineWidth   = 1.2;
+    gc.beginPath(); gc.roundRect(-fw/2, -10, fw, 20, 4); gc.stroke();
+    // Small sensor dot on top face centre
+    gc.fillStyle = lit ? 'rgba(255,240,100,0.95)' : 'rgba(180,120,60,0.60)';
+    gc.beginPath(); gc.arc(0, -10, 3, 0, Math.PI * 2); gc.fill();
+  }
+
+  function drawBouncyShelf(gc, fw, sel) {
+    if (sel) {
+      gc.strokeStyle = 'rgba(100,255,160,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-fw/2 - 10, -24, fw + 20, 48, 9); gc.stroke();
+    }
+    // Animated pulse glow — springy green
+    for (let j = 7; j > 0; j--) {
+      gc.fillStyle = `rgba(60,255,140,${0.028 * j})`;
+      gc.beginPath(); gc.roundRect(-fw/2 - j, -10 - j, fw + j*2, 20 + j*2, 6); gc.fill();
+    }
+    // Body — bright lime/green gradient
+    const g = gc.createLinearGradient(-fw/2, -10, fw/2, 10);
+    g.addColorStop(0,   'rgba(140,255,180,0.90)');
+    g.addColorStop(0.5, 'rgba(80,255,140,0.99)');
+    g.addColorStop(1,   'rgba(30,200,100,0.85)');
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-fw/2, -10, fw, 20, 4); gc.fill();
+    // Bright specular stripe
+    gc.strokeStyle = 'rgba(220,255,230,0.75)';
+    gc.lineWidth   = 1.2;
+    gc.beginPath(); gc.moveTo(-fw/2 + 5, -7); gc.lineTo(fw/2 - 5, -7); gc.stroke();
+    // Rim
+    gc.strokeStyle = 'rgba(60,220,110,0.6)';
+    gc.lineWidth   = 1;
+    gc.beginPath(); gc.roundRect(-fw/2, -10, fw, 20, 4); gc.stroke();
+  }
+
+  function drawOneWayShelf(gc, fw, sel) {
+    if (sel) {
+      gc.strokeStyle = 'rgba(255,200,80,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-fw/2 - 10, -24, fw + 20, 48, 9); gc.stroke();
+    }
+    // Glow — orange
+    for (let j = 7; j > 0; j--) {
+      gc.fillStyle = `rgba(255,160,30,${0.022 * j})`;
+      gc.beginPath(); gc.roundRect(-fw/2 - j, -10 - j, fw + j*2, 20 + j*2, 6); gc.fill();
+    }
+    // Body — dark amber gradient (solid top, translucent bottom to hint passability)
+    const g = gc.createLinearGradient(0, -10, 0, 10);
+    g.addColorStop(0,   'rgba(255,190,50,0.97)');
+    g.addColorStop(0.5, 'rgba(220,140,20,0.90)');
+    g.addColorStop(1,   'rgba(160,90,10,0.45)');
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-fw/2, -10, fw, 20, 4); gc.fill();
+    // Rim — solid on top, faint on bottom
+    gc.strokeStyle = 'rgba(255,210,80,0.75)';
+    gc.lineWidth   = 1.5;
+    gc.beginPath(); gc.moveTo(-fw/2 + 4, -10); gc.lineTo(fw/2 - 4, -10); gc.stroke();
+    gc.strokeStyle = 'rgba(180,100,10,0.25)';
+    gc.lineWidth   = 1;
+    gc.beginPath(); gc.moveTo(-fw/2 + 4,  10); gc.lineTo(fw/2 - 4,  10); gc.stroke();
+    // Upward arrow indicators showing the pass-through direction
+    const arrowCount = Math.max(1, Math.floor(fw / 22));
+    const arrowSpacing = fw / (arrowCount + 1);
+    gc.strokeStyle = 'rgba(255,240,160,0.70)';
+    gc.lineWidth   = 1.2;
+    gc.lineCap     = 'round';
+    for (let i = 1; i <= arrowCount; i++) {
+      const ax = -fw/2 + i * arrowSpacing;
+      gc.beginPath(); gc.moveTo(ax, 4); gc.lineTo(ax, -4); gc.stroke();
+      gc.beginPath(); gc.moveTo(ax, -4); gc.lineTo(ax - 3, 0); gc.stroke();
+      gc.beginPath(); gc.moveTo(ax, -4); gc.lineTo(ax + 3, 0); gc.stroke();
+    }
+  }
+
+  function drawWindmillShelf(gc, fw, sel) {
+    // ── Wind corridor visualisation (drawn first, behind the shelf) ──────────────
+    const corridorW = fw + WIND_WIDTH_PAD * 2;
+    const halfCW    = corridorW / 2;
+    // Fading gradient stream — teal/cyan upward
+    const grad = gc.createLinearGradient(0, -10, 0, -(WIND_LENGTH + 10));
+    grad.addColorStop(0,   'rgba(80,220,200,0.18)');
+    grad.addColorStop(0.4, 'rgba(60,200,180,0.08)');
+    grad.addColorStop(1,   'rgba(40,180,160,0)');
+    gc.fillStyle = grad;
+    gc.beginPath();
+    gc.roundRect(-halfCW, -(WIND_LENGTH + 10), corridorW, WIND_LENGTH, 6);
+    gc.fill();
+
+    // Animated streaks inside the corridor
+    const t = p.frameCount;
+    gc.strokeStyle = 'rgba(120,240,210,0.30)';
+    gc.lineWidth   = 1;
+    gc.lineCap     = 'round';
+    const streakCount = 5;
+    for (let i = 0; i < streakCount; i++) {
+      // Each streak cycles upward at a different phase and x offset
+      const phase  = ((t * 1.8 + i * 137) % WIND_LENGTH);
+      const sx     = -halfCW * 0.7 + (i / streakCount) * corridorW * 0.8 - corridorW * 0.1;
+      const sy0    = -10 - phase;
+      const sy1    = sy0 - 18;
+      if (sy1 < -(WIND_LENGTH + 10)) continue;
+      gc.globalAlpha = 0.5 * (1 - phase / WIND_LENGTH);
+      gc.beginPath(); gc.moveTo(sx, sy0); gc.lineTo(sx, sy1); gc.stroke();
+    }
+    gc.globalAlpha = 1;
+
+    // ── Selection ring ────────────────────────────────────────────────────────────
+    if (sel) {
+      gc.strokeStyle = 'rgba(80,240,200,0.75)';
+      gc.lineWidth   = 2;
+      gc.beginPath(); gc.roundRect(-fw/2 - 10, -24, fw + 20, 48, 9); gc.stroke();
+    }
+
+    // ── Shelf body — dark teal ─────────────────────────────────────────────────
+    for (let j = 7; j > 0; j--) {
+      gc.fillStyle = `rgba(40,180,160,${0.022 * j})`;
+      gc.beginPath(); gc.roundRect(-fw/2 - j, -10 - j, fw + j*2, 20 + j*2, 6); gc.fill();
+    }
+    const g = gc.createLinearGradient(-fw/2, -10, fw/2, 10);
+    g.addColorStop(0,   'rgba(100,230,210,0.90)');
+    g.addColorStop(0.5, 'rgba(60,210,185,0.99)');
+    g.addColorStop(1,   'rgba(30,160,145,0.85)');
+    gc.fillStyle = g;
+    gc.beginPath(); gc.roundRect(-fw/2, -10, fw, 20, 4); gc.fill();
+    gc.strokeStyle = 'rgba(140,255,235,0.65)';
+    gc.lineWidth   = 1.2;
+    gc.beginPath(); gc.moveTo(-fw/2 + 5, -8); gc.lineTo(fw/2 - 5, -8); gc.stroke();
+    gc.strokeStyle = 'rgba(40,180,160,0.5)';
+    gc.lineWidth   = 1;
+    gc.beginPath(); gc.roundRect(-fw/2, -10, fw, 20, 4); gc.stroke();
+
+    // ── Spinning fan blades ────────────────────────────────────────────────────
+    const bladeAngle = (p.frameCount * 0.07) % (Math.PI * 2);
+    const bladeCount = 4;
+    const bladeLen   = Math.min(fw * 0.38, 14);
+    gc.save();
+    gc.translate(0, -10); // centre of fan at top face
+    gc.strokeStyle = 'rgba(200,255,245,0.85)';
+    gc.lineWidth   = 2;
+    gc.lineCap     = 'round';
+    for (let i = 0; i < bladeCount; i++) {
+      const a = bladeAngle + (i / bladeCount) * Math.PI * 2;
+      gc.beginPath();
+      gc.moveTo(0, 0);
+      gc.lineTo(Math.cos(a) * bladeLen, Math.sin(a) * bladeLen);
+      gc.stroke();
+    }
+    // Hub
+    gc.fillStyle = 'rgba(255,255,255,0.7)';
+    gc.beginPath(); gc.arc(0, 0, 2.5, 0, Math.PI * 2); gc.fill();
+    gc.restore();
+  }
+  function drawWallEdges() {
+    const gc=p.drawingContext;
+    const gl=gc.createLinearGradient(0,0,16,0);
+    gl.addColorStop(0,'rgba(150,100,220,0.45)'); gl.addColorStop(1,'rgba(0,0,0,0)');
+    gc.fillStyle=gl; gc.fillRect(0,0,16,H);
+    const gr=gc.createLinearGradient(W-16,0,W,0);
+    gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(150,100,220,0.45)');
+    gc.fillStyle=gr; gc.fillRect(W-16,0,16,H);
+  }
+
+  // ── Render: launch zone line ──────────────────────────────────────────────────
+  function drawLaunchZone() {
+    const gc=p.drawingContext;
+    const lg=gc.createLinearGradient(0,0,W,0);
+    lg.addColorStop(0,   'rgba(200,160,255,0)');
+    lg.addColorStop(0.15,'rgba(225,185,255,0.65)');
+    lg.addColorStop(0.85,'rgba(225,185,255,0.65)');
+    lg.addColorStop(1,   'rgba(200,160,255,0)');
+    gc.strokeStyle=lg; gc.lineWidth=1.2;
+    gc.beginPath(); gc.moveTo(0,FLOOR_Y); gc.lineTo(W,FLOOR_Y); gc.stroke();
+  }
+
+  // ── Render: ball ─────────────────────────────────────────────────────────────
+  function drawBall(b) {
+    const x=fin(b.body.position.x), y=fin(b.body.position.y);
+    if (x===0&&y===0) return;
+    const gc=p.drawingContext;
+    const r = b.radius ?? BR;
+
+    const lifeRatio = b.lifeFrames / b.totalLifeFrames; // 1 → 0
+    const fadeAlpha = p.constrain(p.map(lifeRatio, 0, 0.15, 0, 1), 0, 1);
+
+    gc.globalAlpha = fadeAlpha;
+
+    const gw=gc.createRadialGradient(x,y,0, x,y,r*2.4);
+    gw.addColorStop(0,hexA(b.palette[1],0.2)); gw.addColorStop(1,'rgba(0,0,0,0)');
+    gc.fillStyle=gw; gc.beginPath(); gc.arc(x,y,r*2.4,0,Math.PI*2); gc.fill();
+
+    const gr=gc.createRadialGradient(x-r*.32,y-r*.38,r*.04, x,y,r);
+    gr.addColorStop(0,b.palette[0]); gr.addColorStop(.55,b.palette[1]); gr.addColorStop(1,b.palette[2]);
+    gc.fillStyle=gr; gc.beginPath(); gc.arc(x,y,r,0,Math.PI*2); gc.fill();
+
+    const sp=gc.createRadialGradient(x-r*.3,y-r*.4,0, x-r*.3,y-r*.4,r*.48);
+    sp.addColorStop(0,'rgba(255,255,255,0.78)'); sp.addColorStop(1,'rgba(255,255,255,0)');
+    gc.fillStyle=sp; gc.beginPath(); gc.arc(x,y,r,0,Math.PI*2); gc.fill();
+    gc.strokeStyle='rgba(255,255,255,0.1)'; gc.lineWidth=0.7; gc.stroke();
+
+    // Timer arc — visible in the last 2 seconds
+    const TIMER_SHOW = 2 * 60; // frames
+    if (b.lifeFrames <= TIMER_SHOW) {
+      const arcFrac = b.lifeFrames / TIMER_SHOW; // 1→0
+      const startAngle = -Math.PI / 2;
+      const endAngle   = startAngle + arcFrac * Math.PI * 2;
+      gc.strokeStyle = hexA(b.palette[0], 0.85);
+      gc.lineWidth   = 2.2;
+      gc.lineCap     = 'round';
+      gc.beginPath();
+      gc.arc(x, y, r + 4, startAngle, endAngle);
+      gc.stroke();
+    }
+
+    gc.globalAlpha = 1;
+  }
+
+  // ── Render: idle preview ──────────────────────────────────────────────────────
+  function drawIdlePreview() {
+    if (inventory.length === 0) return; // nothing to throw
+    const pal = getBallPalette(inventory[0].type);
+    let px=fin(p.mouseX, W/2);
+    if (px<20||px>W-20) px=W/2;
+    const py=FLOOR_Y+LAUNCH_H*0.35;
+    const gc=p.drawingContext;
+
+    const gr=gc.createRadialGradient(px-BR*.3,py-BR*.35,0, px,py,BR);
+    gr.addColorStop(0,hexA(pal[0],0.55));
+    gr.addColorStop(0.6,hexA(pal[1],0.45));
+    gr.addColorStop(1,hexA(pal[2],0.28));
+    gc.fillStyle=gr; gc.beginPath(); gc.arc(px,py,BR,0,Math.PI*2); gc.fill();
+    gc.strokeStyle='rgba(255,255,255,0.18)'; gc.lineWidth=1; gc.stroke();
+
+    const pulse=(Math.sin(p.frameCount*.065)+1)/2;
+    gc.strokeStyle=hexA(pal[1],0.22*(1-pulse)); gc.lineWidth=1.5;
+    gc.beginPath(); gc.arc(px,py,BR+4+pulse*6,0,Math.PI*2); gc.stroke();
+  }
+
+
+  // ── Render: aim ───────────────────────────────────────────────────────────────
+  function drawAim() {
+    const dx=startX-curX, dy=startY-curY;
+    const dist=Math.hypot(dx,dy);
+    if (!isFinite(dist)||dist<1) return;
+
+    const palette = getBallPalette(inventory[0]?.type ?? 'basic');
+    const pwr=p.constrain(dist*cfg.powerMult, 0, 22);
+    const nx=dx/dist, ny=dy/dist;
+    const sx=p.constrain(fin(startX,W/2), BR+20, W-BR-20);
+    const sy=FLOOR_Y-BR-2;
+    const gc=p.drawingContext;
+
+    const isCancelled = ny > 0; // downward — shot would be cancelled
+
+    if (isCancelled) {
+      // Greyed-out ball + ✕ symbol
+      gc.fillStyle = 'rgba(255,255,255,0.18)';
+      gc.beginPath(); gc.arc(sx, sy, BR, 0, Math.PI * 2); gc.fill();
+      gc.strokeStyle = 'rgba(255,80,80,0.80)';
+      gc.lineWidth   = 2.5; gc.lineCap = 'round';
+      const cr = BR * 0.5;
+      gc.beginPath(); gc.moveTo(sx - cr, sy - cr); gc.lineTo(sx + cr, sy + cr); gc.stroke();
+      gc.beginPath(); gc.moveTo(sx + cr, sy - cr); gc.lineTo(sx - cr, sy + cr); gc.stroke();
+      return;
+    }
+
+    // Trajectory
+    let vx=nx*pwr, vy=ny*pwr, bx=sx, by=sy;
+    const gx=cfg.gravityX*0.5, gy=cfg.gravityY*0.5;
+    for (let i=0;i<34;i++) {
+      vx+=gx; vy+=gy; bx+=vx; by+=vy;
+      if (by>FLOOR_Y+5||!isFinite(bx)||!isFinite(by)) break;
+      gc.fillStyle=hexA(palette[1], p.map(i,0,34,0.7,0)*0.85);
+      gc.beginPath(); gc.arc(bx,by,p.map(i,0,34,BR*.38,1.2),0,Math.PI*2); gc.fill();
+    }
+
+    // Power bar
+    const barW=Math.min(180,W*.40), barX=fin(sx-barW/2,10), barY=FLOOR_Y+10;
+    gc.fillStyle='rgba(255,255,255,0.07)';
+    gc.beginPath(); gc.roundRect(barX,barY,barW,6,3); gc.fill();
+    if (pwr>0) {
+      const bg=gc.createLinearGradient(barX,0,barX+barW,0);
+      bg.addColorStop(0,hexA(palette[0],0.9)); bg.addColorStop(1,hexA(palette[2],0.9));
+      gc.fillStyle=bg;
+      gc.beginPath(); gc.roundRect(barX,barY,(pwr/22)*barW,6,3); gc.fill();
+    }
+
+    // Ball at spawn
+    const gr=gc.createRadialGradient(sx-BR*.3,sy-BR*.35,0, sx,sy,BR);
+    gr.addColorStop(0,palette[0]); gr.addColorStop(.55,palette[1]); gr.addColorStop(1,palette[2]);
+    gc.fillStyle=gr; gc.beginPath(); gc.arc(sx,sy,BR,0,Math.PI*2); gc.fill();
+
+    // ── Cue stick ───────────────────────────────────────────────────────────────
+    if (dist > 8) {
+      const stickLen = p.constrain(dist * .85, 0, 95);
+      const ex = sx - nx * stickLen, ey = sy - ny * stickLen;
+      const sg = gc.createLinearGradient(sx, sy, fin(ex, sx), fin(ey, sy));
+      sg.addColorStop(0, hexA(palette[1], 0.9));
+      sg.addColorStop(1, hexA(palette[0], 0.12));
+      gc.strokeStyle = sg; gc.lineWidth = 3; gc.lineCap = 'round';
+      gc.beginPath();
+      gc.moveTo(sx + nx * (BR + 3), sy + ny * (BR + 3));
+      gc.lineTo(ex, ey);
+      gc.stroke();
+    }
+  }
+
+  // ── Render: glows ─────────────────────────────────────────────────────────────
+  function drawGlows() {
+    const gc=p.drawingContext;
+    gc.save(); gc.globalCompositeOperation='screen';
+    for (const b of balls) {
+      const x=fin(b.body.position.x), y=fin(b.body.position.y);
+      const spd=Math.hypot(b.body.velocity.x,b.body.velocity.y);
+      const a=p.map(fin(spd,0),0,10,0.03,0.22);
+      const gw=gc.createRadialGradient(x,y,0, x,y,BR*3.2);
+      gw.addColorStop(0,hexA(b.palette[1],a)); gw.addColorStop(1,'rgba(0,0,0,0)');
+      gc.fillStyle=gw; gc.beginPath(); gc.arc(x,y,BR*3.2,0,Math.PI*2); gc.fill();
+    }
+    gc.restore();
+  }
+
+}); // end p5
+</script>
+</body>
+</html>
