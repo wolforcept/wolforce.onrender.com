@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WikiCards</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  --bg:           #0d0d0f;
+  --bg2:          #13131a;
+  --bg3:          #1a1a24;
+  --surface:      #1e1e2a;
+  --border:       #2a2a3a;
+  --gold:         #c9a84c;
+  --gold-light:   #e8c96a;
+  --gold-dim:     #7a6030;
+  --text:         #e8e6df;
+  --text-dim:     #888080;
+  --text-muted:   #554f4f;
+
+  --common:       #9a9a9a;
+  --uncommon:     #4caf6a;
+  --rare:         #4a8fdf;
+  --epic:         #9b59d0;
+  --legendary:    #e8540a;
+
+
+  --radius:    10px;
+  --card-w:    220px;
+  --card-h:    320px;
+  --anim-fast: 150ms;
+  --anim-med:  300ms;
+  --anim-slow: 600ms;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Source Serif 4', Georgia, serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+#app { display: flex; flex-direction: column; min-height: 100vh; }
+
+header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 20px;
+  height: 64px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+.logo span { color: var(--text); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Header icon buttons (settings, help) */
+.header-icon-btn {
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 7px; color: var(--text-dim); font-size: 0.9rem;
+  cursor: pointer; transition: all var(--anim-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.header-icon-btn:hover { color: var(--text); border-color: var(--gold-dim); background: var(--bg3); }
+
+.balance-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg3);
+  border: 1px solid var(--gold-dim);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  color: var(--gold-light);
+}
+#balance-amount {
+  font-weight: 700;
+  transition: transform var(--anim-fast), color var(--anim-fast);
+}
+#balance-amount.bump { transform: scale(1.25); color: #fff; }
+
+nav { display: flex; gap: 4px; }
+
+main { flex: 1; padding: 32px; }
+
+/* ============================================================
+   VIEWS — only active one is shown
+   ============================================================ */
+.view { display: none; }
+.view.active { display: block; animation: viewIn var(--anim-med) ease; }
+
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   SHARED
+   ============================================================ */
+.gold-rule {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  margin: 28px 0;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: 6px;
+  border: none;
+  font-family: 'Source Serif 4', serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all var(--anim-fast);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+.btn:not(:disabled):hover  { transform: translateY(-1px); }
+.btn:not(:disabled):active { transform: translateY(0); }
+
+.btn-primary  { background: var(--gold); color: #0d0d0f; }
+.btn-primary:not(:disabled):hover { background: var(--gold-light); }
+
+.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+.btn-secondary:not(:disabled):hover { border-color: var(--gold-dim); color: var(--text); }
+
+.btn-danger { background: transparent; border: 1px solid #5a2a2a; color: #c06060; }
+.btn-danger:not(:disabled):hover { background: rgba(192,96,96,0.1); }
+
+.btn-sm   { padding: 5px 12px; font-size: 0.8rem; }
+.btn-full { width: 100%; }
+
+/* ── Header pack buttons ──────────────────────────────────── */
+.header-pack-btns { display: flex; gap: 8px; }
+
+.btn-pack {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 6px; border: none;
+  font-family: 'Source Serif 4', serif; font-size: 0.82rem;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: all var(--anim-fast);
+}
+.btn-pack:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-pack:not(:disabled):hover  { transform: translateY(-1px); }
+.btn-pack:not(:disabled):active { transform: translateY(0); }
+
+.btn-pack-random {
+  background: var(--gold); color: #0d0d0f;
+}
+.btn-pack-random:not(:disabled):hover { background: var(--gold-light); }
+
+
+
+/* ============================================================
+   PACK OPENING VIEW
+   ============================================================ */
+#view-opening {
+  display: none;
+  min-height: 60vh;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 28px;
+  text-align: center;
+}
+#view-opening.active { display: flex; }
+
+.pack-burst { width: 120px; height: 120px; position: relative; display: flex; align-items: center; justify-content: center; }
+.pack-burst-icon { font-size: 5rem; animation: packFloat 1.5s ease-in-out infinite; position: relative; z-index: 2; }
+.pack-burst-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid var(--gold); opacity: 0;
+  animation: packRing 1.5s ease-out infinite;
+}
+.pack-burst-ring:nth-child(2) { animation-delay: 0.5s; }
+.pack-burst-ring:nth-child(3) { animation-delay: 1.0s; }
+
+@keyframes packFloat {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%       { transform: translateY(-10px) rotate(3deg); }
+}
+@keyframes packRing {
+  0%   { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.opening-label { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--gold); }
+.opening-sub   { color: var(--text-dim); font-size: 0.9rem; font-style: italic; }
+
+.pack-progress { width: 280px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.pack-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
+  width: 0%;
+  transition: width 0.4s ease;
+  border-radius: 2px;
+}
+
+/* ============================================================
+   CARD REVEAL VIEW
+   ============================================================ */
+#view-reveal {
+  display: none;
+  min-height: 70vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#view-reveal.active { display: flex; }
+
+.reveal-counter {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.reveal-counter strong { color: var(--gold); }
+
+/* 3D flip container */
+.reveal-flip-scene {
+  width: var(--card-w);
+  height: var(--card-h);
+  perspective: 900px;
+}
+.reveal-flip-inner {
+  width: 100%; height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.reveal-flip-inner.flipped { transform: rotateY(180deg); }
+
+.reveal-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Card back */
+.reveal-face-back {
+  background: var(--bg3);
+  border: 2px solid var(--gold-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.reveal-face-back::before {
+  content: '';
+  position: absolute; inset: 8px;
+  border: 1px solid var(--gold-dim);
+  border-radius: 6px;
+  opacity: 0.4;
+}
+
+/* Card front — populated by JS */
+.reveal-face-front {
+  transform: rotateY(180deg);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+}
+
+/* Progress bar under the card */
+.reveal-timer-bar {
+  width: var(--card-w);
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.reveal-timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
+  border-radius: 2px;
+  width: 100%;
+  transform-origin: left;
+  /* transition set dynamically in JS */
+}
+
+.reveal-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+/* Rarity-specific glow on the front face after flip */
+.reveal-face-front[data-rarity="common"]    { box-shadow: 0 8px 30px rgba(154,154,154,0.3); }
+.reveal-face-front[data-rarity="uncommon"]  { box-shadow: 0 8px 36px rgba(76,175,106,0.45); }
+.reveal-face-front[data-rarity="rare"]      { box-shadow: 0 8px 40px rgba(74,143,223,0.55); }
+.reveal-face-front[data-rarity="epic"]      { box-shadow: 0 8px 48px rgba(155,89,208,0.65); }
+.reveal-face-front[data-rarity="legendary"] { box-shadow: 0 8px 60px rgba(232,84,10,0.8), 0 0 100px rgba(232,84,10,0.2); }
+
+
+.binder-toolbar {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.binder-toolbar select {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 6px 12px; border-radius: 6px;
+  font-family: 'Source Serif 4', serif; font-size: 0.85rem; cursor: pointer;
+}
+.binder-count { color: var(--text-dim); font-size: 0.85rem; font-style: italic; margin-right: auto; }
+
+/* Latest-pack banner */
+.latest-pack-banner {
+  background: var(--bg3);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  animation: viewIn var(--anim-med) ease;
+}
+.banner-label { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--gold); }
+.banner-sub   { font-size: 0.8rem; color: var(--text-dim); margin-top: 2px; }
+.banner-actions { display: flex; gap: 8px; }
+
+/* New-card highlight: gold outline ring */
+.card.is-new::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  border: 2px solid var(--gold);
+  pointer-events: none;
+  animation: newRing 1.8s ease-out forwards;
+}
+@keyframes newRing {
+  0%   { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+.binder-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+
+@media (max-width: 520px) {
+  main { padding: 16px; }
+  .binder-grid { gap: 12px; }
+  .card {
+    width: calc(50vw - 22px);
+    height: calc((50vw - 22px) * 1.455);
+  }
+}
+
+.binder-empty {
+  text-align: center; padding: 80px 20px;
+  color: var(--text-muted); font-style: italic; font-size: 1.1rem;
+}
+
+.binder-section-label {
+  width: 100%;
+  font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-muted); padding: 4px 0 10px;
+  border-bottom: 1px solid var(--border);
+}
+.binder-section-label + .binder-section-label { margin-top: 16px; }
+
+/* ============================================================
+   CARD COMPONENT
+   ============================================================ */
+.card {
+  width: var(--card-w); height: var(--card-h);
+  border-radius: 10px; background: #f0ede4;
+  position: relative; overflow: visible;
+  transition: transform var(--anim-med), box-shadow var(--anim-med);
+  flex-shrink: 0; display: flex; flex-direction: column;
+}
+
+/* Inner clip: contains image + body + footer within the card bounds */
+.card-inner {
+  display: flex; flex-direction: column;
+  width: 100%; height: 100%;
+  border-radius: 10px; overflow: hidden;
+  flex: 1;
+}
+.card:hover { transform: translateY(-4px) scale(1.02); }
+
+.card-border {
+  position: absolute; inset: 0; border-radius: 10px;
+  border: 2px solid transparent; pointer-events: none; z-index: 10;
+  overflow: hidden;
+}
+.card[data-rarity="common"]    .card-border { border-color: var(--common);    box-shadow: 0 0 10px rgba(154,154,154,0.25); }
+.card[data-rarity="uncommon"]  .card-border { border-color: var(--uncommon);  box-shadow: 0 0 12px rgba(76,175,106,0.4); }
+.card[data-rarity="rare"]      .card-border { border-color: var(--rare);      box-shadow: 0 0 14px rgba(74,143,223,0.5); }
+.card[data-rarity="epic"]      .card-border { border-color: var(--epic);      box-shadow: 0 0 18px rgba(155,89,208,0.6); }
+.card[data-rarity="legendary"] .card-border { border-color: var(--legendary); box-shadow: 0 0 24px rgba(232,84,10,0.7), 0 0 48px rgba(232,84,10,0.25); }
+
+/* Rarity symbol — top-right corner, overlapping the image */
+.card-rarity-icon {
+  position: absolute; top: 8px; right: 8px;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; z-index: 11;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+.card[data-rarity="common"]    .card-rarity-icon { background: #3a3a3a; color: var(--common); }
+.card[data-rarity="uncommon"]  .card-rarity-icon { background: #1a3020; color: var(--uncommon); }
+.card[data-rarity="rare"]      .card-rarity-icon { background: #0e1f3a; color: var(--rare); }
+.card[data-rarity="epic"]      .card-rarity-icon { background: #1e0e30; color: var(--epic); }
+.card[data-rarity="legendary"] .card-rarity-icon { background: #2a0e04; color: var(--legendary); }
+
+/* Lock button — top-left corner */
+.card-lock-btn {
+  position: absolute; top: 8px; left: 8px;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; z-index: 11; cursor: pointer;
+  border: none; background: rgba(20,18,14,0.55);
+  color: #888; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  transition: background var(--anim-fast), color var(--anim-fast), transform var(--anim-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.card-lock-btn:hover { transform: scale(1.15); }
+.card-lock-btn.is-locked { background: rgba(20,18,14,0.8); color: var(--gold); }
+
+/* Locked card: subtle warm overlay tint */
+.card.is-locked { outline: 2px solid var(--gold-dim); outline-offset: 2px; }
+
+.card-img {
+  width: 100%; height: 120px;
+  object-fit: cover; object-position: center top;
+  display: block; background: #d8d4c8;
+  flex-shrink: 0; flex-grow: 0;
+  border-radius: 8px 8px 0 0;
+  min-height: 120px; max-height: 120px;
+}
+.card-img-placeholder {
+  width: 100%; height: 120px;
+  background: linear-gradient(135deg, #d8d4c8 0%, #c0bcb0 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #a09890; font-size: 2rem; flex-shrink: 0; border-radius: 8px 8px 0 0;
+}
+
+.card-body {
+  padding: 10px 12px 6px; flex: 1;
+  display: flex; flex-direction: column; background: #f0ede4;
+}
+
+.card-title { font-family: 'Playfair Display', serif; font-size: 0.93rem; font-weight: 700; color: #1a1614; line-height: 1.25; margin-bottom: 5px; }
+.card-desc  { font-size: 0.68rem; color: #5a5048; line-height: 1.45; flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
+
+/* Footer — icon-only buttons */
+.card-footer {
+  display: flex; gap: 4px; padding: 7px 8px;
+  background: #e4e0d4; border-top: 1px solid #ccc8ba;
+  flex-shrink: 0; border-radius: 0 0 8px 8px;
+}
+
+.card-btn {
+  flex: 1; height: 32px;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  border: none; border-radius: 5px; cursor: pointer;
+  font-size: 0.75rem; font-family: system-ui, -apple-system, sans-serif;
+  font-weight: 600; letter-spacing: 0.02em;
+  transition: all var(--anim-fast);
+  position: relative;
+}
+.card-btn:hover  { transform: translateY(-1px); }
+.card-btn:active { transform: translateY(0); }
+.card-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+
+/* Tooltip on hover */
+.card-btn::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a24; color: #e8e6df;
+  font-size: 0.68rem; white-space: nowrap;
+  padding: 3px 8px; border-radius: 4px;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.15s ease;
+  font-family: 'Source Serif 4', serif;
+  font-style: italic;
+  z-index: 20;
+}
+.card-btn:hover::after { opacity: 1; }
+
+.card-btn-sell    { background: #2a3d2a; color: #7abf7a; }
+.card-btn-sell:not(:disabled):hover    { background: #334d33; }
+
+.card-btn-expand  { background: #1a1020; color: #a070d0; }
+.card-btn-expand:not(:disabled):hover  { background: #231530; }
+
+.card-btn-wiki    { background: #1a2030; color: #7090c0; }
+.card-btn-wiki:not(:disabled):hover    { background: #222840; }
+
+/* card drop-in animation */
+@keyframes cardDrop {
+  from { opacity: 0; transform: translateY(20px) scale(0.93); }
+  to   { opacity: 1; transform: none; }
+}
+.card.animating { opacity: 0; }
+.card.dropped   { animation: cardDrop 0.35s ease forwards; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+#toast-container {
+  position: fixed; bottom: 24px; right: 24px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 999; pointer-events: none;
+}
+.toast {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--gold); color: var(--text);
+  font-size: 0.85rem; padding: 10px 16px; border-radius: 6px;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
+  pointer-events: auto;
+}
+.toast.success { border-left-color: var(--uncommon); }
+.toast.error   { border-left-color: #c06060; }
+@keyframes toastIn  { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: none; } }
+@keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateX(20px); } }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+#modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 300;
+  align-items: center; justify-content: center;
+  padding: 24px 0;
+}
+#modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px;
+  max-width: 420px; width: 90%;
+  max-height: calc(100vh - 120px);
+  display: flex; flex-direction: column;
+  animation: viewIn 0.25s ease;
+}
+.modal h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--text); margin-bottom: 10px; flex-shrink: 0; }
+.modal p  { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.6; flex-shrink: 0; }
+#modal-extra { overflow-y: auto; flex: 1; min-height: 0; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; flex-shrink: 0; }
+
+
+
+/* ============================================================
+   DECORATIVE BG
+   ============================================================ */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 800px 600px at 20% 10%, rgba(201,168,76,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 600px 500px at 80% 80%, rgba(74,143,223,0.03) 0%, transparent 60%);
+}
+/* ── Help modal ──────────────────────────────────────────────── */
+.help-modal { max-width: 560px; }
+
+.help-game-intro {
+  font-size: 0.88rem; color: var(--text-dim); line-height: 1.65;
+  margin-bottom: 20px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.9rem; color: var(--gold);
+  margin: 16px 0 10px; letter-spacing: 0.04em;
+}
+
+.help-card-demo {
+  display: flex; gap: 20px; align-items: flex-start;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+
+.help-card-preview {
+  flex-shrink: 0;
+  width: 140px;
+  background: #f0ede4; border-radius: 8px;
+  border: 2px solid var(--rare); box-shadow: 0 0 14px rgba(74,143,223,0.4);
+  overflow: hidden; font-size: 0.75rem;
+}
+.help-card-preview-img {
+  width: 100%; height: 70px;
+  background: linear-gradient(135deg, #c8d8e8, #a8b8d0);
+  display: flex; align-items: center; justify-content: center;
+  color: #6080a0; font-size: 1.4rem; position: relative;
+}
+.help-card-preview-icon {
+  position: absolute; top: 5px; right: 5px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #0e1f3a; color: var(--rare);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem;
+}
+.help-card-preview-lock {
+  position: absolute; top: 5px; left: 5px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(20,18,14,0.6); color: #888;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem;
+}
+.help-card-preview-body { padding: 7px 8px; color: #1a1614; }
+.help-card-preview-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 0.78rem; margin-bottom: 3px; }
+.help-card-preview-desc  { font-size: 0.62rem; color: #5a5048; line-height: 1.4; }
+.help-card-preview-footer {
+  display: flex; gap: 3px; padding: 5px 6px;
+  background: #e4e0d4; border-top: 1px solid #ccc8ba;
+}
+.help-card-preview-btn {
+  flex: 1; height: 22px; border-radius: 4px; border: none;
+  font-size: 0.58rem; display: flex; align-items: center; justify-content: center; gap: 2px;
+  font-family: system-ui, sans-serif; font-weight: 600;
+}
+.help-card-preview-btn.sell   { background: #2a3d2a; color: #7abf7a; }
+.help-card-preview-btn.expand { background: #1a1020; color: #a070d0; }
+.help-card-preview-btn.wiki   { background: #1a2030; color: #7090c0; }
+
+.help-annotations { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 10px; }
+.help-annotation {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 0.8rem; color: var(--text-dim); line-height: 1.5;
+}
+.help-annotation-icon {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; margin-top: 1px;
+}
+.help-annotation-icon.sell   { background: #2a3d2a; color: #7abf7a; }
+.help-annotation-icon.expand { background: #1a1020; color: #a070d0; }
+.help-annotation-icon.wiki   { background: #1a2030; color: #7090c0; }
+.help-annotation-icon.lock   { background: var(--bg3); color: var(--text-muted); border: 1px solid var(--border); }
+.help-annotation-icon.rarity { background: #0e1f3a; color: var(--rare); }
+
+.help-pack-callout {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  display: flex; gap: 14px; align-items: center;
+  position: relative; margin-top: 4px;
+}
+.help-pack-callout::before {
+  content: '';
+  position: absolute; top: -8px; right: 60px;
+  width: 0; height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--border);
+}
+.help-pack-callout::after {
+  content: '';
+  position: absolute; top: -7px; right: 61px;
+  width: 0; height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 7px solid var(--bg3);
+}
+.help-pack-icon-demo {
+  width: 38px; height: 38px; border-radius: 7px;
+  background: var(--gold); color: #0d0d0f;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+}
+.help-pack-text { font-size: 0.82rem; color: var(--text-dim); line-height: 1.55; }
+.help-pack-text strong { color: var(--text); }
+
+#app { position: relative; z-index: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="header-left">
+      <button class="header-icon-btn" id="btn-settings" title="Settings">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+      <button class="header-icon-btn" id="btn-help" title="Help">
+        <i class="fa-solid fa-circle-question"></i>
+      </button>
+    </div>
+    <div class="logo"><span>Wiki</span>Cards</div>
+    <div class="header-right">
+      <div class="balance-display">
+        <i class="fa-solid fa-coins"></i>
+        <span id="balance-amount">0</span>
+      </div>
+      <div class="header-pack-btns">
+        <button class="btn-pack btn-pack-random" id="btn-random-pack" title="Open a random pack ($5)">
+          <i class="fa-solid fa-shuffle"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+
+    <!-- ── PACK OPENING ──────────────────────────────── -->
+    <div class="view" id="view-opening">
+      <div class="pack-burst">
+        <div class="pack-burst-ring"></div>
+        <div class="pack-burst-ring"></div>
+        <div class="pack-burst-ring"></div>
+        <span class="pack-burst-icon">📦</span>
+      </div>
+      <div class="opening-label" id="opening-label">Opening pack…</div>
+      <div class="opening-sub"   id="opening-sub">Fetching articles from Wikipedia</div>
+      <div class="pack-progress">
+        <div class="pack-progress-fill" id="pack-progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- ── CARD REVEAL ───────────────────────────────── -->
+    <div class="view" id="view-reveal">
+      <div class="reveal-counter" id="reveal-counter"></div>
+      <div class="reveal-flip-scene">
+        <div class="reveal-flip-inner" id="reveal-flip-inner">
+          <div class="reveal-face reveal-face-back">🌐</div>
+          <div class="reveal-face reveal-face-front" id="reveal-face-front"></div>
+        </div>
+      </div>
+      <div class="reveal-timer-bar">
+        <div class="reveal-timer-fill" id="reveal-timer-fill"></div>
+      </div>
+      <div class="reveal-hint">Click anywhere to reveal next card</div>
+    </div>
+
+    <!-- ── BINDER ─────────────────────────────────────── -->
+    <div class="view active" id="view-binder">
+
+      <div class="latest-pack-banner" id="latest-banner" style="display:none">
+        <div>
+          <div class="banner-label" id="banner-label">Latest Pack</div>
+          <div class="banner-sub"   id="banner-sub"></div>
+        </div>
+        <div class="banner-actions" id="banner-actions"></div>
+      </div>
+
+      <div class="binder-toolbar">
+        <span class="binder-count" id="binder-count"></span>
+        <i class="fa-solid fa-arrow-up-wide-short" style="color:var(--text-muted);font-size:0.8rem"></i>
+        <select id="binder-sort">
+          <option value="acquired">Recently Acquired</option>
+          <option value="rarity-desc">Rarity: High → Low</option>
+          <option value="rarity-asc">Rarity: Low → High</option>
+          <option value="value-desc">Value: High → Low</option>
+          <option value="title-asc">Title: A → Z</option>
+        </select>
+        <button class="btn btn-danger btn-sm" id="binder-sell-all">
+          <i class="fa-solid fa-sack-dollar"></i> Sell All
+        </button>
+      </div>
+
+      <div class="binder-grid" id="binder-grid"></div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<div id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <p  id="modal-body"></p>
+    <div id="modal-extra"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary"   id="modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// #region DATA — constants, type definitions, state object
+// ============================================================
+
+const PACK_COST   = 5;
+const PACK_SIZE   = 7;
+const STORAGE_KEY = 'wikicards_save_v3';
+
+/**
+ * Rarity tiers ordered lowest to highest.
+ * expandCost is inverse of rarity: common cards are expensive to expand
+ * (they link to obscure topics), legendary cards are cheap (dense knowledge nodes).
+ */
+const RARITY_TIERS = [
+  { id: 'common',    label: 'Common',    minViews: 0,         sellMin: 1,    sellMax: 10,   expandCostMin: 400,  expandCostMax: 600  },
+  { id: 'uncommon',  label: 'Uncommon',  minViews: 500,       sellMin: 10,   sellMax: 60,   expandCostMin: 100,  expandCostMax: 200  },
+  { id: 'rare',      label: 'Rare',      minViews: 10_000,    sellMin: 60,   sellMax: 350,  expandCostMin: 35,   expandCostMax: 65   },
+  { id: 'epic',      label: 'Epic',      minViews: 150_000,   sellMin: 350,  sellMax: 2000, expandCostMin: 10,   expandCostMax: 20   },
+  { id: 'legendary', label: 'Legendary', minViews: 1_000_000, sellMin: 2000, sellMax: 5000, expandCostMin: 3,    expandCostMax: 7    },
+];
+
+const RARITY_RANK = Object.fromEntries(RARITY_TIERS.map((t, i) => [t.id, i]));
+
+/**
+ * @typedef {{
+ *   id:        string,
+ *   title:     string,
+ *   desc:      string,
+ *   thumb:     string|null,
+ *   rarity:    string,
+ *   value:     number,
+ *   sessionId: string,
+ *   acquired:  number,
+ *   locked:    boolean
+ * }} CardData
+ *
+ * State.sessionId is the ID of the most recently opened pack.
+ * Cards from that session are "new" — shown with highlight in the binder.
+ * Nulling sessionId clears the highlight.
+ */
+const State = {
+  balance:   0,
+  binder:    /** @type {CardData[]} */ ([]),
+  sessionId: /** @type {string|null} */ (null),
+  firstTime: true,
+};
+
+// #endregion
+
+// ============================================================
+// #region STORAGE — persist and restore state to localStorage
+// ============================================================
+
+const Storage = {
+  save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        balance:   State.balance,
+        binder:    State.binder,
+        sessionId: State.sessionId,
+        firstTime: State.firstTime,
+      }));
+    } catch (e) { console.warn('[Storage] save failed:', e); }
+  },
+
+  load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const d        = JSON.parse(raw);
+      State.balance   = d.balance   ?? 0;
+      State.binder    = d.binder    ?? [];
+      State.sessionId = d.sessionId ?? null;
+      State.firstTime = d.firstTime ?? true;
+    } catch (e) { console.warn('[Storage] load failed:', e); }
+  },
+};
+
+// #endregion
+
+// ============================================================
+// #region API — Wikipedia / Wikimedia data fetching
+// ============================================================
+
+const WIKI_API     = 'https://en.wikipedia.org/w/api.php';
+const PAGEVIEW_API = 'https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user';
+
+const Api = {
+  _url(params) {
+    return `${WIKI_API}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`;
+  },
+
+  /** Batch-fetch title + extract + thumbnail + pageprops for multiple titles in one HTTP request. */
+  async fetchCardData(titles) {
+    const url  = Api._url({
+      action: 'query', titles: titles.join('|'),
+      prop: 'extracts|pageimages|pageprops', exintro: '1', exsentences: '2', explaintext: '1',
+      piprop: 'thumbnail', pithumbsize: '400',
+    });
+    const data = await fetch(url).then(r => r.json());
+    return Object.values(data.query.pages);
+  },
+
+  /** Returns true if a wiki page object is a disambiguation page. */
+  isDisambiguation(page) {
+    // Official flag set by the Disambiguation template
+    if (page.pageprops?.disambiguation !== undefined) return true;
+    // Fallback: extract starts with the characteristic phrasing
+    const ex = (page.extract || '').trim().toLowerCase();
+    return ex.startsWith('may refer to') || ex.startsWith('can refer to') || ex.includes('may refer to:');
+  },
+
+  /** Fetch N random article titles (namespace 0 = main articles only). */
+  async fetchRandomTitles(count = PACK_SIZE) {
+    const url  = Api._url({ action: 'query', list: 'random', rnlimit: count, rnnamespace: '0' });
+    const data = await fetch(url).then(r => r.json());
+    return data.query.random.map(p => p.title);
+  },
+
+  /** Fetch all internal links from one page; returns array of title strings. */
+  async fetchLinksFrom(title) {
+    const url  = Api._url({ action: 'query', titles: title, prop: 'links', pllimit: '500', plnamespace: '0' });
+    const data = await fetch(url).then(r => r.json());
+    const page = Object.values(data.query.pages)[0];
+    return (page.links || []).map(l => l.title);
+  },
+
+  /** Sum of daily pageviews over the last 30 days for a single article. */
+  async fetchPageViews(title) {
+    const encoded = encodeURIComponent(title.replace(/ /g, '_'));
+    const end     = new Date();
+    const start   = new Date(end);
+    start.setDate(start.getDate() - 30);
+    const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+    try {
+      const data = await fetch(`${PAGEVIEW_API}/${encoded}/daily/${fmt(start)}/${fmt(end)}`).then(r => r.json());
+      return (data.items || []).reduce((sum, d) => sum + (d.views || 0), 0);
+    } catch { return 0; }
+  },
+};
+
+// #endregion
+
+// ============================================================
+// #region LOGIC — pure game rules; no DOM access
+// ============================================================
+
+const Logic = {
+  // ── Hashing ────────────────────────────────────────────────
+
+  /** FNV-1a → deterministic float [0,1). Same title always yields the same value. */
+  titleHash(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return ((h >>> 0) % 100_000) / 100_000;
+  },
+
+  // ── Rarity ─────────────────────────────────────────────────
+
+  rarityFromViews(views) {
+    for (let i = RARITY_TIERS.length - 1; i >= 0; i--)
+      if (views >= RARITY_TIERS[i].minViews) return RARITY_TIERS[i].id;
+    return 'common';
+  },
+
+  sellValue(title, rarity) {
+    const { sellMin, sellMax } = RARITY_TIERS.find(t => t.id === rarity);
+    return Math.round(sellMin + Logic.titleHash(title) * (sellMax - sellMin));
+  },
+
+  // ── Card building ───────────────────────────────────────────
+
+  buildCard(page, views, sessionId) {
+    const rarity = Logic.rarityFromViews(views);
+    return /** @type {CardData} */ ({
+      id:          `${page.pageid}_${Math.random().toString(36).slice(2, 7)}`,
+      title:       page.title,
+      desc:        page.extract || 'No description available.',
+      thumb:       page.thumbnail?.source ?? null,
+      rarity,
+      value:       Logic.sellValue(page.title, rarity),
+      sessionId,
+      acquired:    Date.now(),
+      locked:      false,
+      expandCount: 0,
+    });
+  },
+
+  // ── Collection helpers ──────────────────────────────────────
+
+  pickRandom(arr, n) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a.slice(0, n);
+  },
+
+  latestPackCards() {
+    return State.sessionId ? State.binder.filter(c => c.sessionId === State.sessionId) : [];
+  },
+
+  /** Toggle locked state on a card. Returns new locked value. */
+  toggleLock(id) {
+    const card = State.binder.find(c => c.id === id);
+    if (!card) return false;
+    card.locked = !card.locked;
+    Storage.save();
+    return card.locked;
+  },
+
+  sortedBinder(key) {
+    const arr = [...State.binder];
+    const by = {
+      'acquired':    (a, b) => b.acquired - a.acquired,
+      'rarity-desc': (a, b) => RARITY_RANK[b.rarity] - RARITY_RANK[a.rarity],
+      'rarity-asc':  (a, b) => RARITY_RANK[a.rarity] - RARITY_RANK[b.rarity],
+      'value-desc':  (a, b) => b.value - a.value,
+      'title-asc':   (a, b) => a.title.localeCompare(b.title),
+    };
+    arr.sort(by[key] ?? by['acquired']);
+    // Locked cards always float to top, preserving their relative order
+    return [...arr.filter(c => c.locked), ...arr.filter(c => !c.locked)];
+  },
+
+  // ── Economy ─────────────────────────────────────────────────
+
+  /** Deterministic expand cost: same card always costs the same. Inverse of rarity. */
+  /**
+   * Expand cost for a card. Base cost is determined by title hash + rarity tier.
+   * Each previous expansion multiplies cost by 1.8 (rounded), so repeated
+   * expansions of the same card get progressively more expensive.
+   */
+  expandCost(card) {
+    const { expandCostMin, expandCostMax } = RARITY_TIERS.find(t => t.id === card.rarity);
+    const h    = Logic.titleHash(card.title + '_expand');
+    const base = Math.round(expandCostMin + h * (expandCostMax - expandCostMin));
+    const count = card.expandCount ?? 0;
+    return Math.round(base * Math.pow(1.8, count));
+  },
+
+  canAffordExpand(card) { return State.balance >= Logic.expandCost(card); },
+
+  canAffordPack() { return State.balance >= PACK_COST; },
+
+  /** Increment a card's expandCount in-place and save. */
+  incrementExpandCount(id) {
+    const card = State.binder.find(c => c.id === id);
+    if (card) { card.expandCount = (card.expandCount ?? 0) + 1; Storage.save(); }
+  },
+
+  deductCost(amount) { State.balance -= amount; Storage.save(); },
+
+  /** Add cards to binder, stamp them with a fresh session ID, save. */
+  addPack(cards) {
+    const sid     = `sid_${Date.now()}`;
+    const stamped = cards.map(c => ({ ...c, sessionId: sid }));
+    State.binder.unshift(...stamped);
+    State.sessionId = sid;
+    Storage.save();
+    return sid;
+  },
+
+  sellCard(id) {
+    const card = State.binder.find(c => c.id === id);
+    if (!card || card.locked) return 0;
+    State.binder   = State.binder.filter(c => c.id !== id);
+    State.balance += card.value;
+    Storage.save();
+    return card.value;
+  },
+
+  /** Sell all unlocked cards matching predicate. Returns { total, count }. */
+  sellWhere(predicate) {
+    const targets  = State.binder.filter(c => !c.locked && predicate(c));
+    const total    = targets.reduce((s, c) => s + c.value, 0);
+    State.binder   = State.binder.filter(c => !predicate(c));
+    State.balance += total;
+    Storage.save();
+    return { total, count: targets.length };
+  },
+
+  removeCard(id) { State.binder = State.binder.filter(c => c.id !== id); Storage.save(); },
+};
+
+// #endregion
+
+// ============================================================
+// #region RENDER — DOM construction; reads State, never mutates it
+// ============================================================
+
+const Render = {
+  // ── Utilities ──────────────────────────────────────────────
+
+  el(tag, cls, attrs = {}) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    return e;
+  },
+
+  money(n) { return `$${n.toLocaleString()}`; },
+
+  // ── Balance ─────────────────────────────────────────────────
+
+  updateBalance() {
+    const el = document.getElementById('balance-amount');
+    el.textContent = State.balance.toLocaleString();
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+    setTimeout(() => el.classList.remove('bump'), 300);
+    this.refreshHeaderButtons();
+    this.refreshExpandButtons();
+  },
+
+  /** Update the header pack buttons: enabled state and expand button visibility. */
+  refreshHeaderButtons() {
+    const randomBtn = document.getElementById('btn-random-pack');
+    if (randomBtn) randomBtn.disabled = !Logic.canAffordPack();
+  },
+
+  /**
+   * Walk all rendered expand buttons and update disabled state in-place.
+   * Called after every balance change — avoids re-rendering the whole binder.
+   * Each expand button carries data-expand-btn="{rarity}" set at build time.
+   */
+  refreshExpandButtons() {
+    document.querySelectorAll('[data-expand-btn]').forEach(btn => {
+      const cardId = btn.dataset.expandCardId;
+      const card   = cardId ? State.binder.find(c => c.id === cardId) : null;
+      if (!card) return;
+      const cost    = Logic.expandCost(card);
+      btn.disabled  = !Logic.canAffordExpand(card);
+      btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
+    });
+  },
+
+  // ── Card component ──────────────────────────────────────────
+
+  /**
+   * Build a .card DOM element from a CardData object.
+   * Callbacks keep Render decoupled from App:
+   *   onSell(id)      — called when Sell button clicked
+   *   onExpand(data)  — called when Expand button clicked
+   */
+  card(data, { onSell, onExpand, onToggleLock, isNew = false } = {}) {
+    const RARITY_ICONS = {
+      common:    '<i class="fa-solid fa-circle"></i>',
+      uncommon:  '<i class="fa-solid fa-diamond"></i>',
+      rare:      '<i class="fa-solid fa-star"></i>',
+      epic:      '<i class="fa-solid fa-bahai"></i>',
+      legendary: '<i class="fa-solid fa-crown"></i>',
+    };
+
+    const isLocked = !!data.locked;
+    const root = this.el('div', `card${isNew ? ' is-new' : ''}${isLocked ? ' is-locked' : ''}`);
+    root.dataset.rarity = data.rarity;
+    root.dataset.cardId = data.id;
+    root.appendChild(this.el('div', 'card-border'));
+
+    // Lock button — top-left (outside inner, so not clipped)
+    const lockBtn = this.el('button', `card-lock-btn${isLocked ? ' is-locked' : ''}`);
+    lockBtn.innerHTML   = `<i class="fa-solid fa-${isLocked ? 'lock' : 'lock-open'}"></i>`;
+    lockBtn.dataset.tip = isLocked ? 'Unlock card' : 'Lock card';
+    lockBtn.title       = lockBtn.dataset.tip;
+    lockBtn.addEventListener('click', e => { e.stopPropagation(); onToggleLock?.(data.id); });
+    root.appendChild(lockBtn);
+
+    // Rarity icon — top-right (outside inner, so not clipped)
+    const rarityIcon = this.el('div', 'card-rarity-icon');
+    rarityIcon.innerHTML = RARITY_ICONS[data.rarity] ?? RARITY_ICONS.common;
+    rarityIcon.title = RARITY_TIERS.find(t => t.id === data.rarity).label;
+    root.appendChild(rarityIcon);
+
+    // Inner clip wrapper — contains image + body + footer
+    const inner = this.el('div', 'card-inner');
+
+    // Image
+    if (data.thumb) {
+      const img = this.el('img', 'card-img', { src: data.thumb, alt: data.title, loading: 'lazy' });
+      img.onerror = () => img.replaceWith(this._placeholder());
+      inner.appendChild(img);
+    } else {
+      inner.appendChild(this._placeholder());
+    }
+
+    // Body
+    const body = this.el('div', 'card-body');
+
+    const titleEl = this.el('div', 'card-title');
+    titleEl.textContent = data.title;
+    body.appendChild(titleEl);
+
+    const descEl = this.el('div', 'card-desc');
+    descEl.textContent = data.desc;
+    body.appendChild(descEl);
+
+    inner.appendChild(body);
+
+    // Footer — icon-only buttons
+    if (onSell || onExpand) {
+      const footer = this.el('div', 'card-footer');
+
+      if (onSell) {
+        const btn = this.el('button', 'card-btn card-btn-sell');
+        btn.innerHTML   = `<i class="fa-solid fa-hand-holding-dollar"></i> ${data.value.toLocaleString()}`;
+        btn.dataset.tip = isLocked ? 'Unlock to sell' : 'Sell this card';
+        btn.disabled    = isLocked;
+        btn.addEventListener('click', e => { e.stopPropagation(); onSell(data.id); });
+        footer.appendChild(btn);
+      }
+
+      if (onExpand) {
+        const cost = Logic.expandCost(data);
+        const btn  = this.el('button', 'card-btn card-btn-expand');
+        btn.innerHTML             = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
+        btn.dataset.tip           = isLocked ? 'Unlock to expand' : `Expand into pack${(data.expandCount ?? 0) > 0 ? ` (expanded ${data.expandCount}×)` : ''}`;
+        btn.disabled              = isLocked || !Logic.canAffordExpand(data);
+        btn.dataset.expandBtn     = data.rarity;
+        btn.dataset.expandTitle   = data.title;
+        btn.dataset.expandCardId  = data.id;
+        btn.addEventListener('click', e => { e.stopPropagation(); onExpand(data); });
+        footer.appendChild(btn);
+      }
+
+      // Wikipedia link — always shown
+      const wikiBtn = this.el('button', 'card-btn card-btn-wiki');
+      wikiBtn.innerHTML   = '<i class="fa-brands fa-wikipedia-w"></i>';
+      wikiBtn.dataset.tip = 'Open on Wikipedia';
+      wikiBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        window.open(`https://en.wikipedia.org/wiki/${encodeURIComponent(data.title)}`, '_blank');
+      });
+      footer.appendChild(wikiBtn);
+
+      inner.appendChild(footer);
+    }
+
+    root.appendChild(inner);
+    return root;
+  },
+
+  _placeholder() {
+    const ph = this.el('div', 'card-img-placeholder');
+    ph.innerHTML = '<i class="fa-solid fa-globe"></i>';
+    return ph;
+  },
+
+  animateCardIn(el, delayMs) {
+    el.classList.add('animating');
+    setTimeout(() => { el.classList.remove('animating'); el.classList.add('dropped'); }, delayMs);
+  },
+
+  animateCardOut(el, onDone) {
+    el.style.transition = 'opacity 0.28s ease, transform 0.28s ease';
+    el.style.opacity    = '0';
+    el.style.transform  = 'scale(0.82)';
+    setTimeout(() => { el.remove(); onDone?.(); }, 300);
+  },
+
+  // ── Card preloading ──────────────────────────────────────────
+
+  /**
+   * Pre-render card DOM nodes and decode all thumbnail images in parallel.
+   * Called while the progress bar is still visible so everything is ready
+   * before the reveal sequence begins. Returns a map of cardId → Element.
+   */
+  async preloadCards(cards) {
+    // Build all card elements now (synchronous — just DOM construction)
+    this._revealCache = new Map();
+    for (const data of cards) {
+      const el = this.card(data);
+      el.querySelector('.card-footer')?.remove();
+      el.style.width = el.style.height = '100%';
+      this._revealCache.set(data.id, el);
+    }
+
+    // Decode all thumbnails in parallel — browser fetches & decodes them
+    // before any card is shown, so flips are instant
+    const imageJobs = cards
+      .filter(c => c.thumb)
+      .map(c => {
+        const img = new Image();
+        img.src = c.thumb;
+        return img.decode().catch(() => {}); // ignore failures (no thumb = no problem)
+      });
+
+    await Promise.all(imageJobs);
+  },
+
+  // ── Card reveal sequence ─────────────────────────────────────
+
+  /**
+   * Show cards one by one with a flip animation and a 3s auto-advance timer.
+   * Clicking anywhere skips to the next card immediately.
+   * Returns a Promise that resolves when all cards have been shown.
+   */
+  runReveal(cards) {
+    return new Promise(resolve => {
+      const CARD_DURATION_MS = 3000;
+      let index      = 0;
+      let timer      = null;
+      let advancing  = false;
+
+      const flipInner  = document.getElementById('reveal-flip-inner');
+      const frontFace  = document.getElementById('reveal-face-front');
+      const counterEl  = document.getElementById('reveal-counter');
+      const timerFill  = document.getElementById('reveal-timer-fill');
+
+      const advance = () => {
+        if (advancing) return;
+        advancing = true;
+        clearTimeout(timer);
+
+        index++;
+        if (index >= cards.length) {
+          // All done — clear cached elements from DOM so they don't interfere with binder queries
+          document.getElementById('view-reveal').removeEventListener('click', advance);
+          frontFace.innerHTML = '';
+          this._revealCache = null;
+          resolve();
+          return;
+        }
+        // Reset flip to back, then show next card
+        flipInner.classList.remove('flipped');
+        // Wait for flip-back to complete before loading next card
+        setTimeout(() => { showCard(index); advancing = false; }, 300);
+      };
+
+      const showCard = (i) => {
+        const data = cards[i];
+        counterEl.innerHTML = `Card <strong>${i + 1}</strong> of ${cards.length}`;
+
+        // Populate front face from pre-rendered cache — instant, no reflow
+        frontFace.innerHTML = '';
+        const cached = this._revealCache?.get(data.id);
+        if (cached) {
+          frontFace.dataset.rarity = data.rarity;
+          frontFace.appendChild(cached);
+        } else {
+          // Fallback: build on the fly if cache missed
+          frontFace.dataset.rarity = data.rarity;
+          const cardEl = this.card(data);
+          cardEl.querySelector('.card-footer')?.remove();
+          cardEl.style.width = cardEl.style.height = '100%';
+          frontFace.appendChild(cardEl);
+        }
+
+        // Reset and restart timer bar
+        timerFill.style.transition = 'none';
+        timerFill.style.transform  = 'scaleX(1)';
+
+        // Flip to front after a short back-face pause
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            flipInner.classList.add('flipped');
+
+            // Start draining timer bar
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                timerFill.style.transition = `transform ${CARD_DURATION_MS}ms linear`;
+                timerFill.style.transform  = 'scaleX(0)';
+              });
+            });
+
+            timer = setTimeout(advance, CARD_DURATION_MS);
+          }, 120);
+        });
+      };
+
+      App._activateView('reveal');
+      document.getElementById('view-reveal').addEventListener('click', advance);
+      showCard(0);
+    });
+  },
+
+  // ── Pack opening animation ───────────────────────────────────
+
+  setOpeningProgress(label, sub, pct) {
+    document.getElementById('opening-label').textContent       = label;
+    document.getElementById('opening-sub').textContent         = sub;
+    document.getElementById('pack-progress-fill').style.width  = `${pct}%`;
+  },
+
+  // ── Binder ───────────────────────────────────────────────────
+
+  renderBinder() {
+    const grid    = document.getElementById('binder-grid');
+    const sortKey = document.getElementById('binder-sort').value;
+    grid.innerHTML = '';
+
+    document.getElementById('binder-count').textContent =
+      `${State.binder.length} card${State.binder.length !== 1 ? 's' : ''}`;
+
+    this._renderLatestBanner();
+
+    if (State.binder.length === 0) {
+      const empty = this.el('div', 'binder-empty');
+      empty.innerHTML = 'Your binder is empty.<br><em>Open some packs to get started.</em>';
+      grid.appendChild(empty);
+      return;
+    }
+
+    const sorted    = Logic.sortedBinder(sortKey);
+    const latestSid = State.sessionId;
+
+    if (sortKey === 'acquired' && latestSid) {
+      // Group: new cards first with section label, then the rest
+      const newCards = sorted.filter(c => c.sessionId === latestSid);
+      const oldCards = sorted.filter(c => c.sessionId !== latestSid);
+
+      if (newCards.length) {
+        const lbl = this.el('div', 'binder-section-label');
+        lbl.textContent = `Latest Pack — ${newCards.length} new cards`;
+        grid.appendChild(lbl);
+        newCards.forEach((c, i) => {
+          const el = this.card(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onToggleLock: App.onToggleLock, isNew: true });
+          this.animateCardIn(el, i * 55);
+          grid.appendChild(el);
+        });
+      }
+
+      if (oldCards.length) {
+        const lbl = this.el('div', 'binder-section-label');
+        lbl.textContent = 'Collection';
+        lbl.style.marginTop = '16px';
+        grid.appendChild(lbl);
+        oldCards.forEach(c =>
+          grid.appendChild(this.card(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onToggleLock: App.onToggleLock }))
+        );
+      }
+    } else {
+      sorted.forEach(c => {
+        const isNew = c.sessionId === latestSid;
+        grid.appendChild(this.card(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onToggleLock: App.onToggleLock, isNew }));
+      });
+    }
+  },
+
+  _renderLatestBanner() {
+    const banner  = document.getElementById('latest-banner');
+    const actions = document.getElementById('banner-actions');
+    actions.innerHTML = '';
+
+    const latest = Logic.latestPackCards();
+    if (!latest.length) { banner.style.display = 'none'; return; }
+
+    const total = latest.reduce((s, c) => s + c.value, 0);
+    banner.style.display = '';
+    document.getElementById('banner-label').textContent = 'Latest Pack';
+    document.getElementById('banner-sub').textContent   = `${latest.length} cards added · sell value: ${this.money(total)}`;
+
+    const sellBtn = this.el('button', 'btn btn-danger btn-sm');
+    sellBtn.innerHTML = `<i class="fa-solid fa-hand-holding-dollar"></i> Sell All (${this.money(total)})`;
+    sellBtn.addEventListener('click', () => App.onSellLatestPack());
+
+    const keepBtn = this.el('button', 'btn btn-secondary btn-sm');
+    keepBtn.innerHTML = `<i class="fa-solid fa-box-archive"></i> Keep All`;
+    keepBtn.addEventListener('click', () => App.onDismissLatestBanner());
+
+    actions.append(sellBtn, keepBtn);
+  },
+
+  // ── Toast ────────────────────────────────────────────────────
+
+  toast(msg, type = '') {
+    const t = this.el('div', `toast${type ? ' ' + type : ''}`);
+    t.textContent = msg;
+    document.getElementById('toast-container').appendChild(t);
+    setTimeout(() => t.remove(), 2900);
+  },
+
+  // ── Modal ────────────────────────────────────────────────────
+
+  confirm(title, body, { onConfirm, confirmLabel = 'Confirm', extraEl = null } = {}) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').textContent  = body;
+
+    const extra = document.getElementById('modal-extra');
+    extra.innerHTML = '';
+    if (extraEl) extra.appendChild(extraEl);
+
+    document.getElementById('modal-overlay').classList.add('active');
+    const close = () => document.getElementById('modal-overlay').classList.remove('active');
+
+    // Clone buttons to drop old listeners
+    ['modal-confirm', 'modal-cancel'].forEach(id => {
+      const old = document.getElementById(id);
+      const nu  = old.cloneNode(true);
+      old.replaceWith(nu);
+    });
+
+    const confirmBtn = document.getElementById('modal-confirm');
+    const cancelBtn  = document.getElementById('modal-cancel');
+    confirmBtn.textContent   = confirmLabel;
+    confirmBtn.style.display = onConfirm ? '' : 'none';
+    confirmBtn.addEventListener('click', () => { close(); onConfirm?.(); });
+    cancelBtn.addEventListener('click', close);
+  },
+
+  // ── Settings modal ───────────────────────────────────────────
+
+  showSettings() {
+    this.confirm(
+      'Settings',
+      'Manage your game data.',
+      {
+        confirmLabel: 'Reset Progress',
+        onConfirm: () => {
+          this.confirm(
+            'Reset all progress?',
+            'This will delete all your cards, money, and history. This cannot be undone.',
+            {
+              confirmLabel: 'Yes, Reset',
+              onConfirm: () => {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+              },
+            }
+          );
+        },
+      }
+    );
+    // Swap the confirm button to danger style
+    setTimeout(() => {
+      const btn = document.getElementById('modal-confirm');
+      if (btn) { btn.classList.remove('btn-primary'); btn.classList.add('btn-danger'); }
+    }, 0);
+  },
+
+  // ── Help modal ───────────────────────────────────────────────
+
+  showHelp() {
+    const extra = document.createElement('div');
+
+    extra.innerHTML = `
+      <div class="help-game-intro">
+        <strong style="color:var(--text)">WikiCards</strong> is a Wikipedia-powered card collecting game.
+        Open packs to discover articles as cards — each with its own rarity based on how popular
+        the article is. Sell cards to earn money, then spend it on more packs.
+        Rare cards can be <em>expanded</em> into themed packs full of related articles.
+      </div>
+
+      <div class="help-section-title"><i class="fa-solid fa-id-card"></i> &nbsp;How to read a card</div>
+      <div class="help-card-demo">
+        <div class="help-card-preview">
+          <div class="help-card-preview-img">
+            <i class="fa-solid fa-globe"></i>
+            <div class="help-card-preview-lock"><i class="fa-solid fa-lock-open"></i></div>
+            <div class="help-card-preview-icon"><i class="fa-solid fa-star"></i></div>
+          </div>
+          <div class="help-card-preview-body">
+            <div class="help-card-preview-title">Albert Einstein</div>
+            <div class="help-card-preview-desc">German-born theoretical physicist, widely held to be one of the greatest scientists of all time.</div>
+          </div>
+          <div class="help-card-preview-footer">
+            <div class="help-card-preview-btn sell"><i class="fa-solid fa-hand-holding-dollar"></i> 180</div>
+            <div class="help-card-preview-btn expand"><i class="fa-solid fa-wand-magic-sparkles"></i> 48</div>
+            <div class="help-card-preview-btn wiki"><i class="fa-brands fa-wikipedia-w"></i></div>
+          </div>
+        </div>
+        <div class="help-annotations">
+          <div class="help-annotation">
+            <div class="help-annotation-icon rarity"><i class="fa-solid fa-star"></i></div>
+            <span><strong style="color:var(--text)">Rarity icon</strong> (top right) — determined by how many people read this article. Star = Rare.</span>
+          </div>
+          <div class="help-annotation">
+            <div class="help-annotation-icon lock"><i class="fa-solid fa-lock-open"></i></div>
+            <span><strong style="color:var(--text)">Lock</strong> (top left) — lock a card to protect it from being sold or expanded.</span>
+          </div>
+          <div class="help-annotation">
+            <div class="help-annotation-icon sell"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+            <span><strong style="color:var(--text)">Sell</strong> — sell this card for the shown amount.</span>
+          </div>
+          <div class="help-annotation">
+            <div class="help-annotation-icon expand"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <span><strong style="color:var(--text)">Expand</strong> — spend the shown amount to open a pack of articles linked from this one. Rarer cards cost less to expand.</span>
+          </div>
+          <div class="help-annotation">
+            <div class="help-annotation-icon wiki"><i class="fa-brands fa-wikipedia-w"></i></div>
+            <span><strong style="color:var(--text)">Wikipedia</strong> — open the full article in a new tab.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-section-title"><i class="fa-solid fa-shuffle"></i> &nbsp;Opening packs</div>
+      <div class="help-pack-callout">
+        <div class="help-pack-icon-demo"><i class="fa-solid fa-shuffle"></i></div>
+        <div class="help-pack-text">
+          The <strong>shuffle button</strong> in the top-right opens a <strong>Random Pack</strong> ($${PACK_COST}).
+          You'll get 7 random Wikipedia articles as cards, revealed one by one.
+          Click anywhere during the reveal to skip to the next card.
+        </div>
+      </div>
+
+      <div class="help-section-title"><i class="fa-solid fa-star"></i> &nbsp;Rarities</div>
+      <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:4px">
+        <div class="help-annotation">
+          <div class="help-annotation-icon" style="background:#3a3a3a;color:var(--common)"><i class="fa-solid fa-circle"></i></div>
+          <span><strong style="color:var(--common)">Common</strong> — obscure articles with few monthly readers. Cheap to get, hard to expand.</span>
+        </div>
+        <div class="help-annotation">
+          <div class="help-annotation-icon" style="background:#1a3020;color:var(--uncommon)"><i class="fa-solid fa-diamond"></i></div>
+          <span><strong style="color:var(--uncommon)">Uncommon</strong> — niche topics with a modest following.</span>
+        </div>
+        <div class="help-annotation">
+          <div class="help-annotation-icon" style="background:#0e1f3a;color:var(--rare)"><i class="fa-solid fa-star"></i></div>
+          <span><strong style="color:var(--rare)">Rare</strong> — well-known subjects like famous scientists or major events.</span>
+        </div>
+        <div class="help-annotation">
+          <div class="help-annotation-icon" style="background:#1e0e30;color:var(--epic)"><i class="fa-solid fa-bahai"></i></div>
+          <span><strong style="color:var(--epic)">Epic</strong> — high-traffic articles on major topics. Valuable and cheap to expand.</span>
+        </div>
+        <div class="help-annotation">
+          <div class="help-annotation-icon" style="background:#2a0e04;color:var(--legendary)"><i class="fa-solid fa-crown"></i></div>
+          <span><strong style="color:var(--legendary)">Legendary</strong> — among the most-read articles on Wikipedia. Worth thousands, almost free to expand.</span>
+        </div>
+      </div>
+
+      <div class="help-section-title"><i class="fa-solid fa-wand-magic-sparkles"></i> &nbsp;The art of Expanding</div>
+      <div style="background:var(--bg3);border:1px solid var(--gold-dim);border-radius:8px;padding:14px 16px;font-size:0.82rem;color:var(--text-dim);line-height:1.65;">
+        <p style="margin-bottom:10px">
+          Expanding is the most powerful mechanic in WikiCards. When you expand a card, the new pack draws from
+          articles that are <strong style="color:var(--text)">directly linked</strong> in that Wikipedia article —
+          so the results are always thematically related.
+        </p>
+        <p style="margin-bottom:10px">
+          This means you can <strong style="color:var(--text)">navigate towards a specific card</strong> you want.
+          If you're looking for <em>Marie Curie</em>, try expanding a card like <em>Physics</em> or
+          <em>Nobel Prize</em>. If that gives you <em>Radioactivity</em>, expand that next —
+          each hop gets you closer through Wikipedia's web of connections.
+        </p>
+        <p>
+          Rarer cards cost <strong style="color:var(--gold)">less</strong> to expand, so a Legendary card like
+          <em>Science</em> is an incredibly cheap gateway to an enormous range of topics.
+        </p>
+      </div>
+    `;
+
+    this.confirm('How to Play', '', {
+      onConfirm: null,
+      extraEl: extra,
+    });
+
+    // Hide the body text (we used the extraEl instead) and tweak modal width
+    setTimeout(() => {
+      const p = document.querySelector('#modal-overlay .modal p');
+      if (p) p.style.display = 'none';
+      const modal = document.querySelector('#modal-overlay .modal');
+      if (modal) modal.style.maxWidth = '580px';
+    }, 0);
+  },
+
+};
+
+// #endregion
+
+// ============================================================
+// #region APP — orchestration, view transitions, event wiring
+// ============================================================
+
+const App = {
+  // ── Init ─────────────────────────────────────────────────────
+
+  async init() {
+    Storage.load();
+    App._wireHeaderButtons();
+    App._wireBinder();
+    Render.updateBalance();
+
+    if (State.firstTime) {
+      State.firstTime = false;
+      Storage.save();
+      await App._openPack({ isStarter: true });
+    } else {
+      App._activateView('binder');
+    }
+  },
+
+  // ── Navigation ───────────────────────────────────────────────
+
+  _wireHeaderButtons() {
+    document.getElementById('btn-random-pack')
+      .addEventListener('click', () => App._openPack({}));
+    document.getElementById('btn-settings')
+      .addEventListener('click', () => Render.showSettings());
+    document.getElementById('btn-help')
+      .addEventListener('click', () => Render.showHelp());
+  },
+
+  _activateView(viewId) {
+    document.querySelectorAll('.view').forEach(v =>
+      v.classList.toggle('active', v.id === `view-${viewId}`)
+    );
+    if (viewId === 'binder') Render.renderBinder();
+  },
+
+  _wireBinder() {
+    document.getElementById('binder-sort').addEventListener('change', () => Render.renderBinder());
+    document.getElementById('binder-sell-all').addEventListener('click', () => App.onSellAllBinder());
+  },
+
+  // ── Pack opening pipeline ─────────────────────────────────────
+
+  async onExpandCard(cardData) {
+    if (!Logic.canAffordExpand(cardData)) { Render.toast('Not enough money to expand.', 'error'); return; }
+    await App._openPack({ expandFrom: cardData });
+  },
+
+  /**
+   * Full pack-opening pipeline:
+   *   1. Deduct cost & show opening animation view
+   *   2. Fetch titles (random or from card links)
+   *   3. Batch-fetch card data + all pageviews in parallel (Promise.all)
+   *   4. Build CardData objects
+   *   5. Commit to binder under a new sessionId
+   *   6. Navigate to binder — new cards appear at top, highlighted
+   */
+  async _openPack({ isStarter = false, expandFrom = null } = {}) {
+    if (!isStarter) {
+      const cost = expandFrom ? Logic.expandCost(expandFrom) : PACK_COST;
+      if (State.balance < cost) { Render.toast('Not enough money.', 'error'); return; }
+      Logic.deductCost(cost);
+    }
+    Render.updateBalance();
+    App._activateView('opening');
+
+    const label = isStarter  ? 'Opening your starter pack…'
+                : expandFrom ? `Expanding "${expandFrom.title}"…`
+                             : 'Opening random pack…';
+    Render.setOpeningProgress(label, 'Selecting articles…', 0);
+
+    const titles = expandFrom
+      ? Logic.pickRandom(await Api.fetchLinksFrom(expandFrom.title), PACK_SIZE)
+      : await Api.fetchRandomTitles(PACK_SIZE);
+
+    Render.setOpeningProgress(label, 'Fetching articles & calculating rarities…', 25);
+
+    // Fetch cards, filtering out disambiguation pages and replacing them until
+    // we have exactly PACK_SIZE valid cards.
+    let validPages = [];
+    let candidateTitles = [...titles];
+    let attempts = 0;
+    const MAX_ATTEMPTS = 4; // safety cap on refetch rounds
+
+    while (validPages.length < PACK_SIZE && attempts < MAX_ATTEMPTS) {
+      const [pages, ...viewCounts] = await Promise.all([
+        Api.fetchCardData(candidateTitles),
+        ...candidateTitles.map(t => Api.fetchPageViews(t)),
+      ]);
+
+      // Attach view counts to pages for later use
+      pages.forEach((p, i) => { p._views = viewCounts[i] ?? 0; });
+
+      const good = pages.filter(p => p.pageid && !p.missing && !Api.isDisambiguation(p));
+      validPages.push(...good);
+
+      const needed = PACK_SIZE - validPages.length;
+      if (needed <= 0) break;
+
+      // Fetch replacement titles — random if original was random, more links if expanding
+      candidateTitles = expandFrom
+        ? Logic.pickRandom(await Api.fetchLinksFrom(expandFrom.title), needed * 2).slice(0, needed)
+        : await Api.fetchRandomTitles(needed + 2); // fetch a couple extra as buffer
+
+      attempts++;
+    }
+
+    validPages = validPages.slice(0, PACK_SIZE);
+
+    Render.setOpeningProgress(label, 'Building cards…', 90);
+
+    const tempSid = `tmp_${Date.now()}`;
+    const cards   = validPages.map(p => Logic.buildCard(p, p._views ?? 0, tempSid));
+
+    if (expandFrom) Logic.incrementExpandCount(expandFrom.id);
+    Logic.addPack(cards);
+
+    Render.setOpeningProgress(label, 'Done!', 100);
+
+    // Preload all card thumbnails and pre-render card DOM while progress bar finishes.
+    // By the time reveal starts every image is already decoded in the browser cache.
+    await Render.preloadCards(cards);
+    await new Promise(r => setTimeout(r, 320));
+
+    // Show card-by-card reveal, then land on binder
+    await Render.runReveal(cards);
+
+    document.getElementById('binder-sort').value = 'acquired';
+    App._activateView('binder');
+    Render.updateBalance();
+  },
+
+  // ── Banner actions ────────────────────────────────────────────
+
+  onSellLatestPack() {
+    const { total, count } = Logic.sellWhere(c => c.sessionId === State.sessionId);
+    State.sessionId = null;
+    Storage.save();
+    Render.updateBalance();
+    Render.renderBinder();
+    Render.toast(`Sold ${count} cards for ${Render.money(total)}!`, 'success');
+  },
+
+  onDismissLatestBanner() {
+    State.sessionId = null;
+    Storage.save();
+    Render.renderBinder();
+  },
+
+  // ── Card actions ──────────────────────────────────────────────
+
+  onToggleLock(id) {
+    const isNowLocked = Logic.toggleLock(id);
+    const cardEl = document.querySelector(`[data-card-id="${id}"]`);
+    if (!cardEl) return;
+    // Update lock button icon and class in-place — no full re-render needed
+    const lockBtn = cardEl.querySelector('.card-lock-btn');
+    if (lockBtn) {
+      lockBtn.innerHTML   = `<i class="fa-solid fa-${isNowLocked ? 'lock' : 'lock-open'}"></i>`;
+      lockBtn.dataset.tip = isNowLocked ? 'Unlock card' : 'Lock card';
+      lockBtn.classList.toggle('is-locked', isNowLocked);
+    }
+    cardEl.classList.toggle('is-locked', isNowLocked);
+    // Update sell and expand button disabled state
+    const sellBtn   = cardEl.querySelector('.card-btn-sell');
+    const expandBtn = cardEl.querySelector('.card-btn-expand');
+    if (sellBtn)   { sellBtn.disabled   = isNowLocked; sellBtn.dataset.tip   = isNowLocked ? 'Unlock to sell'   : 'Sell this card'; }
+    if (expandBtn) {
+      const cardId = expandBtn.dataset.expandCardId;
+      const card   = State.binder.find(c => c.id === cardId);
+      expandBtn.disabled    = isNowLocked || !card || !Logic.canAffordExpand(card);
+      expandBtn.dataset.tip = isNowLocked ? 'Unlock to expand' : 'Expand into pack';
+    }
+  },
+
+  onSellCard(id) {
+    const card = State.binder.find(c => c.id === id);
+    if (!card) return;
+    const earned = Logic.sellCard(id);
+    // If that was the last card from the latest session, clear the session highlight
+    if (State.sessionId && Logic.latestPackCards().length === 0) {
+      State.sessionId = null;
+      Storage.save();
+    }
+    Render.updateBalance();
+    Render.toast(`Sold "${card.title}" for ${Render.money(earned)}`, 'success');
+
+    const el = document.querySelector(`[data-card-id="${id}"]`);
+    if (el) {
+      Render.animateCardOut(el, () => {
+        document.getElementById('binder-count').textContent =
+          `${State.binder.length} card${State.binder.length !== 1 ? 's' : ''}`;
+        Render._renderLatestBanner();
+      });
+    }
+  },
+
+  onSellAllBinder() {
+    if (!State.binder.length) return;
+    const total = State.binder.reduce((s, c) => s + c.value, 0);
+    Render.confirm(
+      'Sell entire binder?',
+      `Permanently sell all ${State.binder.length} cards for ${Render.money(total)}?`,
+      {
+        confirmLabel: 'Sell All',
+        onConfirm: () => {
+          const { total: t, count } = Logic.sellWhere(() => true);
+          State.sessionId = null;
+          Storage.save();
+          Render.updateBalance();
+          Render.renderBinder();
+          Render.toast(`Sold ${count} cards for ${Render.money(t)}!`, 'success');
+        },
+      }
+    );
+  },
+};
+
+// Bind callbacks used as references inside Render (so `this` context is preserved)
+App.onSellCard    = App.onSellCard.bind(App);
+App.onExpandCard  = App.onExpandCard.bind(App);
+App.onToggleLock  = App.onToggleLock.bind(App);
+
+// #endregion
+
+// ============================================================
+// #region BOOTSTRAP
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+
+// #endregion
+</script>
+</body>
+</html>
