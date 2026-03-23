@@ -357,6 +357,24 @@ main { flex: 1; padding: 32px; }
 .toolbar-icon-btn:hover { color: var(--text); border-color: var(--gold-dim); }
 .toolbar-icon-btn.active { color: var(--gold); border-color: var(--gold-dim); background: var(--bg3); }
 
+/* Search input — hidden by default, expands when .active */
+.binder-search-input {
+  width: 0; min-width: 0; padding: 0;
+  height: 34px; border-radius: 7px;
+  background: var(--surface); border: 1px solid transparent;
+  color: var(--text); font-family: 'Source Serif 4', serif; font-size: 0.85rem;
+  outline: none; overflow: hidden;
+  transition: width var(--anim-med) ease, padding var(--anim-med) ease,
+              border-color var(--anim-med) ease;
+  flex-shrink: 0;
+}
+.binder-search-input.active {
+  width: 180px; padding: 0 10px;
+  border-color: var(--gold-dim);
+}
+.binder-search-input::placeholder { color: var(--text-muted); }
+.binder-search-input:focus { border-color: var(--gold); }
+
 /* Grid view */
 .binder-grid { display: flex; flex-wrap: wrap; gap: 20px; }
 
@@ -364,9 +382,9 @@ main { flex: 1; padding: 32px; }
 .binder-list { display: flex; flex-direction: column; gap: 8px; }
 
 .card-list-row {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: stretch; gap: 0;
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px 14px;
+  border-radius: 8px; overflow: hidden;
   transition: border-color var(--anim-fast);
   position: relative;
 }
@@ -379,20 +397,34 @@ main { flex: 1; padding: 32px; }
 
 .card-list-row.is-locked { outline: 1px solid var(--gold-dim); outline-offset: 1px; }
 
+/* Full-height thumbnail */
 .card-list-thumb {
-  width: 40px; height: 40px; border-radius: 5px;
-  object-fit: cover; flex-shrink: 0; background: var(--bg3);
+  width: 56px; flex-shrink: 0;
+  object-fit: cover; object-position: center top;
+  display: block; background: var(--bg3);
 }
 .card-list-thumb-placeholder {
-  width: 40px; height: 40px; border-radius: 5px;
+  width: 56px; flex-shrink: 0;
   background: var(--bg3); display: flex; align-items: center;
-  justify-content: center; color: var(--text-muted); font-size: 1rem; flex-shrink: 0;
+  justify-content: center; color: var(--text-muted); font-size: 1.1rem;
+}
+
+/* Info column: fills remaining width, two rows */
+.card-list-info-col {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 10px 14px; gap: 6px;
+}
+
+/* Top row: rarity icon + title */
+.card-list-name-row {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
 }
 
 .card-list-rarity-icon {
-  width: 22px; height: 22px; border-radius: 50%;
+  width: 20px; height: 20px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.62rem; flex-shrink: 0;
+  font-size: 0.58rem; flex-shrink: 0;
 }
 .card-list-row[data-rarity="common"]    .card-list-rarity-icon { background: #3a3a3a; color: var(--common); }
 .card-list-row[data-rarity="uncommon"]  .card-list-rarity-icon { background: #1a3020; color: var(--uncommon); }
@@ -400,18 +432,37 @@ main { flex: 1; padding: 32px; }
 .card-list-row[data-rarity="epic"]      .card-list-rarity-icon { background: #1e0e30; color: var(--epic); }
 .card-list-row[data-rarity="legendary"] .card-list-rarity-icon { background: #2a0e04; color: var(--legendary); }
 
-.card-list-info { flex: 1; min-width: 0; }
 .card-list-title {
   font-family: 'Playfair Display', serif; font-size: 0.88rem;
   font-weight: 700; color: var(--text); white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
-}
-.card-list-desc {
-  font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;
 }
 
-.card-list-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+/* Bottom row: action buttons */
+.card-list-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* ── Undo bar ── */
+#undo-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 0 20px;
+  background: #1a0e0e; border-bottom: 1px solid #5a2020;
+  height: 0; overflow: hidden;
+  transition: height var(--anim-med) ease;
+  font-size: 0.82rem; color: var(--text-dim);
+  position: sticky; top: 64px; z-index: 99;
+}
+#undo-bar.active { height: 42px; }
+
+.btn-undo-sell {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 14px; border-radius: 6px;
+  background: transparent; border: 1px solid #8a3030;
+  color: #d07070; font-size: 0.78rem;
+  font-family: 'Source Serif 4', serif; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  transition: all var(--anim-fast); flex-shrink: 0;
+}
+.btn-undo-sell:hover { background: rgba(192,80,80,0.15); border-color: #c05050; color: #e08080; }
 
 .card-list-btn {
   height: 30px; min-width: 30px;
@@ -459,7 +510,6 @@ main { flex: 1; padding: 32px; }
     --card-h: calc(((100vw - 52px) / 2) * 1.455);
     flex-shrink: 1;
   }
-  .card-list-desc { display: none; }
 }
 .latest-pack-banner {
   background: var(--bg3);
@@ -1108,6 +1158,13 @@ body::before {
     </div>
   </header>
 
+  <div id="undo-bar">
+    <span class="undo-bar-label"></span>
+    <button id="btn-undo-sell" class="btn-undo-sell">
+      <i class="fa-solid fa-rotate-left"></i> Undo
+    </button>
+  </div>
+
   <main>
 
 
@@ -1155,6 +1212,10 @@ body::before {
       <div class="binder-toolbar">
         <span class="binder-count" id="binder-count"></span>
         <div class="toolbar-right">
+          <button class="toolbar-icon-btn" id="btn-search" title="Search cards">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+          <input type="text" id="binder-search" class="binder-search-input" placeholder="Search cards…" />
           <div class="sort-wrapper">
             <button class="toolbar-icon-btn" id="btn-sort" title="Sort">
               <i class="fa-solid fa-arrow-up-wide-short"></i>
@@ -1199,6 +1260,8 @@ body::before {
 // ============================================================
 // #region DATA — constants, type definitions, state object
 // ============================================================
+
+const VERSION     = '1.1';
 
 const PACK_COST   = 5;
 const PACK_SIZE   = 7;
@@ -1267,6 +1330,8 @@ const State = {
   lastAwardDate:       /** @type {string|null} */ (null), // 'YYYY-MM-DD' of last daily income award
   dailyQuest:          /** @type {{title:string,thumb:string|null,date:string}|null} */ (null),
   dailyQuestCompleted: false, // resets each day
+  // Undo — not persisted; holds the last sold card so it can be restored
+  _undoCard:           /** @type {CardData|null} */ (null),
 };
 
 // #endregion
@@ -1887,7 +1952,7 @@ const Logic = {
   sellWhere(predicate) {
     const targets  = State.binder.filter(c => !c.locked && predicate(c));
     const total    = targets.reduce((s, c) => s + c.value, 0);
-    State.binder   = State.binder.filter(c => !predicate(c));
+    State.binder   = State.binder.filter(c => c.locked || !predicate(c));
     State.balance += total;
     Storage.save();
     return { total, count: targets.length };
@@ -2142,8 +2207,8 @@ const Render = {
         const cost = Logic.expandCost(data);
         const btn  = this.el('button', 'card-btn card-btn-expand');
         btn.innerHTML             = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
-        btn.dataset.tip           = isLocked ? 'Unlock to expand' : `Expand into pack${(data.expandCount ?? 0) > 0 ? ` (expanded ${data.expandCount}×)` : ''}`;
-        btn.disabled              = isLocked || !Logic.canAffordExpand(data);
+        btn.dataset.tip           = `Expand into pack${(data.expandCount ?? 0) > 0 ? ` (expanded ${data.expandCount}×)` : ''}`;
+        btn.disabled              = !Logic.canAffordExpand(data);
         btn.dataset.expandBtn     = data.rarity;
         btn.dataset.expandTitle   = data.title;
         btn.dataset.expandCardId  = data.id;
@@ -2321,6 +2386,7 @@ const Render = {
     const container = document.getElementById('binder-grid');
     const sortKey   = document.getElementById('binder-sort').value;
     const isList    = App._binderView === 'list';
+    const query     = App._binderSearch.toLowerCase();
     container.innerHTML = '';
     container.className = isList ? 'binder-list' : 'binder-grid';
 
@@ -2336,13 +2402,14 @@ const Render = {
       return;
     }
 
-    const sorted    = Logic.sortedBinder(sortKey);
+    const matches = c => !query || c.title.toLowerCase().includes(query) || (c.desc || '').toLowerCase().includes(query);
+    const sorted  = Logic.sortedBinder(sortKey);
     const latestSid = State.sessionId;
     const render    = (c, isNew = false) => isList
       ? this.cardListRow(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onToggleLock: App.onToggleLock })
       : this.card(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onToggleLock: App.onToggleLock, isNew });
 
-    if (sortKey === 'acquired' && latestSid) {
+    if (sortKey === 'acquired' && latestSid && !query) {
       const newCards = sorted.filter(c => c.sessionId === latestSid);
       const oldCards = sorted.filter(c => c.sessionId !== latestSid);
 
@@ -2365,7 +2432,14 @@ const Render = {
         oldCards.forEach(c => container.appendChild(render(c)));
       }
     } else {
-      sorted.forEach(c => container.appendChild(render(c, c.sessionId === latestSid)));
+      const filtered = sorted.filter(matches);
+      if (filtered.length === 0) {
+        const empty = this.el('div', 'binder-empty');
+        empty.textContent = `No cards match "${App._binderSearch}".`;
+        container.appendChild(empty);
+      } else {
+        filtered.forEach(c => container.appendChild(render(c, c.sessionId === latestSid)));
+      }
     }
   },
 
@@ -2379,7 +2453,7 @@ const Render = {
     row.dataset.rarity = data.rarity;
     row.dataset.cardId = data.id;
 
-    // Thumbnail
+    // ── Full-height thumbnail ────────────────────────────────────
     if (data.thumb) {
       const img = this.el('img', 'card-list-thumb', { src: data.thumb, alt: data.title, loading: 'lazy' });
       img.onerror = () => img.replaceWith(this._listPlaceholder());
@@ -2388,25 +2462,23 @@ const Render = {
       row.appendChild(this._listPlaceholder());
     }
 
-    // Rarity icon
+    // ── Info column (two rows) ───────────────────────────────────
+    const infoCol = this.el('div', 'card-list-info-col');
+
+    // Top row: rarity icon + title
+    const nameRow = this.el('div', 'card-list-name-row');
     const icon = this.el('div', 'card-list-rarity-icon');
     icon.innerHTML = `<i class="fa-solid ${RARITY_ICONS[data.rarity] ?? 'fa-circle'}"></i>`;
-    row.appendChild(icon);
-
-    // Info
-    const info = this.el('div', 'card-list-info');
     const title = this.el('div', 'card-list-title');
     title.textContent = data.title;
-    const desc = this.el('div', 'card-list-desc');
-    desc.textContent = data.desc;
-    info.append(title, desc);
-    row.appendChild(info);
+    nameRow.append(icon, title);
+    infoCol.appendChild(nameRow);
 
-    // Actions
+    // Bottom row: action buttons
     const actions = this.el('div', 'card-list-actions');
 
     const lockBtn = this.el('button', `card-list-btn card-list-btn-lock${isLocked ? ' is-locked' : ''}`);
-    lockBtn.innerHTML  = `<i class="fa-solid fa-${isLocked ? 'lock' : 'lock-open'}"></i>`;
+    lockBtn.innerHTML   = `<i class="fa-solid fa-${isLocked ? 'lock' : 'lock-open'}"></i>`;
     lockBtn.dataset.tip = isLocked ? 'Unlock' : 'Lock';
     lockBtn.addEventListener('click', e => { e.stopPropagation(); onToggleLock?.(data.id); });
     actions.appendChild(lockBtn);
@@ -2423,11 +2495,11 @@ const Render = {
     if (onExpand) {
       const cost = Logic.expandCost(data);
       const btn  = this.el('button', 'card-list-btn card-list-btn-expand');
-      btn.innerHTML           = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
-      btn.dataset.tip         = isLocked ? 'Unlock to expand' : `Expand into pack`;
-      btn.disabled            = isLocked || !Logic.canAffordExpand(data);
-      btn.dataset.expandBtn   = data.rarity;
-      btn.dataset.expandTitle = data.title;
+      btn.innerHTML            = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
+      btn.dataset.tip          = `Expand into pack`;
+      btn.disabled             = !Logic.canAffordExpand(data);
+      btn.dataset.expandBtn    = data.rarity;
+      btn.dataset.expandTitle  = data.title;
       btn.dataset.expandCardId = data.id;
       btn.addEventListener('click', e => { e.stopPropagation(); onExpand(data); });
       actions.appendChild(btn);
@@ -2442,7 +2514,8 @@ const Render = {
     });
     actions.appendChild(wikiBtn);
 
-    row.appendChild(actions);
+    infoCol.appendChild(actions);
+    row.appendChild(infoCol);
     return row;
   },
 
@@ -2483,6 +2556,24 @@ const Render = {
     t.textContent = msg;
     document.getElementById('toast-container').appendChild(t);
     setTimeout(() => t.remove(), 2900);
+  },
+
+  // ── Undo bar ─────────────────────────────────────────────────
+
+  showUndoBar(card) {
+    let bar = document.getElementById('undo-bar');
+    if (!bar) return;
+    clearTimeout(Render._undoTimer);
+    bar.querySelector('.undo-bar-label').textContent =
+      `Sold "${card.title}" for ${this.money(card.value)}`;
+    bar.classList.add('active');
+    Render._undoTimer = setTimeout(() => Render.hideUndoBar(), 8000);
+  },
+
+  hideUndoBar() {
+    const bar = document.getElementById('undo-bar');
+    if (bar) bar.classList.remove('active');
+    State._undoCard = null;
   },
 
   // ── Modal ────────────────────────────────────────────────────
@@ -2680,7 +2771,7 @@ const Render = {
         btn.disabled  = !Logic.canAfford(total);
         btn.addEventListener('click', () => {
           document.getElementById('modal-overlay').classList.remove('active');
-          App.enqueuePacks(qty, topicTitle ?? null);
+          App.enqueuePacks(qty, topicTitle ?? null, priceEach);
         });
         qtyRow.appendChild(btn);
       });
@@ -2792,6 +2883,23 @@ const Render = {
     resetRow.appendChild(resetBtn);
     dataSection.appendChild(resetRow);
     extra.appendChild(dataSection);
+
+    // ── About section ────────────────────────────────────────
+    const aboutSection = document.createElement('div');
+    aboutSection.className = 'settings-section';
+    aboutSection.innerHTML = `<div class="settings-section-title">About</div>`;
+
+    const versionRow = document.createElement('div');
+    versionRow.className = 'settings-row';
+    versionRow.innerHTML = `
+      <div class="settings-row-label">
+        <i class="fa-solid fa-tag"></i>
+        Version
+      </div>
+      <span style="font-size:0.85rem;color:var(--text-dim);font-family:system-ui,sans-serif;">${VERSION}</span>
+    `;
+    aboutSection.appendChild(versionRow);
+    extra.appendChild(aboutSection);
 
     this.confirm('Settings', '', { onConfirm: null, extraEl: extra });
 
@@ -2967,8 +3075,9 @@ const Render = {
 // ============================================================
 
 const App = {
-  _binderView: 'grid', // 'grid' | 'list'
-  _packQueue:  [],     // pending packs to open: { topicTitle: string|null }
+  _binderView:   'grid', // 'grid' | 'list'
+  _binderSearch: '',     // active search filter text
+  _packQueue:    [],     // pending packs to open: { topicTitle: string|null }
   _queueRunning: false,
   // ── Init ─────────────────────────────────────────────────────
 
@@ -3014,6 +3123,8 @@ const App = {
       .addEventListener('click', () => Render.showHelp());
     document.getElementById('btn-quests')
       .addEventListener('click', () => App.onShowQuests());
+    document.getElementById('btn-undo-sell')
+      .addEventListener('click', () => App.onUndoSell());
   },
 
   // ── Quest methods ─────────────────────────────────────────────
@@ -3091,7 +3202,11 @@ const App = {
   },
 
   /** Add qty packs to the queue and start draining if not already running. */
-  enqueuePacks(qty, topicTitle = null) {
+  enqueuePacks(qty, topicTitle = null, priceEach = PACK_COST) {
+    const total = priceEach * qty;
+    if (State.balance < total) { Render.toast('Not enough money.', 'error'); return; }
+    Logic.deductCost(total);
+    Render.updateBalance();
     for (let i = 0; i < qty; i++) App._packQueue.push({ topicTitle });
     App._drainQueue();
   },
@@ -3125,6 +3240,26 @@ const App = {
         ? '<i class="fa-solid fa-grip"></i>'
         : '<i class="fa-solid fa-list"></i>';
       btn.classList.toggle('active', App._binderView === 'list');
+      Render.renderBinder();
+    });
+
+    const searchBtn   = document.getElementById('btn-search');
+    const searchInput = document.getElementById('binder-search');
+
+    searchBtn.addEventListener('click', () => {
+      const isOpen = searchInput.classList.toggle('active');
+      searchBtn.classList.toggle('active', isOpen);
+      if (isOpen) {
+        searchInput.focus();
+      } else {
+        searchInput.value    = '';
+        App._binderSearch    = '';
+        Render.renderBinder();
+      }
+    });
+
+    searchInput.addEventListener('input', () => {
+      App._binderSearch = searchInput.value.trim();
       Render.renderBinder();
     });
   },
@@ -3265,21 +3400,36 @@ const App = {
     if (listSell)  { listSell.disabled  = isNowLocked; listSell.dataset.tip  = isNowLocked ? 'Unlock to sell'   : `Sell for ${Render.money(State.binder.find(c=>c.id===id)?.value??0)}`; }
 
     const card = State.binder.find(c => c.id === id);
-    if (gridExpand) { gridExpand.disabled = isNowLocked || !card || !Logic.canAffordExpand(card); gridExpand.dataset.tip = isNowLocked ? 'Unlock to expand' : 'Expand into pack'; }
-    if (listExpand) { listExpand.disabled = isNowLocked || !card || !Logic.canAffordExpand(card); listExpand.dataset.tip = isNowLocked ? 'Unlock to expand' : `Expand ($${card ? Logic.expandCost(card) : '?'})`; }
+    if (gridExpand) { gridExpand.disabled = !card || !Logic.canAffordExpand(card); gridExpand.dataset.tip = 'Expand into pack'; }
+    if (listExpand) { listExpand.disabled = !card || !Logic.canAffordExpand(card); listExpand.dataset.tip = `Expand ($${card ? Logic.expandCost(card) : '?'})`; }
+  },
+
+  onUndoSell() {
+    const card = State._undoCard;
+    if (!card) return;
+    // Reverse: remove the sale value and restore card to binder
+    State.balance -= card.value;
+    State.binder.unshift(card);
+    State._undoCard = null;
+    Storage.save();
+    Render.hideUndoBar();
+    Render.updateBalance();
+    Render.renderBinder();
   },
 
   onSellCard(id) {
     const card = State.binder.find(c => c.id === id);
     if (!card) return;
-    const earned = Logic.sellCard(id);
+    // Save card for undo before it's removed
+    State._undoCard = { ...card };
+    Logic.sellCard(id);
     // If that was the last card from the latest session, clear the session highlight
     if (State.sessionId && Logic.latestPackCards().length === 0) {
       State.sessionId = null;
       Storage.save();
     }
     Render.updateBalance();
-    Render.toast(`Sold "${card.title}" for ${Render.money(earned)}`, 'success');
+    Render.showUndoBar(State._undoCard);
 
     const el = document.querySelector(`[data-card-id="${id}"]`);
     if (el) {
