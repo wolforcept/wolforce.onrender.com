@@ -997,6 +997,20 @@ body::before {
   font-style: italic; white-space: nowrap;
 }
 
+.quest-section-label {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'Playfair Display', serif; font-size: 0.85rem;
+  color: var(--text-dim); margin-bottom: 8px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.quest-section-label i { font-size: 0.75rem; }
+
+.quest-section-label-daily {
+  color: var(--gold-light);
+  border-bottom-color: var(--gold-dim);
+}
+.quest-section-label-daily i { color: var(--gold); }
+
 .quest-daily-badge {
   font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase;
   color: #2ab5a0; background: rgba(42,181,160,0.1); border: 1px solid #2ab5a0;
@@ -1347,27 +1361,31 @@ const Api = {
     return (page.links || []).map(l => l.title);
   },
 
-  /** Fetch the single #1 most-viewed article from yesterday for the daily quest. */
+  /** Fetch the #1 most-viewed article for the daily quest.
+   *  Wikimedia top-pages data has a 1–2 day lag, so we try 2 days ago then fall back to 3.
+   */
   async fetchDailyQuest() {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    const y  = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia/all-access/${y}/${mm}/${dd}`;
-    try {
-      const data = await fetch(url).then(r => r.json());
-      // Filter on raw underscore form before converting, to catch all variants
-      const BAD = /^(Main_Page|Special:|Wikipedia:|Help:|Portal:|File:|Template:|Talk:|User:|WP:|Book:|Draft:|TimedText:|Module:|Gadget:|Deaths_in_|Lists_of_|List_of_|Index_of_|Outline_of_|Bibliography_of_|-$)/;
-      const top = (data?.items?.[0]?.articles ?? [])
-        .find(a => !BAD.test(a.article));
+    const BAD = /^(Main_Page|Special:|Wikipedia:|Help:|Portal:|File:|Template:|Talk:|User:|WP:|Book:|Draft:|TimedText:|Module:|Gadget:|Deaths_in_|Lists_of_|List_of_|Index_of_|Outline_of_|Bibliography_of_|-$)/;
+
+    const tryDate = async (daysAgo) => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      const y  = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia/all-access/${y}/${mm}/${dd}`;
+      const data = await fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+      const top = (data?.items?.[0]?.articles ?? []).find(a => !BAD.test(a.article));
       if (!top) return null;
       const title = top.article.replace(/_/g, ' ');
       const pages = await Api.fetchCardData([title]);
       const page  = pages[0];
       if (!page?.pageid || page.missing || Api.isDisambiguation(page)) return null;
       return { title, thumb: page?.thumbnail?.source ?? null };
-    } catch { return null; }
+    };
+
+    try { return await tryDate(2); } catch { /* fall through */ }
+    try { return await tryDate(3); } catch { return null; }
   },
 
   /**
@@ -2519,9 +2537,8 @@ const Render = {
     container.appendChild(ph);
 
     // Daily quest section
-    const dailyLabel = this.el('div', 'binder-section-label');
-    dailyLabel.textContent = "Today's Quest";
-    dailyLabel.style.marginBottom = '8px';
+    const dailyLabel = this.el('div', 'quest-section-label quest-section-label-daily');
+    dailyLabel.innerHTML = `<i class="fa-solid fa-sun"></i> Today's Quest`;
     container.appendChild(dailyLabel);
 
     if (!State.dailyQuest || Logic.dailyQuestNeedsRefresh()) {
@@ -2533,8 +2550,8 @@ const Render = {
     }
 
     // Permanent quests section
-    const permLabel = this.el('div', 'binder-section-label');
-    permLabel.textContent = 'Collection Quests';
+    const permLabel = this.el('div', 'quest-section-label');
+    permLabel.innerHTML = `<i class="fa-solid fa-book-bookmark"></i> Collection Quests`;
     permLabel.style.margin = '14px 0 8px';
     container.appendChild(permLabel);
 
@@ -2568,15 +2585,7 @@ const Render = {
     // Info
     const info = this.el('div', 'quest-info');
     const titleRow = this.el('div', 'quest-title');
-    titleRow.style.display = 'flex'; titleRow.style.alignItems = 'center'; titleRow.style.gap = '6px';
-    const titleText = this.el('span');
-    titleText.textContent = quest.title;
-    titleRow.appendChild(titleText);
-    if (isDaily) {
-      const badge = this.el('span', 'quest-daily-badge');
-      badge.textContent = 'Daily';
-      titleRow.appendChild(badge);
-    }
+    titleRow.textContent = quest.title;
     const sub = this.el('div', 'quest-sub');
     sub.textContent = completedToday ? 'Completed today · +$100 awarded'
                     : hasCard        ? 'You have this card!'
