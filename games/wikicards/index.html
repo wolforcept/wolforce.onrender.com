@@ -331,12 +331,17 @@ main { flex: 1; padding: 32px; }
 
 
 .binder-toolbar {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px;
+  display: flex; align-items: center;
+  margin-bottom: 20px; gap: 8px;
 }
-.binder-count { color: var(--text-dim); font-size: 0.85rem; font-style: italic; }
+.binder-count {
+  color: var(--text-dim); font-size: 0.85rem; font-style: italic;
+  text-align: center; white-space: nowrap;
+}
 
-.toolbar-right { display: flex; align-items: center; gap: 8px; }
+/* Left and right wings are equal width so the count stays centered */
+.toolbar-left  { flex: 1; display: flex; align-items: center; gap: 8px; }
+.toolbar-right { flex: 1; display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
 
 /* Sort button wrapper — button triggers the hidden native select */
 .sort-wrapper { position: relative; }
@@ -395,8 +400,7 @@ main { flex: 1; padding: 32px; }
 .card-list-row[data-rarity="epic"]      { border-left: 3px solid var(--epic); }
 .card-list-row[data-rarity="legendary"] { border-left: 3px solid var(--legendary); }
 
-.card-list-row.is-locked { outline: 1px solid var(--gold-dim); outline-offset: 1px; }
-
+.card-list-row.is-locked { outline: none; }
 /* Full-height thumbnail */
 .card-list-thumb {
   width: 56px; flex-shrink: 0;
@@ -445,13 +449,13 @@ main { flex: 1; padding: 32px; }
 #undo-bar {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; padding: 0 20px;
-  background: #1a0e0e; border-bottom: 1px solid #5a2020;
+  background: #1a0e0e;
   height: 0; overflow: hidden;
   transition: height var(--anim-med) ease;
   font-size: 0.82rem; color: var(--text-dim);
   position: sticky; top: 64px; z-index: 99;
 }
-#undo-bar.active { height: 42px; }
+#undo-bar.active { height: 42px; border-bottom: 1px solid #5a2020; }
 
 .btn-undo-sell {
   display: flex; align-items: center; gap: 6px;
@@ -463,6 +467,86 @@ main { flex: 1; padding: 32px; }
   transition: all var(--anim-fast); flex-shrink: 0;
 }
 .btn-undo-sell:hover { background: rgba(192,80,80,0.15); border-color: #c05050; color: #e08080; }
+
+/* ── Archive dropdown ── */
+#archive-dropdown {
+  position: fixed; z-index: 200;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 8px; min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  overflow: hidden;
+  animation: viewIn var(--anim-fast) ease;
+}
+.archive-dropdown-item {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 9px 14px;
+  background: none; border: none; cursor: pointer;
+  font-size: 0.83rem; color: var(--text-dim);
+  font-family: 'Source Serif 4', serif;
+  text-align: left; transition: background var(--anim-fast), color var(--anim-fast);
+}
+.archive-dropdown-item i { font-size: 0.75rem; width: 14px; color: var(--text-muted); flex-shrink: 0; }
+.archive-dropdown-item:hover { background: var(--bg3); color: var(--text); }
+.archive-dropdown-item.active { color: var(--gold); }
+.archive-dropdown-item.active i { color: var(--gold-dim); }
+.archive-dropdown-count {
+  margin-left: auto; font-size: 0.72rem;
+  color: var(--text-muted); font-family: system-ui, sans-serif;
+}
+.archive-dropdown-empty {
+  padding: 12px 16px; font-size: 0.82rem;
+  color: var(--text-muted); font-style: italic;
+}
+
+/* ── Archive modal body ── */
+.archive-modal-body { display: flex; flex-direction: column; gap: 0; }
+.archive-modal-section-label {
+  font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 6px;
+}
+.archive-list {
+  display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px;
+  max-height: 160px; overflow-y: auto;
+}
+/* Radio dot */
+.archive-radio {
+  width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--text-muted);
+  transition: border-color var(--anim-fast), background var(--anim-fast);
+  display: inline-block;
+}
+.archive-radio.filled {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+/* Existing archive rows */
+.archive-list-item {
+  width: 100%; padding: 8px 12px; text-align: left;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer;
+  font-size: 0.85rem; color: var(--text-muted);
+  font-family: 'Source Serif 4', serif;
+  transition: border-color var(--anim-fast), color var(--anim-fast);
+}
+.archive-list-item:hover { border-color: var(--gold-dim); color: var(--text); }
+.archive-list-item.selected { border-color: var(--gold); color: var(--gold); background: var(--bg2); }
+/* New-archive input row */
+.archive-input-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 12px; margin-top: 2px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer;
+  transition: border-color var(--anim-fast);
+}
+.archive-input-row.selected { border-color: var(--gold); }
+.archive-input-row:hover { border-color: var(--gold-dim); }
+.archive-name-input {
+  flex: 1; padding: 3px 0; background: transparent; border: none;
+  color: var(--text); font-family: 'Source Serif 4', serif; font-size: 0.85rem;
+  outline: none;
+}
+.archive-name-input::placeholder { color: var(--text-muted); }
 
 .card-list-btn {
   height: 30px; min-width: 30px;
@@ -487,11 +571,11 @@ main { flex: 1; padding: 32px; }
 }
 .card-list-btn:hover::after { opacity: 1; }
 
-/* Lock and wiki stay square */
-.card-list-btn-lock, .card-list-btn-wiki { width: 30px; padding: 0; }
+/* Archive and wiki stay square */
+.card-list-btn-archive, .card-list-btn-wiki { width: 30px; padding: 0; }
 
-.card-list-btn-lock   { background: var(--bg3); color: var(--text-muted); border: 1px solid var(--border); }
-.card-list-btn-lock.is-locked { color: var(--gold); border-color: var(--gold-dim); }
+.card-list-btn-archive            { background: var(--bg3); color: var(--text-muted); border: 1px solid var(--border); }
+.card-list-btn-archive.is-archived { color: #7ab0e0; border-color: #3a5a80; }
 .card-list-btn-sell   { background: #2a3d2a; color: #7abf7a; }
 .card-list-btn-expand { background: #1a1020; color: #a070d0; }
 .card-list-btn-wiki   { background: #1a2030; color: #7090c0; }
@@ -603,21 +687,18 @@ main { flex: 1; padding: 32px; }
 .card[data-rarity="legendary"] .card-rarity-icon { background: #2a0e04; color: var(--legendary); }
 
 /* Lock button — top-left corner */
-.card-lock-btn {
+.card-archive-btn {
   position: absolute; top: 8px; left: 8px;
   width: 26px; height: 26px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.7rem; z-index: 11; cursor: pointer;
+  font-size: 0.68rem; z-index: 11; cursor: pointer;
   border: none; background: rgba(20,18,14,0.55);
   color: #888; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   transition: background var(--anim-fast), color var(--anim-fast), transform var(--anim-fast);
   -webkit-tap-highlight-color: transparent;
 }
-.card-lock-btn:hover { transform: scale(1.15); }
-.card-lock-btn.is-locked { background: rgba(20,18,14,0.8); color: var(--gold); }
-
-/* Locked card: subtle warm overlay tint */
-.card.is-locked { outline: 2px solid var(--gold-dim); outline-offset: 2px; }
+.card-archive-btn:hover { transform: scale(1.15); }
+.card-archive-btn.is-archived { background: rgba(20,18,14,0.8); color: #7ab0e0; }
 
 .card-img {
   width: 100%;
@@ -1210,12 +1291,10 @@ body::before {
       </div>
 
       <div class="binder-toolbar">
-        <span class="binder-count" id="binder-count"></span>
-        <div class="toolbar-right">
-          <button class="toolbar-icon-btn" id="btn-search" title="Search cards">
-            <i class="fa-solid fa-magnifying-glass"></i>
+        <div class="toolbar-left">
+          <button class="toolbar-icon-btn" id="btn-view-toggle" title="Toggle view">
+            <i class="fa-solid fa-list"></i>
           </button>
-          <input type="text" id="binder-search" class="binder-search-input" placeholder="Search cards…" />
           <div class="sort-wrapper">
             <button class="toolbar-icon-btn" id="btn-sort" title="Sort">
               <i class="fa-solid fa-arrow-up-wide-short"></i>
@@ -1228,8 +1307,15 @@ body::before {
               <option value="title-asc">Title: A → Z</option>
             </select>
           </div>
-          <button class="toolbar-icon-btn" id="btn-view-toggle" title="Toggle view">
-            <i class="fa-solid fa-list"></i>
+        </div>
+        <span class="binder-count" id="binder-count"></span>
+        <div class="toolbar-right">
+          <input type="text" id="binder-search" class="binder-search-input" placeholder="Search cards…" />
+          <button class="toolbar-icon-btn" id="btn-search" title="Search cards">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+          <button class="toolbar-icon-btn" id="btn-archives" title="Archives">
+            <i class="fa-solid fa-boxes-stacked"></i>
           </button>
         </div>
       </div>
@@ -1261,7 +1347,7 @@ body::before {
 // #region DATA — constants, type definitions, state object
 // ============================================================
 
-const VERSION     = '1.1';
+const VERSION     = '0.2';
 
 const PACK_COST   = 5;
 const PACK_SIZE   = 7;
@@ -1312,16 +1398,18 @@ const RARITY_RANK = Object.fromEntries(RARITY_TIERS.map((t, i) => [t.id, i]));
  *   value:     number,
  *   sessionId: string,
  *   acquired:  number,
- *   locked:    boolean
+ *   archive:   string|null
  * }} CardData
  *
  * State.sessionId is the ID of the most recently opened pack.
  * Cards from that session are "new" — shown with highlight in the binder.
  * Nulling sessionId clears the highlight.
+ * archive: null = in normal binder; string = name of archive it belongs to.
  */
 const State = {
   balance:             0,
   binder:              /** @type {CardData[]} */ ([]),
+  archives:            /** @type {string[]} */ ([]),
   sessionId:           /** @type {string|null} */ (null),
   firstTime:           true,
   questPoints:         0,        // lifetime completed quests
@@ -1346,6 +1434,7 @@ const Storage = {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         balance:              State.balance,
         binder:               State.binder,
+        archives:             State.archives,
         sessionId:            State.sessionId,
         firstTime:            State.firstTime,
         questPoints:          State.questPoints,
@@ -1365,6 +1454,7 @@ const Storage = {
       const d = JSON.parse(raw);
       State.balance              = d.balance              ?? 0;
       State.binder               = d.binder               ?? [];
+      State.archives             = d.archives             ?? [];
       State.sessionId            = d.sessionId            ?? null;
       State.firstTime            = d.firstTime            ?? true;
       State.questPoints          = d.questPoints          ?? 0;
@@ -1373,6 +1463,20 @@ const Storage = {
       State.lastAwardDate        = d.lastAwardDate        ?? null;
       State.dailyQuest           = d.dailyQuest           ?? null;
       State.dailyQuestCompleted  = d.dailyQuestCompleted  ?? false;
+
+      // ── Migration: locked boolean → archive string ──────────
+      // Old saves have `locked: true/false`; new saves have `archive: string|null`.
+      State.binder.forEach(card => {
+        if (card.archive === undefined) {
+          if (card.locked) {
+            card.archive = 'Favourites';
+            if (!State.archives.includes('Favourites')) State.archives.push('Favourites');
+          } else {
+            card.archive = null;
+          }
+          delete card.locked;
+        }
+      });
     } catch (e) { console.warn('[Storage] load failed:', e); }
   },
 };
@@ -1818,7 +1922,7 @@ const Logic = {
       value:       Logic.sellValue(page.title, rarity),
       sessionId,
       acquired:    Date.now(),
-      locked:      false,
+      archive:     null,
       expandCount: 0,
     });
   },
@@ -1838,13 +1942,34 @@ const Logic = {
     return State.sessionId ? State.binder.filter(c => c.sessionId === State.sessionId) : [];
   },
 
-  /** Toggle locked state on a card. Returns new locked value. */
-  toggleLock(id) {
+  /** Move a card into a named archive. Creates the archive if it doesn't exist. */
+  archiveCard(id, archiveName) {
     const card = State.binder.find(c => c.id === id);
-    if (!card) return false;
-    card.locked = !card.locked;
+    if (!card) return;
+    card.archive = archiveName;
+    if (!State.archives.includes(archiveName)) State.archives.push(archiveName);
+    Logic.pruneEmptyArchives();
     Storage.save();
-    return card.locked;
+  },
+
+  /** Remove a card from its archive, returning it to the normal binder. */
+  unarchiveCard(id) {
+    const card = State.binder.find(c => c.id === id);
+    if (!card) return;
+    card.archive = null;
+    Logic.pruneEmptyArchives();
+    Storage.save();
+  },
+
+  /** Remove any archives that have no cards. If _activeArchive was pruned, reset it. */
+  pruneEmptyArchives() {
+    const before = State.archives.length;
+    State.archives = State.archives.filter(name =>
+      State.binder.some(c => c.archive === name)
+    );
+    if (before !== State.archives.length && !State.archives.includes(App._activeArchive)) {
+      App._activeArchive = null;
+    }
   },
 
   sortedBinder(key) {
@@ -1857,8 +1982,7 @@ const Logic = {
       'title-asc':   (a, b) => a.title.localeCompare(b.title),
     };
     arr.sort(by[key] ?? by['acquired']);
-    // Locked cards always float to top, preserving their relative order
-    return [...arr.filter(c => c.locked), ...arr.filter(c => !c.locked)];
+    return arr;
   },
 
   // ── Economy ─────────────────────────────────────────────────
@@ -1941,18 +2065,18 @@ const Logic = {
 
   sellCard(id) {
     const card = State.binder.find(c => c.id === id);
-    if (!card || card.locked) return 0;
+    if (!card || card.archive !== null) return 0;
     State.binder   = State.binder.filter(c => c.id !== id);
     State.balance += card.value;
     Storage.save();
     return card.value;
   },
 
-  /** Sell all unlocked cards matching predicate. Returns { total, count }. */
+  /** Sell all non-archived cards matching predicate. Returns { total, count }. */
   sellWhere(predicate) {
-    const targets  = State.binder.filter(c => !c.locked && predicate(c));
+    const targets  = State.binder.filter(c => c.archive === null && predicate(c));
     const total    = targets.reduce((s, c) => s + c.value, 0);
-    State.binder   = State.binder.filter(c => c.locked || !predicate(c));
+    State.binder   = State.binder.filter(c => c.archive !== null || !predicate(c));
     State.balance += total;
     Storage.save();
     return { total, count: targets.length };
@@ -2120,7 +2244,7 @@ const Render = {
    *   onSell(id)      — called when Sell button clicked
    *   onExpand(data)  — called when Expand button clicked
    */
-  card(data, { onSell, onExpand, onToggleLock, isNew = false } = {}) {
+  card(data, { onSell, onExpand, onArchive, isNew = false } = {}) {
     const RARITY_ICONS = {
       common:    '<i class="fa-solid fa-circle"></i>',
       uncommon:  '<i class="fa-solid fa-diamond"></i>',
@@ -2129,19 +2253,22 @@ const Render = {
       legendary: '<i class="fa-solid fa-crown"></i>',
     };
 
-    const isLocked = !!data.locked;
-    const root = this.el('div', `card${isNew ? ' is-new' : ''}${isLocked ? ' is-locked' : ''}`);
+    const isArchived = data.archive !== null;
+    const root = this.el('div', `card${isNew ? ' is-new' : ''}`);
     root.dataset.rarity = data.rarity;
     root.dataset.cardId = data.id;
     root.appendChild(this.el('div', 'card-border'));
 
-    // Lock button — top-left (outside inner, so not clipped)
-    const lockBtn = this.el('button', `card-lock-btn${isLocked ? ' is-locked' : ''}`);
-    lockBtn.innerHTML   = `<i class="fa-solid fa-${isLocked ? 'lock' : 'lock-open'}"></i>`;
-    lockBtn.dataset.tip = isLocked ? 'Unlock card' : 'Lock card';
-    lockBtn.title       = lockBtn.dataset.tip;
-    lockBtn.addEventListener('click', e => { e.stopPropagation(); onToggleLock?.(data.id); });
-    root.appendChild(lockBtn);
+    // Archive button — top-left corner
+    const archBtn = this.el('button', `card-archive-btn${isArchived ? ' is-archived' : ''}`);
+    archBtn.innerHTML   = `<i class="fa-solid fa-${isArchived ? 'box-open' : 'box-archive'}"></i>`;
+    archBtn.dataset.tip = isArchived ? 'Move / unarchive' : 'Archive card';
+    archBtn.title       = archBtn.dataset.tip;
+    archBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      onArchive?.(data.id);
+    });
+    root.appendChild(archBtn);
 
     // Rarity icon — top-right (outside inner, so not clipped)
     const rarityIcon = this.el('div', 'card-rarity-icon');
@@ -2154,40 +2281,26 @@ const Render = {
 
     // Image area — fills space above title
     if (data.thumb) {
-      // Has image: wrap in .card-image-area, overlay desc on click
       const area = this.el('div', 'card-image-area');
-
       const img = this.el('img', 'card-img', { src: data.thumb, alt: data.title, loading: 'lazy' });
-      img.onerror = () => {
-        // Image failed — swap to text placeholder
-        area.replaceWith(this._placeholder(data.desc));
-      };
+      img.onerror = () => { area.replaceWith(this._placeholder(data.desc)); };
       area.appendChild(img);
-
       if (data.desc) {
         const overlay = this.el('div', 'card-desc-overlay');
         overlay.textContent = data.desc;
         area.appendChild(overlay);
-
-        area.addEventListener('click', e => {
-          e.stopPropagation();
-          area.classList.toggle('showing-desc');
-        });
+        area.addEventListener('click', e => { e.stopPropagation(); area.classList.toggle('showing-desc'); });
       }
-
       inner.appendChild(area);
     } else {
-      // No image — show desc as text directly
       inner.appendChild(this._placeholder(data.desc));
     }
 
     // Body
     const body = this.el('div', 'card-body');
-
     const titleEl = this.el('div', 'card-title');
     titleEl.textContent = data.title;
     body.appendChild(titleEl);
-
     inner.appendChild(body);
 
     // Footer — icon-only buttons
@@ -2197,8 +2310,7 @@ const Render = {
       if (onSell) {
         const btn = this.el('button', 'card-btn card-btn-sell');
         btn.innerHTML   = `<i class="fa-solid fa-hand-holding-dollar"></i> ${data.value.toLocaleString()}`;
-        btn.dataset.tip = isLocked ? 'Unlock to sell' : 'Sell this card';
-        btn.disabled    = isLocked;
+        btn.dataset.tip = 'Sell this card';
         btn.addEventListener('click', e => { e.stopPropagation(); onSell(data.id); });
         footer.appendChild(btn);
       }
@@ -2206,17 +2318,16 @@ const Render = {
       if (onExpand) {
         const cost = Logic.expandCost(data);
         const btn  = this.el('button', 'card-btn card-btn-expand');
-        btn.innerHTML             = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
-        btn.dataset.tip           = `Expand into pack${(data.expandCount ?? 0) > 0 ? ` (expanded ${data.expandCount}×)` : ''}`;
-        btn.disabled              = !Logic.canAffordExpand(data);
-        btn.dataset.expandBtn     = data.rarity;
-        btn.dataset.expandTitle   = data.title;
-        btn.dataset.expandCardId  = data.id;
+        btn.innerHTML            = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
+        btn.dataset.tip          = `Expand into pack${(data.expandCount ?? 0) > 0 ? ` (expanded ${data.expandCount}×)` : ''}`;
+        btn.disabled             = !Logic.canAffordExpand(data);
+        btn.dataset.expandBtn    = data.rarity;
+        btn.dataset.expandTitle  = data.title;
+        btn.dataset.expandCardId = data.id;
         btn.addEventListener('click', e => { e.stopPropagation(); onExpand(data); });
         footer.appendChild(btn);
       }
 
-      // Wikipedia link — always shown
       const wikiBtn = this.el('button', 'card-btn card-btn-wiki');
       wikiBtn.innerHTML   = '<i class="fa-brands fa-wikipedia-w"></i>';
       wikiBtn.dataset.tip = 'Open on Wikipedia';
@@ -2225,7 +2336,6 @@ const Render = {
         window.open(`https://en.wikipedia.org/wiki/${encodeURIComponent(data.title)}`, '_blank');
       });
       footer.appendChild(wikiBtn);
-
       inner.appendChild(footer);
     }
 
@@ -2383,33 +2493,55 @@ const Render = {
   // ── Binder ───────────────────────────────────────────────────
 
   renderBinder() {
-    const container = document.getElementById('binder-grid');
-    const sortKey   = document.getElementById('binder-sort').value;
-    const isList    = App._binderView === 'list';
-    const query     = App._binderSearch.toLowerCase();
+    const container    = document.getElementById('binder-grid');
+    const sortKey      = document.getElementById('binder-sort').value;
+    const isList       = App._binderView === 'list';
+    const query        = App._binderSearch.toLowerCase();
+    const activeArchive = App._activeArchive;
     container.innerHTML = '';
     container.className = isList ? 'binder-list' : 'binder-grid';
 
+    // Count only cards shown in normal binder
+    const normalCount = State.binder.filter(c => c.archive === null).length;
     document.getElementById('binder-count').textContent =
-      `${State.binder.length} card${State.binder.length !== 1 ? 's' : ''}`;
+      activeArchive
+        ? `Archive: ${activeArchive}`
+        : `${normalCount} card${normalCount !== 1 ? 's' : ''}`;
 
     this._renderLatestBanner();
 
-    if (State.binder.length === 0) {
+    // Pool: archive view or normal binder
+    const pool = State.binder.filter(c =>
+      activeArchive ? c.archive === activeArchive : c.archive === null
+    );
+
+    if (pool.length === 0) {
       const empty = this.el('div', 'binder-empty');
-      empty.innerHTML = 'Your binder is empty.<br><em>Open some packs to get started.</em>';
+      empty.innerHTML = activeArchive
+        ? `Archive "<em>${activeArchive}</em>" is empty.`
+        : 'Your binder is empty.<br><em>Open some packs to get started.</em>';
       container.appendChild(empty);
       return;
     }
 
     const matches = c => !query || c.title.toLowerCase().includes(query) || (c.desc || '').toLowerCase().includes(query);
-    const sorted  = Logic.sortedBinder(sortKey);
+    const sorted  = pool.slice().sort(((key) => {
+      const by = {
+        'acquired':    (a, b) => b.acquired - a.acquired,
+        'rarity-desc': (a, b) => RARITY_RANK[b.rarity] - RARITY_RANK[a.rarity],
+        'rarity-asc':  (a, b) => RARITY_RANK[a.rarity] - RARITY_RANK[b.rarity],
+        'value-desc':  (a, b) => b.value - a.value,
+        'title-asc':   (a, b) => a.title.localeCompare(b.title),
+      };
+      return by[key] ?? by['acquired'];
+    })(sortKey));
+
     const latestSid = State.sessionId;
     const render    = (c, isNew = false) => isList
-      ? this.cardListRow(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onToggleLock: App.onToggleLock })
-      : this.card(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onToggleLock: App.onToggleLock, isNew });
+      ? this.cardListRow(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onArchive: App.onArchiveCard })
+      : this.card(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onArchive: App.onArchiveCard, isNew });
 
-    if (sortKey === 'acquired' && latestSid && !query) {
+    if (!activeArchive && sortKey === 'acquired' && latestSid && !query) {
       const newCards = sorted.filter(c => c.sessionId === latestSid);
       const oldCards = sorted.filter(c => c.sessionId !== latestSid);
 
@@ -2445,15 +2577,15 @@ const Render = {
 
   // ── Card list row (list view) ─────────────────────────────────
 
-  cardListRow(data, { onSell, onExpand, onToggleLock } = {}) {
+  cardListRow(data, { onSell, onExpand, onArchive } = {}) {
     const RARITY_ICONS = { common: 'fa-circle', uncommon: 'fa-diamond', rare: 'fa-star', epic: 'fa-bahai', legendary: 'fa-crown' };
-    const isLocked = !!data.locked;
+    const isArchived = data.archive !== null;
 
-    const row = this.el('div', `card-list-row${isLocked ? ' is-locked' : ''}`);
+    const row = this.el('div', 'card-list-row');
     row.dataset.rarity = data.rarity;
     row.dataset.cardId = data.id;
 
-    // ── Full-height thumbnail ────────────────────────────────────
+    // Full-height thumbnail
     if (data.thumb) {
       const img = this.el('img', 'card-list-thumb', { src: data.thumb, alt: data.title, loading: 'lazy' });
       img.onerror = () => img.replaceWith(this._listPlaceholder());
@@ -2462,7 +2594,7 @@ const Render = {
       row.appendChild(this._listPlaceholder());
     }
 
-    // ── Info column (two rows) ───────────────────────────────────
+    // Info column (two rows)
     const infoCol = this.el('div', 'card-list-info-col');
 
     // Top row: rarity icon + title
@@ -2477,17 +2609,19 @@ const Render = {
     // Bottom row: action buttons
     const actions = this.el('div', 'card-list-actions');
 
-    const lockBtn = this.el('button', `card-list-btn card-list-btn-lock${isLocked ? ' is-locked' : ''}`);
-    lockBtn.innerHTML   = `<i class="fa-solid fa-${isLocked ? 'lock' : 'lock-open'}"></i>`;
-    lockBtn.dataset.tip = isLocked ? 'Unlock' : 'Lock';
-    lockBtn.addEventListener('click', e => { e.stopPropagation(); onToggleLock?.(data.id); });
-    actions.appendChild(lockBtn);
+    const archBtn = this.el('button', `card-list-btn card-list-btn-archive${isArchived ? ' is-archived' : ''}`);
+    archBtn.innerHTML   = `<i class="fa-solid fa-${isArchived ? 'box-open' : 'box-archive'}"></i>`;
+    archBtn.dataset.tip = isArchived ? 'Move / unarchive' : 'Archive';
+    archBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      onArchive?.(data.id);
+    });
+    actions.appendChild(archBtn);
 
     if (onSell) {
       const btn = this.el('button', 'card-list-btn card-list-btn-sell');
       btn.innerHTML   = `<i class="fa-solid fa-hand-holding-dollar"></i> ${data.value.toLocaleString()}`;
-      btn.dataset.tip = isLocked ? 'Unlock to sell' : 'Sell this card';
-      btn.disabled    = isLocked;
+      btn.dataset.tip = 'Sell this card';
       btn.addEventListener('click', e => { e.stopPropagation(); onSell(data.id); });
       actions.appendChild(btn);
     }
@@ -3066,19 +3200,224 @@ const Render = {
     }, 0);
   },
 
+  // ── Archive modal ────────────────────────────────────────────
+
+  /**
+   * Show a modal that lets the user pick an existing archive or create a new
+   * one, then calls App.onArchiveCard(id, archiveName).
+   */
+  showArchiveModal(cardId) {
+    const card = State.binder.find(c => c.id === cardId);
+    if (!card) return;
+
+    const isAlreadyArchived = card.archive !== null;
+    const wrap = document.createElement('div');
+    wrap.className = 'archive-modal-body';
+
+    // Selection state: '__none__' | '__new__' | '<archive name>'
+    // Default: card's current archive if archived, else first archive, else '__new__'
+    let selection = isAlreadyArchived
+      ? card.archive
+      : (State.archives.length > 0 ? State.archives[0] : '__new__');
+
+    // Helper: refresh all radio dots and row highlights
+    const refresh = () => {
+      wrap.querySelectorAll('.archive-radio').forEach(dot => {
+        dot.classList.toggle('filled', dot.dataset.archive === selection);
+      });
+      wrap.querySelectorAll('.archive-list-item').forEach(row => {
+        row.classList.toggle('selected', row.dataset.archive === selection);
+      });
+      inputRow.classList.toggle('selected', selection === '__new__');
+    };
+
+    // Helper: build a radio row for archive-list-item entries
+    const makeRow = (key, labelText) => {
+      const row = document.createElement('button');
+      row.className       = 'archive-list-item';
+      row.dataset.archive = key;
+      const dot = document.createElement('span');
+      dot.className       = 'archive-radio';
+      dot.dataset.archive = key;
+      const label = document.createElement('span');
+      label.textContent = labelText;
+      row.append(dot, label);
+      row.addEventListener('click', () => {
+        selection = key;
+        newInput.value = '';
+        newInput.blur();
+        refresh();
+      });
+      return row;
+    };
+
+    // ── "Return to inventory" (None) — only shown when card is already archived ──
+    if (isAlreadyArchived) {
+      const noneLabel = document.createElement('div');
+      noneLabel.className = 'archive-modal-section-label';
+      noneLabel.textContent = 'Return to inventory';
+      wrap.appendChild(noneLabel);
+
+      const list = document.createElement('div');
+      list.className = 'archive-list';
+      list.appendChild(makeRow('__none__', 'None — back to normal binder'));
+      wrap.appendChild(list);
+
+      if (State.archives.length > 0) {
+        const moveLabel = document.createElement('div');
+        moveLabel.className = 'archive-modal-section-label';
+        moveLabel.style.marginTop = '12px';
+        moveLabel.textContent = 'Or move to archive';
+        wrap.appendChild(moveLabel);
+      }
+    }
+
+    // ── Existing archives ──
+    if (State.archives.length > 0) {
+      if (!isAlreadyArchived) {
+        const listLabel = document.createElement('div');
+        listLabel.className = 'archive-modal-section-label';
+        listLabel.textContent = 'Select archive';
+        wrap.appendChild(listLabel);
+      }
+
+      const list = document.createElement('div');
+      list.className = 'archive-list';
+      State.archives.forEach(name => list.appendChild(makeRow(name, name)));
+      wrap.appendChild(list);
+
+      const orLabel = document.createElement('div');
+      orLabel.className = 'archive-modal-section-label';
+      orLabel.style.marginTop = '12px';
+      orLabel.textContent = 'Or create new';
+      wrap.appendChild(orLabel);
+    } else if (!isAlreadyArchived) {
+      const createLabel = document.createElement('div');
+      createLabel.className = 'archive-modal-section-label';
+      createLabel.textContent = 'Create archive';
+      wrap.appendChild(createLabel);
+    }
+
+    // ── New-archive input row ──
+    const inputRow = document.createElement('div');
+    inputRow.className = 'archive-input-row';
+    const inputDot = document.createElement('span');
+    inputDot.className       = 'archive-radio';
+    inputDot.dataset.archive = '__new__';
+    const newInput = document.createElement('input');
+    newInput.type        = 'text';
+    newInput.placeholder = 'New archive name…';
+    newInput.className   = 'archive-name-input';
+    inputRow.addEventListener('click', () => {
+      selection = '__new__';
+      newInput.focus();
+      refresh();
+    });
+    newInput.addEventListener('input', () => {
+      selection = '__new__';
+      refresh();
+    });
+    inputRow.append(inputDot, newInput);
+    wrap.appendChild(inputRow);
+
+    this.confirm(`Archive "${card.title}"`, '', {
+      confirmLabel: isAlreadyArchived ? 'Move' : 'Archive',
+      extraEl: wrap,
+      onConfirm: () => {
+        if (selection === '__none__') {
+          App.onArchiveCard(cardId, null);
+        } else if (selection === '__new__') {
+          const name = newInput.value.trim();
+          if (!name) { Render.toast('Please enter an archive name.', 'error'); return; }
+          App.onArchiveCard(cardId, name);
+        } else {
+          App.onArchiveCard(cardId, selection);
+        }
+      },
+    });
+
+    setTimeout(() => {
+      const p = document.querySelector('#modal-overlay .modal p');
+      if (p) p.style.display = 'none';
+      refresh();
+    }, 0);
+  },
+
+  // ── Archive browser (toolbar dropdown) ──────────────────────
+
+  /**
+   * Toggle the archive picker dropdown attached to btn-archives.
+   * Closes any open dropdown first; if there was none, builds and shows one.
+   */
+  toggleArchivePicker() {
+    const existing = document.getElementById('archive-dropdown');
+    if (existing) { existing.remove(); return; }
+
+    const btn    = document.getElementById('btn-archives');
+    const drop   = document.createElement('div');
+    drop.id        = 'archive-dropdown';
+    drop.className = 'archive-dropdown';
+
+    const close = () => drop.remove();
+
+    if (State.archives.length === 0) {
+      const empty = document.createElement('div');
+      empty.className   = 'archive-dropdown-empty';
+      empty.textContent = 'No archives yet.';
+      drop.appendChild(empty);
+    } else {
+      // "All cards" row to return to normal view
+      const allRow = document.createElement('button');
+      allRow.className  = `archive-dropdown-item${App._activeArchive === null ? ' active' : ''}`;
+      allRow.innerHTML  = '<i class="fa-solid fa-layer-group"></i> All cards';
+      allRow.addEventListener('click', () => {
+        App._activeArchive = null;
+        document.getElementById('btn-archives').classList.remove('active');
+        Render.renderBinder();
+        close();
+      });
+      drop.appendChild(allRow);
+
+      State.archives.forEach(name => {
+        const count = State.binder.filter(c => c.archive === name).length;
+        const row   = document.createElement('button');
+        row.className  = `archive-dropdown-item${App._activeArchive === name ? ' active' : ''}`;
+        row.innerHTML  = `<i class="fa-solid fa-box-archive"></i> ${name} <span class="archive-dropdown-count">${count}</span>`;
+        row.addEventListener('click', () => {
+          App._activeArchive = name;
+          document.getElementById('btn-archives').classList.add('active');
+          Render.renderBinder();
+          close();
+        });
+        drop.appendChild(row);
+      });
+    }
+
+    // Position below the button
+    const rect = btn.getBoundingClientRect();
+    drop.style.top   = `${rect.bottom + 6}px`;
+    drop.style.right = `${window.innerWidth - rect.right}px`;
+    document.body.appendChild(drop);
+
+    // Close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', function handler(e) {
+        if (!drop.contains(e.target) && e.target !== btn) {
+          drop.remove();
+          document.removeEventListener('click', handler);
+        }
+      });
+    }, 0);
+  },
+
 };
 
-// #endregion
-
-// ============================================================
-// #region APP — orchestration, view transitions, event wiring
-// ============================================================
-
 const App = {
-  _binderView:   'grid', // 'grid' | 'list'
-  _binderSearch: '',     // active search filter text
-  _packQueue:    [],     // pending packs to open: { topicTitle: string|null }
-  _queueRunning: false,
+  _binderView:    'grid',  // 'grid' | 'list'
+  _binderSearch:  '',      // active search filter text
+  _activeArchive: null,    // string|null — currently browsed archive
+  _packQueue:     [],      // pending packs to open: { topicTitle: string|null }
+  _queueRunning:  false,
   // ── Init ─────────────────────────────────────────────────────
 
   async init() {
@@ -3243,21 +3582,16 @@ const App = {
       Render.renderBinder();
     });
 
+    document.getElementById('btn-archives').addEventListener('click', () => Render.toggleArchivePicker());
+
     const searchBtn   = document.getElementById('btn-search');
     const searchInput = document.getElementById('binder-search');
-
     searchBtn.addEventListener('click', () => {
       const isOpen = searchInput.classList.toggle('active');
       searchBtn.classList.toggle('active', isOpen);
-      if (isOpen) {
-        searchInput.focus();
-      } else {
-        searchInput.value    = '';
-        App._binderSearch    = '';
-        Render.renderBinder();
-      }
+      if (isOpen) { searchInput.focus(); }
+      else { searchInput.value = ''; App._binderSearch = ''; Render.renderBinder(); }
     });
-
     searchInput.addEventListener('input', () => {
       App._binderSearch = searchInput.value.trim();
       Render.renderBinder();
@@ -3374,34 +3708,25 @@ const App = {
 
   // ── Card actions ──────────────────────────────────────────────
 
-  onToggleLock(id) {
-    const isNowLocked = Logic.toggleLock(id);
-    const el = document.querySelector(`[data-card-id="${id}"]`);
-    if (!el) return;
+  onArchiveCard(id, archiveName) {
+    if (archiveName !== undefined) {
+      // Called from the modal confirm — archiveName is a string or null (None)
+      if (archiveName === null) {
+        Logic.unarchiveCard(id);
+      } else {
+        Logic.archiveCard(id, archiveName);
+      }
+      Render.renderBinder();
+      return;
+    }
+    // Called from the card button — always open the modal
+    if (!State.binder.find(c => c.id === id)) return;
+    Render.showArchiveModal(id);
+  },
 
-    el.classList.toggle('is-locked', isNowLocked);
-
-    // Grid card selectors
-    const gridLock   = el.querySelector('.card-lock-btn');
-    const gridSell   = el.querySelector('.card-btn-sell');
-    const gridExpand = el.querySelector('.card-btn-expand');
-
-    // List row selectors
-    const listLock   = el.querySelector('.card-list-btn-lock');
-    const listSell   = el.querySelector('.card-list-btn-sell');
-    const listExpand = el.querySelector('.card-list-btn-expand');
-
-    const lockIcon = `<i class="fa-solid fa-${isNowLocked ? 'lock' : 'lock-open'}"></i>`;
-
-    if (gridLock) { gridLock.innerHTML = lockIcon; gridLock.dataset.tip = isNowLocked ? 'Unlock card' : 'Lock card'; gridLock.classList.toggle('is-locked', isNowLocked); }
-    if (listLock) { listLock.innerHTML = lockIcon; listLock.dataset.tip = isNowLocked ? 'Unlock' : 'Lock'; listLock.classList.toggle('is-locked', isNowLocked); }
-
-    if (gridSell)  { gridSell.disabled  = isNowLocked; gridSell.dataset.tip  = isNowLocked ? 'Unlock to sell'   : 'Sell this card'; }
-    if (listSell)  { listSell.disabled  = isNowLocked; listSell.dataset.tip  = isNowLocked ? 'Unlock to sell'   : `Sell for ${Render.money(State.binder.find(c=>c.id===id)?.value??0)}`; }
-
-    const card = State.binder.find(c => c.id === id);
-    if (gridExpand) { gridExpand.disabled = !card || !Logic.canAffordExpand(card); gridExpand.dataset.tip = 'Expand into pack'; }
-    if (listExpand) { listExpand.disabled = !card || !Logic.canAffordExpand(card); listExpand.dataset.tip = `Expand ($${card ? Logic.expandCost(card) : '?'})`; }
+  onUnarchiveCard(id) {
+    Logic.unarchiveCard(id);
+    Render.renderBinder();
   },
 
   onUndoSell() {
@@ -3444,9 +3769,10 @@ const App = {
 };
 
 // Bind callbacks used as references inside Render (so `this` context is preserved)
-App.onSellCard    = App.onSellCard.bind(App);
-App.onExpandCard  = App.onExpandCard.bind(App);
-App.onToggleLock  = App.onToggleLock.bind(App);
+App.onSellCard      = App.onSellCard.bind(App);
+App.onExpandCard    = App.onExpandCard.bind(App);
+App.onArchiveCard   = App.onArchiveCard.bind(App);
+App.onUnarchiveCard = App.onUnarchiveCard.bind(App);
 
 // #endregion
 
