@@ -1495,11 +1495,11 @@ const Api = {
     return `${WIKI_API}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`;
   },
 
-  /** Batch-fetch title + extract + thumbnail + pageprops for multiple titles in one HTTP request. */
+  /** Batch-fetch title + extract + thumbnail + pageprops + description for multiple titles in one HTTP request. */
   async fetchCardData(titles) {
     const url  = Api._url({
       action: 'query', titles: titles.join('|'),
-      prop: 'extracts|pageimages|pageprops', exintro: '1', exsentences: '2', explaintext: '1',
+      prop: 'extracts|pageimages|pageprops|description', exintro: '1', exsentences: '2', explaintext: '1',
       piprop: 'thumbnail', pithumbsize: '400',
     });
     const data = await fetch(url).then(r => r.json());
@@ -1913,10 +1913,18 @@ const Logic = {
 
   buildCard(page, views, sessionId) {
     const rarity = Logic.rarityFromViews(views);
+    // Fallback chain for description text:
+    //   1. intro extract (up to 2 sentences) — richest, not always present
+    //   2. Wikidata short description via pageprops — e.g. "16th President of the United States"
+    //   3. Wikidata short description via top-level description field (same source, different API path)
+    //   4. Generic fallback
+    const extract   = (page.extract || '').trim();
+    const shortDesc = (page.pageprops?.['wikibase-shortdesc'] || page.description || '').trim();
+    const desc      = extract || shortDesc || 'No description available.';
     return /** @type {CardData} */ ({
       id:          `${page.pageid}_${Math.random().toString(36).slice(2, 7)}`,
       title:       page.title,
-      desc:        page.extract || 'No description available.',
+      desc,
       thumb:       page.thumbnail?.source ?? null,
       rarity,
       value:       Logic.sellValue(page.title, rarity),
