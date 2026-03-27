@@ -7,6 +7,7 @@
     <title>WikiCards</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+    <script src="encoder.js"></script>
     <style>
         /* ============================================================
    CSS VARIABLES & RESET
@@ -377,6 +378,20 @@
             font-style: italic;
         }
 
+        /* Super research variant for the opening screen */
+        .opening-label.is-super {
+            color: #ff6040;
+            text-shadow: 0 0 20px rgba(255, 80, 40, 0.5);
+        }
+
+        #view-opening.is-super .pack-burst-ring {
+            border-color: #ff6040;
+        }
+
+        #view-opening.is-super .pack-burst-icon {
+            filter: drop-shadow(0 0 12px rgba(255, 80, 40, 0.8));
+        }
+
         .pack-progress {
             width: 280px;
             height: 3px;
@@ -402,7 +417,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 32px;
+            gap: 28px;
             text-align: center;
             cursor: pointer;
             user-select: none;
@@ -425,61 +440,98 @@
             color: var(--gold);
         }
 
-        /* 3D flip container */
-        .reveal-flip-scene {
+        /* Card stack — holds all cards absolutely stacked on top of each other */
+        .reveal-stack {
+            position: relative;
             width: var(--card-w);
             height: var(--card-h);
-            perspective: 900px;
         }
 
-        .reveal-flip-inner {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            transform-style: preserve-3d;
-            transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .reveal-flip-inner.flipped {
-            transform: rotateY(180deg);
-        }
-
-        .reveal-face {
+        /* Each card in the stack */
+        .reveal-stack-card {
             position: absolute;
             inset: 0;
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
             border-radius: 10px;
             overflow: hidden;
-        }
-
-        /* Card back */
-        .reveal-face-back {
-            background: var(--bg3);
-            border: 2px solid var(--gold-dim);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3.5rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            will-change: transform, opacity;
         }
 
-        .reveal-face-back::before {
-            content: '';
-            position: absolute;
-            inset: 8px;
-            border: 1px solid var(--gold-dim);
-            border-radius: 6px;
-            opacity: 0.4;
+        /* Rarity glow on the top card */
+        .reveal-stack-card.is-top[data-rarity="common"] {
+            box-shadow: 0 8px 30px rgba(154, 154, 154, 0.3);
         }
 
-        /* Card front — populated by JS */
-        .reveal-face-front {
-            transform: rotateY(180deg);
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+        .reveal-stack-card.is-top[data-rarity="uncommon"] {
+            box-shadow: 0 8px 36px rgba(76, 175, 106, 0.45);
         }
 
-        /* Progress bar under the card */
+        .reveal-stack-card.is-top[data-rarity="rare"] {
+            box-shadow: 0 8px 40px rgba(74, 143, 223, 0.55);
+        }
+
+        .reveal-stack-card.is-top[data-rarity="epic"] {
+            box-shadow: 0 8px 48px rgba(155, 89, 208, 0.65);
+        }
+
+        .reveal-stack-card.is-top[data-rarity="legendary"] {
+            box-shadow: 0 8px 60px rgba(232, 84, 10, 0.8), 0 0 100px rgba(232, 84, 10, 0.2);
+        }
+
+        /* Cards beneath the top — subtle stack peek effect */
+        .reveal-stack-card.is-beneath-1 {
+            transform: translateY(6px) scale(0.97);
+            filter: brightness(0.75);
+            z-index: 2;
+        }
+
+        .reveal-stack-card.is-beneath-2 {
+            transform: translateY(11px) scale(0.94);
+            filter: brightness(0.55);
+            z-index: 1;
+        }
+
+        /* Swoosh-off keyframes — alternates left / right */
+        @keyframes swooshLeft {
+            0% {
+                transform: translateX(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(-140%) rotate(-18deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes swooshRight {
+            0% {
+                transform: translateX(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(140%) rotate(18deg);
+                opacity: 0;
+            }
+        }
+
+        .reveal-stack-card.swoosh-left {
+            animation: swooshLeft 0.42s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+            pointer-events: none;
+        }
+
+        .reveal-stack-card.swoosh-right {
+            animation: swooshRight 0.42s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+            pointer-events: none;
+        }
+
+        /* Smooth transition for beneath cards promoting upward */
+        .reveal-stack-card.promoting {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+        }
+
+        /* Progress bar under the stack */
         .reveal-timer-bar {
             width: var(--card-w);
             height: 3px;
@@ -502,27 +554,6 @@
             color: var(--text-muted);
             font-style: italic;
             letter-spacing: 0.04em;
-        }
-
-        /* Rarity-specific glow on the front face after flip */
-        .reveal-face-front[data-rarity="common"] {
-            box-shadow: 0 8px 30px rgba(154, 154, 154, 0.3);
-        }
-
-        .reveal-face-front[data-rarity="uncommon"] {
-            box-shadow: 0 8px 36px rgba(76, 175, 106, 0.45);
-        }
-
-        .reveal-face-front[data-rarity="rare"] {
-            box-shadow: 0 8px 40px rgba(74, 143, 223, 0.55);
-        }
-
-        .reveal-face-front[data-rarity="epic"] {
-            box-shadow: 0 8px 48px rgba(155, 89, 208, 0.65);
-        }
-
-        .reveal-face-front[data-rarity="legendary"] {
-            box-shadow: 0 8px 60px rgba(232, 84, 10, 0.8), 0 0 100px rgba(232, 84, 10, 0.2);
         }
 
 
@@ -1073,7 +1104,7 @@
             color: #7abf7a;
         }
 
-        .card-list-btn-expand {
+        .card-list-btn-research {
             background: #1a1020;
             color: #a070d0;
         }
@@ -1491,13 +1522,54 @@
             background: #334d33;
         }
 
-        .card-btn-expand {
+        .card-btn-research {
             background: #1a1020;
             color: #a070d0;
         }
 
-        .card-btn-expand:not(:disabled):hover {
+        .card-btn-research:not(:disabled):hover {
             background: #231530;
+        }
+
+        /* Super research variant — glowing red/orange */
+        .card-btn-research.is-super {
+            background: #2a0a08;
+            color: #ff6040;
+            box-shadow: 0 0 8px rgba(255, 80, 40, 0.35);
+            animation: superPulse 2s ease-in-out infinite;
+        }
+
+        .card-btn-research.is-super:not(:disabled):hover {
+            background: #3a100c;
+            box-shadow: 0 0 14px rgba(255, 80, 40, 0.6);
+        }
+
+        @keyframes superPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 6px rgba(255, 80, 40, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 14px rgba(255, 80, 40, 0.7);
+            }
+        }
+
+        .card-list-btn-research {
+            background: #1a1020;
+            color: #a070d0;
+        }
+
+        /* Super research list variant */
+        .card-list-btn-research.is-super {
+            background: #2a0a08;
+            color: #ff6040;
+            animation: superPulse 2s ease-in-out infinite;
+        }
+
+        .card-list-btn-research.is-super:not(:disabled):hover {
+            background: #3a100c;
         }
 
         .card-btn-wiki {
@@ -1735,6 +1807,53 @@
                 radial-gradient(ellipse 600px 500px at 80% 80%, rgba(74, 143, 223, 0.03) 0%, transparent 60%);
         }
 
+        /* ── Promo code input row ─────────────────────────────────────── */
+        .promo-input-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .promo-input {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 0.85rem;
+            padding: 7px 10px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            outline: none;
+            transition: border-color var(--anim-fast);
+        }
+
+        .promo-input::placeholder {
+            color: var(--text-muted);
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .promo-input:focus {
+            border-color: var(--gold-dim);
+        }
+
+        .promo-feedback {
+            font-size: 0.78rem;
+            min-height: 1.2em;
+            margin-top: 5px;
+            padding-left: 2px;
+        }
+
+        .promo-feedback.ok {
+            color: var(--uncommon);
+        }
+
+        .promo-feedback.err {
+            color: var(--legendary);
+        }
+
         /* ── Help modal accordion ────────────────────────────────────── */
         .help-accordion {
             display: flex;
@@ -1940,7 +2059,7 @@
             color: #7abf7a;
         }
 
-        .help-card-preview-btn.expand {
+        .help-card-preview-btn.research {
             background: #1a1020;
             color: #a070d0;
         }
@@ -1984,7 +2103,7 @@
             color: #7abf7a;
         }
 
-        .help-annotation-icon.expand {
+        .help-annotation-icon.research {
             background: #1a1020;
             color: #a070d0;
         }
@@ -2502,16 +2621,11 @@
             <!-- ── CARD REVEAL ───────────────────────────────── -->
             <div class="view" id="view-reveal">
                 <div class="reveal-counter" id="reveal-counter"></div>
-                <div class="reveal-flip-scene">
-                    <div class="reveal-flip-inner" id="reveal-flip-inner">
-                        <div class="reveal-face reveal-face-back">🌐</div>
-                        <div class="reveal-face reveal-face-front" id="reveal-face-front"></div>
-                    </div>
-                </div>
+                <div class="reveal-stack" id="reveal-stack"></div>
                 <div class="reveal-timer-bar">
                     <div class="reveal-timer-fill" id="reveal-timer-fill"></div>
                 </div>
-                <div class="reveal-hint">Click anywhere to reveal next card</div>
+                <div class="reveal-hint">Click anywhere for next card</div>
             </div>
 
             <!-- ── BINDER ─────────────────────────────────────── -->
@@ -2582,18 +2696,21 @@
         // #region DATA — constants, type definitions, state object
         // ============================================================
 
-        const VERSION = '0.2';
+        const VERSION = '0.2.1';
 
         const PACK_COST = 5;
         const PACK_SIZE = 7;
         const STORAGE_KEY = 'wikicards_save_v4';
+        const SUPER_RESEARCH_THRESHOLD = 10_000;   // cost cap; anything above → super research
+        const SUPER_RESEARCH_SIZE = 30;       // cards in a super research pack
+        const SUPER_RESEARCH_DECAY = 0.05;     // exponential decay rate for weighted link selection
 
         const QUEST_REWARD_PER_POINT = 100; // $ earned per quest point on daily login
 
         /** ~50 broad Wikipedia topics available as daily shop packs */
         const SHOP_TOPICS = [
             'Science', 'Mathematics', 'History', 'Philosophy', 'Music',
-            'Sports', 'Politics', 'Technology', 'Art', 'Literature',
+            'Sport', 'Politics', 'Technology', 'Art', 'Literature',
             'Geography', 'Biology', 'Physics', 'Chemistry', 'Astronomy',
             'Economics', 'Psychology', 'Architecture', 'Film', 'Religion',
             'Medicine', 'Engineering', 'Ecology', 'Mythology', 'Sociology',
@@ -2608,17 +2725,53 @@
         const TOPIC_PACK_COST_MAX = 500;
         const DAILY_TOPIC_COUNT = 3;
 
+        // ============================================================
+        // RARITY TUNING — adjust weights and thresholds here
+        // ============================================================
+
+        /**
+         * Weights for the four rarity signals. Must sum to 1.0.
+         * Each signal is log-scaled before weighting so they're on comparable ranges.
+         *   langLinks  — number of Wikipedia language editions (global significance)
+         *   byteSize   — raw wikitext size in bytes (article depth/quality)
+         *   extLinks   — number of external/citation links (how well-referenced)
+         *   intLinks   — number of internal wikilinks (how connected to other topics)
+         */
+        const RARITY_WEIGHTS = {
+            langLinks: 0.25,   // global reach — how many languages cover this topic
+            byteSize: 0.45,   // article depth — primary size signal
+            extLinks: 0.10,   // citation quality
+            intLinks: 0.20,   // connectedness to other topics
+        };
+
+        /**
+         * Minimum combined score (0–10 scale) to reach each rarity tier.
+         * Score = weighted sum of power-curve-normalised signals, mapped to 0–10.
+         * Tune these thresholds to adjust how rare each tier feels in practice.
+         *   common:    score < 2.0   (stubs, very obscure articles)
+         *   uncommon:  score >= 2.0
+         *   rare:      score >= 4.0
+         *   epic:      score >= 6.0
+         *   legendary: score >= 7.5  (only the most significant articles on Wikipedia)
+         */
+        const RARITY_SCORE_THRESHOLDS = {
+            uncommon: 2.1,
+            rare: 4.3,
+            epic: 6.7,
+            legendary: 8.1,
+        };
+
         /**
          * Rarity tiers ordered lowest to highest.
-         * expandCost is inverse of rarity: common cards are expensive to expand
+         * researchCost is inverse of rarity: common cards are expensive to research
          * (they link to obscure topics), legendary cards are cheap (dense knowledge nodes).
          */
         const RARITY_TIERS = [
-            { id: 'common', label: 'Common', minViews: 0, sellMin: 1, sellMax: 10, expandCostMin: 400, expandCostMax: 600 },
-            { id: 'uncommon', label: 'Uncommon', minViews: 500, sellMin: 10, sellMax: 60, expandCostMin: 100, expandCostMax: 200 },
-            { id: 'rare', label: 'Rare', minViews: 10_000, sellMin: 60, sellMax: 350, expandCostMin: 35, expandCostMax: 65 },
-            { id: 'epic', label: 'Epic', minViews: 150_000, sellMin: 350, sellMax: 2000, expandCostMin: 10, expandCostMax: 20 },
-            { id: 'legendary', label: 'Legendary', minViews: 1_000_000, sellMin: 2000, sellMax: 5000, expandCostMin: 3, expandCostMax: 7 },
+            { id: 'common', label: 'Common', sellMin: 1, sellMax: 10, researchCostMin: 400, researchCostMax: 600 },
+            { id: 'uncommon', label: 'Uncommon', sellMin: 10, sellMax: 60, researchCostMin: 100, researchCostMax: 200 },
+            { id: 'rare', label: 'Rare', sellMin: 60, sellMax: 350, researchCostMin: 35, researchCostMax: 65 },
+            { id: 'epic', label: 'Epic', sellMin: 350, sellMax: 2000, researchCostMin: 10, researchCostMax: 20 },
+            { id: 'legendary', label: 'Legendary', sellMin: 2000, sellMax: 5000, researchCostMin: 3, researchCostMax: 7 },
         ];
 
         const RARITY_RANK = Object.fromEntries(RARITY_TIERS.map((t, i) => [t.id, i]));
@@ -2653,6 +2806,7 @@
             lastAwardDate:       /** @type {string|null} */ (null), // 'YYYY-MM-DD' of last daily income award
             dailyQuest:          /** @type {{title:string,thumb:string|null,date:string}|null} */ (null),
             dailyQuestCompleted: false, // resets each day
+            redeemedCodes:       /** @type {string[]} */ ([]),
             // Undo — not persisted; holds the last sold card so it can be restored
             _undoCard:           /** @type {CardData|null} */ (null),
         };
@@ -2678,6 +2832,7 @@
                         lastAwardDate: State.lastAwardDate,
                         dailyQuest: State.dailyQuest,
                         dailyQuestCompleted: State.dailyQuestCompleted,
+                        redeemedCodes: State.redeemedCodes,
                     }));
                 } catch (e) { console.warn('[Storage] save failed:', e); }
             },
@@ -2698,6 +2853,17 @@
                     State.lastAwardDate = d.lastAwardDate ?? null;
                     State.dailyQuest = d.dailyQuest ?? null;
                     State.dailyQuestCompleted = d.dailyQuestCompleted ?? false;
+                    State.redeemedCodes = d.redeemedCodes ?? [];
+
+                    // ── Migration: expandCount → researchCount ───────────────
+                    State.binder.forEach(card => {
+                        if (card.researchCount === undefined && card.expandCount !== undefined) {
+                            card.researchCount = card.expandCount;
+                            delete card.expandCount;
+                        } else if (card.researchCount === undefined) {
+                            card.researchCount = 0;
+                        }
+                    });
 
                     // ── Migration: locked boolean → archive string ──────────
                     // Old saves have `locked: true/false`; new saves have `archive: string|null`.
@@ -2723,22 +2889,65 @@
         // ============================================================
 
         const WIKI_API = 'https://en.wikipedia.org/w/api.php';
-        const PAGEVIEW_API = 'https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user';
 
         const Api = {
             _url(params) {
                 return `${WIKI_API}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`;
             },
 
-            /** Batch-fetch title + extract + thumbnail + pageprops + description for multiple titles in one HTTP request. */
+            /**
+             * Batch-fetch card data for multiple titles in two parallel requests per chunk:
+             *   1. Content request  — extract, thumbnail, pageprops, description
+             *   2. Signals request  — langlinks, extlinks, links, revisions (for rarity scoring)
+             * Results are merged by pageid. Wikipedia caps at 50 titles per request.
+             */
             async fetchCardData(titles) {
-                const url = Api._url({
-                    action: 'query', titles: titles.join('|'),
-                    prop: 'extracts|pageimages|pageprops|description', exintro: '1', exsentences: '2', explaintext: '1',
-                    piprop: 'thumbnail', pithumbsize: '400',
-                });
-                const data = await fetch(url).then(r => r.json());
-                return Object.values(data.query.pages);
+                const CHUNK = 50;
+                const chunks = [];
+                for (let i = 0; i < titles.length; i += CHUNK) chunks.push(titles.slice(i, i + CHUNK));
+
+                const results = await Promise.all(chunks.map(async chunk => {
+                    const joined = chunk.join('|');
+
+                    const [contentData, signalsData] = await Promise.all([
+                        fetch(Api._url({
+                            action: 'query', titles: joined, redirects: '1',
+                            prop: 'extracts|pageimages|pageprops|description',
+                            exintro: '1', exsentences: '2', explaintext: '1',
+                            piprop: 'thumbnail', pithumbsize: '400',
+                        })).then(r => r.json()),
+                        fetch(Api._url({
+                            action: 'query', titles: joined, redirects: '1',
+                            prop: 'langlinks|extlinks|links|revisions',
+                            lllimit: 'max', ellimit: 'max', pllimit: 'max',
+                            rvprop: 'size',
+                        })).then(r => r.json()),
+                    ]);
+
+                    const contentPages = contentData?.query?.pages ?? {};
+                    const signalsPages = signalsData?.query?.pages ?? {};
+
+                    // Index signals by title for reliable matching — pageid keys are
+                    // strings in the API response but numbers on content page objects,
+                    // and redirects can cause titles to diverge between two requests.
+                    const sigByTitle = {};
+                    for (const sig of Object.values(signalsPages)) {
+                        if (sig.title) sigByTitle[sig.title] = sig;
+                    }
+
+                    return Object.values(contentPages).map(page => {
+                        const sig = sigByTitle[page.title] ?? {};
+                        return {
+                            ...page,
+                            langlinks: sig.langlinks ?? [],
+                            extlinks: sig.extlinks ?? [],
+                            links: sig.links ?? [],
+                            revisions: sig.revisions ?? [],
+                        };
+                    });
+                }));
+
+                return results.flat();
             },
 
             /** Returns true if a wiki page object is a disambiguation page. */
@@ -2765,31 +2974,96 @@
                 return (page.links || []).map(l => l.title);
             },
 
-            /** Fetch the #1 most-viewed article for the daily quest.
-             *  Wikimedia top-pages data has a 1–2 day lag, so we try 2 days ago then fall back to 3.
+            /**
+             * Fetch ALL internal links from a page across multiple continuation requests,
+             * preserving the order they appear on the page. Used for super research.
+             * Returns a flat ordered array of title strings.
+             */
+            async fetchAllLinksFrom(title) {
+                const titles = [];
+                let plcontinue = undefined;
+                let safety = 0;
+                do {
+                    const params = { action: 'query', titles: title, prop: 'links', pllimit: '500', plnamespace: '0' };
+                    if (plcontinue) params.plcontinue = plcontinue;
+                    const data = await fetch(Api._url(params)).then(r => r.json());
+                    const page = Object.values(data.query.pages)[0];
+                    (page.links || []).forEach(l => titles.push(l.title));
+                    plcontinue = data.continue?.plcontinue;
+                    safety++;
+                } while (plcontinue && safety < 10); // max 10 pages = up to 5000 links
+                return titles;
+            },
+
+            // /** Fetch the #1 most-viewed article for the daily quest.
+            //  *  Wikimedia top-pages data has a 1–2 day lag, so we try 2 days ago then fall back to 3.
+            //  */
+            // async fetchDailyQuest() {
+            //     const BAD = /^(Main_Page|Special:|Wikipedia:|Help:|Portal:|File:|Template:|Talk:|User:|WP:|Book:|Draft:|TimedText:|Module:|Gadget:|Deaths_in_|Lists_of_|List_of_|Index_of_|Outline_of_|Bibliography_of_|-$)/;
+
+            //     const tryDate = async (daysAgo) => {
+            //         const d = new Date();
+            //         d.setDate(d.getDate() - daysAgo);
+            //         const y = d.getFullYear();
+            //         const mm = String(d.getMonth() + 1).padStart(2, '0');
+            //         const dd = String(d.getDate()).padStart(2, '0');
+            //         const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia/all-access/${y}/${mm}/${dd}`;
+            //         const data = await fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+            //         const top = (data?.items?.[0]?.articles ?? []).find(a => !BAD.test(a.article));
+            //         if (!top) return null;
+            //         const title = top.article.replace(/_/g, ' ');
+            //         const pages = await Api.fetchCardData([title]);
+            //         const page = pages[0];
+            //         if (!page?.pageid || page.missing || Api.isDisambiguation(page)) return null;
+            //         return { title, thumb: page?.thumbnail?.source ?? null };
+            //     };
+
+            //     try { return await tryDate(2); } catch { /* fall through */ }
+            //     try { return await tryDate(3); } catch { return null; }
+            // },
+
+            /** Fetch a random article from the top 50 most-viewed of last month for the daily quest.
+             *  The random pick is seeded by today's date, so everyone gets the same article.
+             *  Wikimedia data has a 1–2 day lag, so we try 2 days ago then fall back to 3.
              */
             async fetchDailyQuest() {
                 const BAD = /^(Main_Page|Special:|Wikipedia:|Help:|Portal:|File:|Template:|Talk:|User:|WP:|Book:|Draft:|TimedText:|Module:|Gadget:|Deaths_in_|Lists_of_|List_of_|Index_of_|Outline_of_|Bibliography_of_|-$)/;
 
-                const tryDate = async (daysAgo) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() - daysAgo);
-                    const y = d.getFullYear();
-                    const mm = String(d.getMonth() + 1).padStart(2, '0');
-                    const dd = String(d.getDate()).padStart(2, '0');
-                    const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia/all-access/${y}/${mm}/${dd}`;
+                const seededRandom = (seed) => {
+                    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+                    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+                    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+                };
+
+                const today = new Date();
+                const dateSeed = today.getFullYear() * 10000
+                    + (today.getMonth() + 1) * 100
+                    + today.getDate();
+
+                try {
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    const year = lastMonth.getFullYear();
+                    const mm = String(lastMonth.getMonth() + 1).padStart(2, '0');
+                    const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia/all-access/${year}/${mm}/all-days`;
                     const data = await fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
-                    const top = (data?.items?.[0]?.articles ?? []).find(a => !BAD.test(a.article));
-                    if (!top) return null;
-                    const title = top.article.replace(/_/g, ' ');
+
+                    const candidates = (data?.items?.[0]?.articles ?? [])
+                        .filter(a => !BAD.test(a.article))
+                        .slice(0, 50)
+                        .map(a => a.article);
+
+                    if (!candidates.length) return null;
+
+                    const idx = Math.floor(seededRandom(dateSeed) * candidates.length);
+                    const title = candidates[idx].replace(/_/g, ' ');
                     const pages = await Api.fetchCardData([title]);
                     const page = pages[0];
                     if (!page?.pageid || page.missing || Api.isDisambiguation(page)) return null;
                     return { title, thumb: page?.thumbnail?.source ?? null };
-                };
-
-                try { return await tryDate(2); } catch { /* fall through */ }
-                try { return await tryDate(3); } catch { return null; }
+                } catch {
+                    return null;
+                }
             },
 
             /**
@@ -3102,18 +3376,7 @@
                 return [...new Set(FAMOUS)];
             },
 
-            /** Sum of daily pageviews over the last 30 days for a single article. */
-            async fetchPageViews(title) {
-                const encoded = encodeURIComponent(title.replace(/ /g, '_'));
-                const end = new Date();
-                const start = new Date(end);
-                start.setDate(start.getDate() - 30);
-                const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, '');
-                try {
-                    const data = await fetch(`${PAGEVIEW_API}/${encoded}/daily/${fmt(start)}/${fmt(end)}`).then(r => r.json());
-                    return (data.items || []).reduce((sum, d) => sum + (d.views || 0), 0);
-                } catch { return 0; }
-            },
+
         };
 
         // #endregion
@@ -3134,9 +3397,43 @@
 
             // ── Rarity ─────────────────────────────────────────────────
 
-            rarityFromViews(views) {
-                for (let i = RARITY_TIERS.length - 1; i >= 0; i--)
-                    if (views >= RARITY_TIERS[i].minViews) return RARITY_TIERS[i].id;
+            /**
+             * Compute a 0–10 rarity score from the four signals on a page object.
+             * Each signal is log-normalised against a "ceiling" value that represents
+             * a world-class article, then weighted and summed.
+             */
+            rarityScore(page) {
+                // Power-curve normalisation: val/ceil raised to an exponent.
+                // exp < 1 gives a concave curve that still rewards mid-range values,
+                // but much less generously than log — a page needs to be truly
+                // exceptional to reach the top of the 0–1 range.
+                const norm = (val, ceil, exp = 0.4) => Math.min(Math.pow(val / ceil, exp), 1);
+
+                const langCount = (page.langlinks || []).length;
+                const byteSize = page.revisions?.[0]?.size ?? 0;
+                const extCount = (page.extlinks || []).length;
+                const intCount = (page.links || []).length;
+
+                // Ceilings calibrated so only the very greatest articles max out:
+                //   langlinks: 400  (Albert Einstein ~180, United States ~200, max ~350)
+                //   byteSize:  450 000 bytes  (only the longest, most detailed articles)
+                //   extlinks:  200  (heavily cited flagship articles)
+                //   intlinks:  500  (API hard cap — well-connected hubs)
+                const score =
+                    RARITY_WEIGHTS.langLinks * norm(langCount, 400) * 10 +
+                    RARITY_WEIGHTS.byteSize * norm(byteSize, 450_000) * 10 +
+                    RARITY_WEIGHTS.extLinks * norm(extCount, 200) * 10 +
+                    RARITY_WEIGHTS.intLinks * norm(intCount, 500) * 10;
+
+                return score; // 0–10
+            },
+
+            rarityFromPage(page) {
+                const score = Logic.rarityScore(page);
+                if (score >= RARITY_SCORE_THRESHOLDS.legendary) return 'legendary';
+                if (score >= RARITY_SCORE_THRESHOLDS.epic) return 'epic';
+                if (score >= RARITY_SCORE_THRESHOLDS.rare) return 'rare';
+                if (score >= RARITY_SCORE_THRESHOLDS.uncommon) return 'uncommon';
                 return 'common';
             },
 
@@ -3147,8 +3444,8 @@
 
             // ── Card building ───────────────────────────────────────────
 
-            buildCard(page, views, sessionId) {
-                const rarity = Logic.rarityFromViews(views);
+            buildCard(page, sessionId) {
+                const rarity = Logic.rarityFromPage(page);
                 // Fallback chain for description text:
                 //   1. intro extract (up to 2 sentences) — richest, not always present
                 //   2. Wikidata short description via pageprops — e.g. "16th President of the United States"
@@ -3167,7 +3464,7 @@
                     sessionId,
                     acquired: Date.now(),
                     archive: null,
-                    expandCount: 0,
+                    researchCount: 0,
                 });
             },
 
@@ -3231,21 +3528,52 @@
 
             // ── Economy ─────────────────────────────────────────────────
 
-            /** Deterministic expand cost: same card always costs the same. Inverse of rarity. */
+            /** Deterministic research cost: same card always costs the same. Inverse of rarity. */
             /**
-             * Expand cost for a card. Base cost is determined by title hash + rarity tier.
+             * Research cost for a card. Base cost is determined by title hash + rarity tier.
              * Each previous expansion multiplies cost by 1.8 (rounded), so repeated
              * expansions of the same card get progressively more expensive.
              */
-            expandCost(card) {
-                const { expandCostMin, expandCostMax } = RARITY_TIERS.find(t => t.id === card.rarity);
-                const h = Logic.titleHash(card.title + '_expand');
-                const base = Math.round(expandCostMin + h * (expandCostMax - expandCostMin));
-                const count = card.expandCount ?? 0;
+            researchCost(card) {
+                const { researchCostMin, researchCostMax } = RARITY_TIERS.find(t => t.id === card.rarity);
+                const h = Logic.titleHash(card.title + '_research');
+                const base = Math.round(researchCostMin + h * (researchCostMax - researchCostMin));
+                const count = card.researchCount ?? 0;
                 return Math.round(base * Math.pow(1.8, count));
             },
 
-            canAffordExpand(card) { return State.balance >= Logic.expandCost(card); },
+            canAffordResearch(card) { return State.balance >= Logic.effectiveResearchCost(card); },
+            isSuperResearch(card) { return Logic.researchCost(card) > SUPER_RESEARCH_THRESHOLD; },
+
+            /** Effective cost to charge: capped at SUPER_RESEARCH_THRESHOLD. */
+            effectiveResearchCost(card) {
+                return Logic.isSuperResearch(card) ? SUPER_RESEARCH_THRESHOLD : Logic.researchCost(card);
+            },
+
+            /**
+             * Pick `n` items from `arr` without replacement using exponential-decay weights.
+             * Earlier indices are strongly preferred: weight[i] = e^(-decayRate * i).
+             * After each pick the item is removed and weights are renormalised.
+             */
+            weightedPickWithoutReplacement(arr, n, decayRate = SUPER_RESEARCH_DECAY) {
+                if (arr.length === 0) return [];
+                const pool = arr.map((title, i) => ({ title, w: Math.exp(-decayRate * i) }));
+                const results = [];
+                const count = Math.min(n, pool.length);
+                for (let pick = 0; pick < count; pick++) {
+                    // Sum of remaining weights
+                    const total = pool.reduce((s, p) => s + p.w, 0);
+                    let r = Math.random() * total;
+                    let chosen = pool.length - 1; // fallback to last
+                    for (let i = 0; i < pool.length; i++) {
+                        r -= pool[i].w;
+                        if (r <= 0) { chosen = i; break; }
+                    }
+                    results.push(pool[chosen].title);
+                    pool.splice(chosen, 1);
+                }
+                return results;
+            },
 
             canAffordPack() { return State.balance >= PACK_COST; },
 
@@ -3274,10 +3602,10 @@
                 });
             },
 
-            /** Increment a card's expandCount in-place and save. */
-            incrementExpandCount(id) {
+            /** Increment a card's researchCount in-place and save. */
+            incrementResearchCount(id) {
                 const card = State.binder.find(c => c.id === id);
-                if (card) { card.expandCount = (card.expandCount ?? 0) + 1; Storage.save(); }
+                if (card) { card.researchCount = (card.researchCount ?? 0) + 1; Storage.save(); }
             },
 
             deductCost(amount) { State.balance -= amount; Storage.save(); },
@@ -3425,7 +3753,7 @@
                 el.classList.add('bump');
                 setTimeout(() => el.classList.remove('bump'), 300);
                 this.refreshHeaderButtons();
-                this.refreshExpandButtons();
+                this.refreshResearchButtons();
             },
 
             updateQuestPoints() {
@@ -3455,28 +3783,32 @@
                 setTimeout(() => el.remove(), 1900);
             },
 
-            /** Update the header pack buttons: enabled state and expand button visibility. */
+            /** Update the header pack buttons: enabled state and research button visibility. */
             refreshHeaderButtons() {
                 // Shop button is always enabled — the modal shows what you can/can't afford
-                // Expand buttons on cards are updated separately
+                // Research buttons on cards are updated separately
                 document.querySelectorAll('.shop-qty-btn').forEach(btn => {
                     const cost = parseInt(btn.dataset.cost ?? '0');
                     if (cost) btn.disabled = !Logic.canAfford(cost);
                 });
             },
             /**
-             * Walk all rendered expand buttons and update disabled state in-place.
+             * Walk all rendered research buttons and update disabled state in-place.
              * Called after every balance change — avoids re-rendering the whole binder.
-             * Each expand button carries data-expand-btn="{rarity}" set at build time.
+             * Each research button carries data-research-btn="{rarity}" set at build time.
              */
-            refreshExpandButtons() {
-                document.querySelectorAll('[data-expand-btn]').forEach(btn => {
-                    const cardId = btn.dataset.expandCardId;
+            refreshResearchButtons() {
+                document.querySelectorAll('[data-research-btn]').forEach(btn => {
+                    const cardId = btn.dataset.researchCardId;
                     const card = cardId ? State.binder.find(c => c.id === cardId) : null;
                     if (!card) return;
-                    const cost = Logic.expandCost(card);
-                    btn.disabled = !Logic.canAffordExpand(card);
-                    btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
+                    const cost = Logic.effectiveResearchCost(card);
+                    const isSuper = Logic.isSuperResearch(card);
+                    btn.disabled = !Logic.canAffordResearch(card);
+                    btn.innerHTML = isSuper
+                        ? `<i class="fa-solid fa-bolt"></i> ${cost.toLocaleString()}`
+                        : `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
+                    btn.classList.toggle('is-super', isSuper);
                 });
             },
 
@@ -3486,9 +3818,9 @@
              * Build a .card DOM element from a CardData object.
              * Callbacks keep Render decoupled from App:
              *   onSell(id)      — called when Sell button clicked
-             *   onExpand(data)  — called when Expand button clicked
+             *   onResearch(data)  — called when Research button clicked
              */
-            card(data, { onSell, onExpand, onArchive, isNew = false } = {}) {
+            card(data, { onSell, onResearch, onArchive, isNew = false } = {}) {
                 const RARITY_ICONS = {
                     common: '<i class="fa-solid fa-circle"></i>',
                     uncommon: '<i class="fa-solid fa-diamond"></i>',
@@ -3548,7 +3880,7 @@
                 inner.appendChild(body);
 
                 // Footer — icon-only buttons
-                if (onSell || onExpand) {
+                if (onSell || onResearch) {
                     const footer = this.el('div', 'card-footer');
 
                     if (onSell) {
@@ -3559,16 +3891,21 @@
                         footer.appendChild(btn);
                     }
 
-                    if (onExpand) {
-                        const cost = Logic.expandCost(data);
-                        const btn = this.el('button', 'card-btn card-btn-expand');
-                        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
-                        btn.dataset.tip = `Expand into pack${(data.expandCount ?? 0) > 0 ? ` (expanded ${data.expandCount}×)` : ''}`;
-                        btn.disabled = !Logic.canAffordExpand(data);
-                        btn.dataset.expandBtn = data.rarity;
-                        btn.dataset.expandTitle = data.title;
-                        btn.dataset.expandCardId = data.id;
-                        btn.addEventListener('click', e => { e.stopPropagation(); onExpand(data); });
+                    if (onResearch) {
+                        const cost = Logic.effectiveResearchCost(data);
+                        const isSuper = Logic.isSuperResearch(data);
+                        const btn = this.el('button', `card-btn card-btn-research${isSuper ? ' is-super' : ''}`);
+                        btn.innerHTML = isSuper
+                            ? `<i class="fa-solid fa-bolt"></i> ${cost.toLocaleString()}`
+                            : `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
+                        btn.dataset.tip = isSuper
+                            ? `Super Research! 30 cards · $${cost.toLocaleString()}${(data.researchCount ?? 0) > 0 ? ` (researched ${data.researchCount}×)` : ''}`
+                            : `Research into pack${(data.researchCount ?? 0) > 0 ? ` (researched ${data.researchCount}×)` : ''}`;
+                        btn.disabled = !Logic.canAffordResearch(data);
+                        btn.dataset.researchBtn = data.rarity;
+                        btn.dataset.researchTitle = data.title;
+                        btn.dataset.researchCardId = data.id;
+                        btn.addEventListener('click', e => { e.stopPropagation(); onResearch(data); });
                         footer.appendChild(btn);
                     }
 
@@ -3643,86 +3980,115 @@
             // ── Card reveal sequence ─────────────────────────────────────
 
             /**
-             * Show cards one by one with a flip animation and a 3s auto-advance timer.
-             * Clicking anywhere skips to the next card immediately.
-             * Returns a Promise that resolves when all cards have been shown.
+             * Show cards as a physical stack — top card swooshes off to reveal the one beneath.
+             * All cards are pre-rendered and stacked in the DOM before the first is shown.
+             * Clicking anywhere (or auto-timer) swooshes the top card away.
+             * Returns a Promise that resolves when all cards have been dismissed.
              */
             runReveal(cards) {
                 return new Promise(resolve => {
                     const CARD_DURATION_MS = 3000;
-                    let index = 0;
+                    const SWOOSH_MS = 420;
+                    const VISIBLE_DEPTH = 3; // how many cards show in the stack peek
+                    let index = 0;  // index of the current top card
                     let timer = null;
                     let advancing = false;
 
-                    const flipInner = document.getElementById('reveal-flip-inner');
-                    const frontFace = document.getElementById('reveal-face-front');
+                    const stack = document.getElementById('reveal-stack');
                     const counterEl = document.getElementById('reveal-counter');
                     const timerFill = document.getElementById('reveal-timer-fill');
+
+                    // Build a wrapper el for each card and insert all into the stack.
+                    // Cards are ordered so card[0] has the highest z-index (on top).
+                    const wrappers = cards.map((data, i) => {
+                        const wrap = document.createElement('div');
+                        wrap.className = 'reveal-stack-card';
+                        wrap.dataset.rarity = data.rarity;
+                        wrap.style.zIndex = cards.length - i;
+
+                        const cached = this._revealCache?.get(data.id);
+                        if (cached) {
+                            wrap.appendChild(cached);
+                        } else {
+                            const el = this.card(data);
+                            el.querySelector('.card-footer')?.remove();
+                            el.style.width = el.style.height = '100%';
+                            wrap.appendChild(el);
+                        }
+                        stack.appendChild(wrap);
+                        return wrap;
+                    });
+
+                    // Apply depth classes to show the initial peek
+                    const applyDepthClasses = () => {
+                        wrappers.forEach((w, i) => {
+                            const depth = i - index;
+                            w.classList.remove('is-top', 'is-beneath-1', 'is-beneath-2');
+                            if (depth === 0) w.classList.add('is-top');
+                            else if (depth === 1) w.classList.add('is-beneath-1');
+                            else if (depth === 2) w.classList.add('is-beneath-2');
+                        });
+                    };
+
+                    const startTimer = () => {
+                        timerFill.style.transition = 'none';
+                        timerFill.style.transform = 'scaleX(1)';
+                        requestAnimationFrame(() => requestAnimationFrame(() => {
+                            timerFill.style.transition = `transform ${CARD_DURATION_MS}ms linear`;
+                            timerFill.style.transform = 'scaleX(0)';
+                        }));
+                        timer = setTimeout(advance, CARD_DURATION_MS);
+                    };
 
                     const advance = () => {
                         if (advancing) return;
                         advancing = true;
                         clearTimeout(timer);
 
+                        const topWrap = wrappers[index];
+                        const goLeft = index % 2 === 0;
+
+                        // Swoosh the top card off
+                        topWrap.classList.add(goLeft ? 'swoosh-left' : 'swoosh-right');
+
+                        // Promote beneath cards immediately with a smooth transition
+                        wrappers.slice(index + 1, index + VISIBLE_DEPTH + 1).forEach(w => {
+                            w.classList.add('promoting');
+                        });
+
                         index++;
+
                         if (index >= cards.length) {
-                            // All done — clear cached elements from DOM so they don't interfere with binder queries
-                            document.getElementById('view-reveal').removeEventListener('click', advance);
-                            frontFace.innerHTML = '';
-                            this._revealCache = null;
-                            resolve();
+                            // All cards dismissed — clean up after swoosh finishes
+                            setTimeout(() => {
+                                document.getElementById('view-reveal').removeEventListener('click', advance);
+                                stack.innerHTML = '';
+                                this._revealCache = null;
+                                resolve();
+                            }, SWOOSH_MS);
                             return;
                         }
-                        // Reset flip to back, then show next card
-                        flipInner.classList.remove('flipped');
-                        // Wait for flip-back to complete before loading next card
-                        setTimeout(() => { showCard(index); advancing = false; }, 300);
-                    };
 
-                    const showCard = (i) => {
-                        const data = cards[i];
-                        counterEl.innerHTML = `Card <strong>${i + 1}</strong> of ${cards.length}`;
+                        // Update depth classes while promoting transition is still active
+                        // so cards scale up smoothly rather than snapping.
+                        applyDepthClasses();
+                        counterEl.innerHTML = `Card <strong>${index + 1}</strong> of ${cards.length}`;
+                        startTimer();
 
-                        // Populate front face from pre-rendered cache — instant, no reflow
-                        frontFace.innerHTML = '';
-                        const cached = this._revealCache?.get(data.id);
-                        if (cached) {
-                            frontFace.dataset.rarity = data.rarity;
-                            frontFace.appendChild(cached);
-                        } else {
-                            // Fallback: build on the fly if cache missed
-                            frontFace.dataset.rarity = data.rarity;
-                            const cardEl = this.card(data);
-                            cardEl.querySelector('.card-footer')?.remove();
-                            cardEl.style.width = cardEl.style.height = '100%';
-                            frontFace.appendChild(cardEl);
-                        }
+                        // Unlock clicks immediately so rapid skipping feels instant.
+                        advancing = false;
 
-                        // Reset and restart timer bar
-                        timerFill.style.transition = 'none';
-                        timerFill.style.transform = 'scaleX(1)';
-
-                        // Flip to front after a short back-face pause
-                        requestAnimationFrame(() => {
-                            setTimeout(() => {
-                                flipInner.classList.add('flipped');
-
-                                // Start draining timer bar
-                                requestAnimationFrame(() => {
-                                    requestAnimationFrame(() => {
-                                        timerFill.style.transition = `transform ${CARD_DURATION_MS}ms linear`;
-                                        timerFill.style.transform = 'scaleX(0)';
-                                    });
-                                });
-
-                                timer = setTimeout(advance, CARD_DURATION_MS);
-                            }, 120);
-                        });
+                        // Clean up promoting class after the transition finishes.
+                        setTimeout(() => {
+                            wrappers.forEach(w => w.classList.remove('promoting'));
+                        }, SWOOSH_MS);
                     };
 
                     App._activateView('reveal');
+                    applyDepthClasses();
+                    counterEl.innerHTML = `Card <strong>1</strong> of ${cards.length}`;
                     document.getElementById('view-reveal').addEventListener('click', advance);
-                    showCard(0);
+                    startTimer();
                 });
             },
 
@@ -3782,8 +4148,8 @@
 
                 const latestSid = State.sessionId;
                 const render = (c, isNew = false) => isList
-                    ? this.cardListRow(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onArchive: App.onArchiveCard })
-                    : this.card(c, { onSell: App.onSellCard, onExpand: App.onExpandCard, onArchive: App.onArchiveCard, isNew });
+                    ? this.cardListRow(c, { onSell: App.onSellCard, onResearch: App.onResearchCard, onArchive: App.onArchiveCard })
+                    : this.card(c, { onSell: App.onSellCard, onResearch: App.onResearchCard, onArchive: App.onArchiveCard, isNew });
 
                 if (!activeArchive && sortKey === 'acquired' && latestSid && !query) {
                     const newCards = sorted.filter(c => c.sessionId === latestSid);
@@ -3821,7 +4187,7 @@
 
             // ── Card list row (list view) ─────────────────────────────────
 
-            cardListRow(data, { onSell, onExpand, onArchive } = {}) {
+            cardListRow(data, { onSell, onResearch, onArchive } = {}) {
                 const RARITY_ICONS = { common: 'fa-circle', uncommon: 'fa-diamond', rare: 'fa-star', epic: 'fa-bahai', legendary: 'fa-crown' };
                 const isArchived = data.archive !== null;
 
@@ -3870,16 +4236,19 @@
                     actions.appendChild(btn);
                 }
 
-                if (onExpand) {
-                    const cost = Logic.expandCost(data);
-                    const btn = this.el('button', 'card-list-btn card-list-btn-expand');
-                    btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
-                    btn.dataset.tip = `Expand into pack`;
-                    btn.disabled = !Logic.canAffordExpand(data);
-                    btn.dataset.expandBtn = data.rarity;
-                    btn.dataset.expandTitle = data.title;
-                    btn.dataset.expandCardId = data.id;
-                    btn.addEventListener('click', e => { e.stopPropagation(); onExpand(data); });
+                if (onResearch) {
+                    const cost = Logic.effectiveResearchCost(data);
+                    const isSuper = Logic.isSuperResearch(data);
+                    const btn = this.el('button', `card-list-btn card-list-btn-research${isSuper ? ' is-super' : ''}`);
+                    btn.innerHTML = isSuper
+                        ? `<i class="fa-solid fa-bolt"></i> ${cost.toLocaleString()}`
+                        : `<i class="fa-solid fa-wand-magic-sparkles"></i> ${cost.toLocaleString()}`;
+                    btn.dataset.tip = isSuper ? `Super Research! 30 cards` : `Research into pack`;
+                    btn.disabled = !Logic.canAffordResearch(data);
+                    btn.dataset.researchBtn = data.rarity;
+                    btn.dataset.researchTitle = data.title;
+                    btn.dataset.researchCardId = data.id;
+                    btn.addEventListener('click', e => { e.stopPropagation(); onResearch(data); });
                     actions.appendChild(btn);
                 }
 
@@ -4262,6 +4631,31 @@
                 dataSection.appendChild(resetRow);
                 extra.appendChild(dataSection);
 
+
+                // ── Promo Code section ───────────────────────────────────
+                const promoSection = document.createElement('div');
+                promoSection.className = 'settings-section';
+                promoSection.innerHTML = `<div class="settings-section-title">Promo Code</div>`;
+
+                const promoRow = document.createElement('div');
+                promoRow.className = 'settings-row';
+                promoRow.style.flexDirection = 'column';
+                promoRow.style.alignItems = 'stretch';
+                promoRow.style.gap = '0';
+                promoRow.innerHTML = `
+                  <div class="settings-row-label" style="margin-bottom:6px;">
+                    <i class="fa-solid fa-ticket"></i>
+                    Enter a code to receive a card
+                  </div>
+                  <div class="promo-input-row">
+                    <input class="promo-input" id="promo-input" placeholder="e.g. XXXX-XXXX-XXXX" spellcheck="false" autocomplete="off" />
+                    <button class="settings-row-btn" id="promo-redeem-btn">Redeem</button>
+                  </div>
+                  <div class="promo-feedback" id="promo-feedback"></div>
+                `;
+                promoSection.appendChild(promoRow);
+                extra.appendChild(promoSection);
+
                 // ── About section ────────────────────────────────────────
                 const aboutSection = document.createElement('div');
                 aboutSection.className = 'settings-section';
@@ -4281,6 +4675,82 @@
 
                 this.confirm('Settings', '', { onConfirm: null, extraEl: extra });
 
+
+
+
+
+                // ── Promo redeem logic ────────────────────────────────
+                const promoInput = document.getElementById('promo-input');
+                const promoBtn = document.getElementById('promo-redeem-btn');
+                const promoFb = document.getElementById('promo-feedback');
+
+                const setFeedback = (msg, type) => {
+                    promoFb.textContent = msg;
+                    promoFb.className = 'promo-feedback ' + (type || '');
+                };
+
+                promoBtn.addEventListener('click', async () => {
+                    const raw = (promoInput.value || '').trim();
+                    if (!raw) { setFeedback('Please enter a code.', 'err'); return; }
+
+                    // Normalise: strip spaces, uppercase
+                    const code = raw.toUpperCase().replace(/\s+/g, '');
+
+                    // Check already redeemed
+                    if (State.redeemedCodes.includes(code)) {
+                        setFeedback('This code has already been redeemed.', 'err');
+                        return;
+                    }
+
+                    // Decode
+                    let title;
+                    try {
+                        title = decodeCodeToTitle(code);
+                    } catch (e) {
+                        setFeedback('Invalid code.', 'err');
+                        return;
+                    }
+
+                    // Fetch the card
+                    setFeedback('Fetching card…', '');
+                    promoBtn.disabled = true;
+                    promoInput.disabled = true;
+
+                    try {
+                        const pages = await Api.fetchCardData([title]);
+                        const page = pages.find(p => p.pageid && !p.missing && !Api.isDisambiguation(p));
+                        if (!page) {
+                            setFeedback('Invalid Code.', 'err');
+                            promoBtn.disabled = false;
+                            promoInput.disabled = false;
+                            return;
+                        }
+
+                        const card = Logic.buildCard(page, null);
+
+                        // Mark code as redeemed and save
+                        State.redeemedCodes.push(code);
+                        State.binder.unshift(card);
+                        Storage.save();
+
+                        setFeedback(`"${card.title}" added to your binder!`, 'ok');
+                        promoInput.value = '';
+                        Render.updateBalance();
+                        if (document.getElementById('view-binder')?.classList.contains('active')) {
+                            Render.renderBinder();
+                        }
+                    } catch (e) {
+                        setFeedback('Something went wrong — please try again.', 'err');
+                        promoBtn.disabled = false;
+                        promoInput.disabled = false;
+                    }
+                });
+
+                // Allow pressing Enter in the input
+                promoInput.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') promoBtn.click();
+                });
+
                 setTimeout(() => {
                     const p = document.querySelector('#modal-overlay .modal p');
                     if (p) p.style.display = 'none';
@@ -4296,7 +4766,7 @@
                         html: `
           <p><strong style="color:var(--text)">WikiCards</strong> is a Wikipedia-powered card collecting game.
           Every card is a real Wikipedia article. Open packs to discover new articles, sell cards to earn money,
-          and spend it on more packs. Rarer cards are worth more and cost less to expand.</p>`,
+          and spend it on more packs. Rarer cards are worth more and cost less to research.</p>`,
                     },
                     {
                         icon: 'fa-id-card', label: 'How to read a card',
@@ -4314,7 +4784,7 @@
               </div>
               <div class="help-card-preview-footer">
                 <div class="help-card-preview-btn sell"><i class="fa-solid fa-hand-holding-dollar"></i> 180</div>
-                <div class="help-card-preview-btn expand"><i class="fa-solid fa-wand-magic-sparkles"></i> 48</div>
+                <div class="help-card-preview-btn research"><i class="fa-solid fa-wand-magic-sparkles"></i> 48</div>
                 <div class="help-card-preview-btn wiki"><i class="fa-brands fa-wikipedia-w"></i></div>
               </div>
             </div>
@@ -4325,15 +4795,15 @@
               </div>
               <div class="help-annotation">
                 <div class="help-annotation-icon lock"><i class="fa-solid fa-lock-open"></i></div>
-                <span><strong style="color:var(--text)">Lock</strong> (top left) — protects from selling or expanding.</span>
+                <span><strong style="color:var(--text)">Lock</strong> (top left) — protects from selling or researching.</span>
               </div>
               <div class="help-annotation">
                 <div class="help-annotation-icon sell"><i class="fa-solid fa-hand-holding-dollar"></i></div>
                 <span><strong style="color:var(--text)">Sell</strong> — sell for the shown amount.</span>
               </div>
               <div class="help-annotation">
-                <div class="help-annotation-icon expand"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-                <span><strong style="color:var(--text)">Expand</strong> — open a pack of linked articles. Rarer = cheaper.</span>
+                <div class="help-annotation-icon research"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <span><strong style="color:var(--text)">Research</strong> — open a research pack of linked articles. Rarer = cheaper.</span>
               </div>
               <div class="help-annotation">
                 <div class="help-annotation-icon wiki"><i class="fa-brands fa-wikipedia-w"></i></div>
@@ -4346,11 +4816,11 @@
                         icon: 'fa-star', label: 'Rarities',
                         html: `
           <div style="display:flex;flex-direction:column;gap:8px">
-            <div class="help-annotation"><div class="help-annotation-icon" style="background:#3a3a3a;color:var(--common)"><i class="fa-solid fa-circle"></i></div><span><strong style="color:var(--common)">Common</strong> — obscure articles, few monthly readers. Hard to expand.</span></div>
+            <div class="help-annotation"><div class="help-annotation-icon" style="background:#3a3a3a;color:var(--common)"><i class="fa-solid fa-circle"></i></div><span><strong style="color:var(--common)">Common</strong> — obscure articles, few monthly readers. Hard to research.</span></div>
             <div class="help-annotation"><div class="help-annotation-icon" style="background:#1a3020;color:var(--uncommon)"><i class="fa-solid fa-diamond"></i></div><span><strong style="color:var(--uncommon)">Uncommon</strong> — niche topics with a modest following.</span></div>
             <div class="help-annotation"><div class="help-annotation-icon" style="background:#0e1f3a;color:var(--rare)"><i class="fa-solid fa-star"></i></div><span><strong style="color:var(--rare)">Rare</strong> — famous scientists, major historical events.</span></div>
-            <div class="help-annotation"><div class="help-annotation-icon" style="background:#1e0e30;color:var(--epic)"><i class="fa-solid fa-bahai"></i></div><span><strong style="color:var(--epic)">Epic</strong> — high-traffic topics. Valuable and cheap to expand.</span></div>
-            <div class="help-annotation"><div class="help-annotation-icon" style="background:#2a0e04;color:var(--legendary)"><i class="fa-solid fa-crown"></i></div><span><strong style="color:var(--legendary)">Legendary</strong> — most-read articles on Wikipedia. Worth thousands, nearly free to expand.</span></div>
+            <div class="help-annotation"><div class="help-annotation-icon" style="background:#1e0e30;color:var(--epic)"><i class="fa-solid fa-bahai"></i></div><span><strong style="color:var(--epic)">Epic</strong> — high-traffic topics. Valuable and cheap to research.</span></div>
+            <div class="help-annotation"><div class="help-annotation-icon" style="background:#2a0e04;color:var(--legendary)"><i class="fa-solid fa-crown"></i></div><span><strong style="color:var(--legendary)">Legendary</strong> — most-read articles on Wikipedia. Worth thousands, nearly free to research.</span></div>
           </div>`,
                     },
                     {
@@ -4360,17 +4830,17 @@
           You can buy packs in quantities of ×1, ×5, or ×10 — multiple packs open one after another.</p>
           <p style="margin-bottom:10px"><strong style="color:var(--text)">Random Packs</strong> ($${PACK_COST} each) give 7 completely random Wikipedia articles.</p>
           <p><strong style="color:var(--gold)">Daily Topic Packs</strong> are three themed packs that rotate every day at midnight.
-          Each draws from articles linked by a broad topic like <em>Science</em> or <em>Music</em> — similar to expanding a card,
+          Each draws from articles linked by a broad topic like <em>Science</em> or <em>Music</em> — similar to researching a card,
           but without needing one in your collection. They cost more ($200–$500) but give focused, thematically related cards.</p>`,
                     },
                     {
-                        icon: 'fa-wand-magic-sparkles', label: 'The art of Expanding',
+                        icon: 'fa-wand-magic-sparkles', label: 'The art of Researching',
                         html: `
-          <p style="margin-bottom:10px">Expanding is the most powerful mechanic. When you expand a card, the new pack draws from
+          <p style="margin-bottom:10px">Researching is the most powerful mechanic. When you research a card, the new pack draws from
           articles <strong style="color:var(--text)">directly linked</strong> in that Wikipedia article — always thematically related.</p>
           <p style="margin-bottom:10px">You can <strong style="color:var(--text)">navigate toward a specific card</strong>.
-          Looking for <em>Marie Curie</em>? Expand <em>Physics</em> → <em>Nobel Prize</em> → <em>Radioactivity</em> — each hop gets closer.</p>
-          <p>Expanding the same card again costs more each time. Rarer cards cost <strong style="color:var(--gold)">less</strong> to expand —
+          Looking for <em>Marie Curie</em>? Research <em>Physics</em> → <em>Nobel Prize</em> → <em>Radioactivity</em> — each hop gets closer.</p>
+          <p>Researching the same card again costs more each time. Rarer cards cost <strong style="color:var(--gold)">less</strong> to research —
           a Legendary like <em>Science</em> is a cheap gateway to thousands of topics.</p>`,
                     },
                     {
@@ -4392,7 +4862,7 @@
                 // Intro (always visible, not in accordion)
                 const intro = this.el('div', 'help-game-intro');
                 intro.innerHTML = `<strong style="color:var(--text)">WikiCards</strong> is a Wikipedia-powered card collecting game.
-      Open packs, collect articles, expand into related topics, and complete quests.`;
+      Open packs, collect articles, research into related topics, and complete quests.`;
                 extra.appendChild(intro);
 
                 // Accordion
@@ -4800,7 +5270,7 @@
                 while (App._packQueue.length > 0) {
                     const { topicTitle } = App._packQueue.shift();
                     await App._openPack({
-                        expandFrom: topicTitle ? { title: topicTitle } : null,
+                        researchFrom: topicTitle ? { title: topicTitle } : null,
                         isPrepaid: true,
                     });
                 }
@@ -4844,9 +5314,10 @@
 
             // ── Pack opening pipeline ─────────────────────────────────────
 
-            async onExpandCard(cardData) {
-                if (!Logic.canAffordExpand(cardData)) { Render.toast('Not enough money to expand.', 'error'); return; }
-                await App._openPack({ expandFrom: cardData });
+            async onResearchCard(cardData) {
+                if (!Logic.canAffordResearch(cardData)) { Render.toast('Not enough money to research.', 'error'); return; }
+                const superResearch = Logic.isSuperResearch(cardData);
+                await App._openPack({ researchFrom: cardData, isSuperResearch: superResearch });
             },
 
             /**
@@ -4858,64 +5329,94 @@
              *   5. Commit to binder under a new sessionId
              *   6. Navigate to binder — new cards appear at top, highlighted
              */
-            async _openPack({ isStarter = false, expandFrom = null, isPrepaid = false } = {}) {
+            async _openPack({ isStarter = false, researchFrom = null, isPrepaid = false, isSuperResearch = false } = {}) {
                 if (!isStarter && !isPrepaid) {
-                    const cost = expandFrom ? Logic.expandCost(expandFrom) : PACK_COST;
+                    const cost = researchFrom ? Logic.effectiveResearchCost(researchFrom) : PACK_COST;
                     if (State.balance < cost) { Render.toast('Not enough money.', 'error'); return; }
                     Logic.deductCost(cost);
                 }
                 Render.updateBalance();
-                App._activateView('opening');
 
-                const label = isStarter ? 'Opening your starter pack…'
-                    : expandFrom ? `Opening "${expandFrom.title}" pack…`
-                        : 'Opening random pack…';
-                Render.setOpeningProgress(label, 'Selecting articles…', 0);
-
-                const titles = expandFrom
-                    ? Logic.pickRandom(await Api.fetchLinksFrom(expandFrom.title), PACK_SIZE)
-                    : await Api.fetchRandomTitles(PACK_SIZE);
-
-                Render.setOpeningProgress(label, 'Fetching articles & calculating rarities…', 25);
-
-                // Fetch cards, filtering out disambiguation pages and replacing them until
-                // we have exactly PACK_SIZE valid cards.
-                let validPages = [];
-                let candidateTitles = [...titles];
-                let attempts = 0;
-                const MAX_ATTEMPTS = 4; // safety cap on refetch rounds
-
-                while (validPages.length < PACK_SIZE && attempts < MAX_ATTEMPTS) {
-                    const [pages, ...viewCounts] = await Promise.all([
-                        Api.fetchCardData(candidateTitles),
-                        ...candidateTitles.map(t => Api.fetchPageViews(t)),
-                    ]);
-
-                    // Attach view counts to pages for later use
-                    pages.forEach((p, i) => { p._views = viewCounts[i] ?? 0; });
-
-                    const good = pages.filter(p => p.pageid && !p.missing && !Api.isDisambiguation(p));
-                    validPages.push(...good);
-
-                    const needed = PACK_SIZE - validPages.length;
-                    if (needed <= 0) break;
-
-                    // Fetch replacement titles — random if original was random, more links if expanding
-                    candidateTitles = expandFrom
-                        ? Logic.pickRandom(await Api.fetchLinksFrom(expandFrom.title), needed * 2).slice(0, needed)
-                        : await Api.fetchRandomTitles(needed + 2); // fetch a couple extra as buffer
-
-                    attempts++;
+                // Style the opening screen for super research
+                const openingView = document.getElementById('view-opening');
+                const openingLabel = document.getElementById('opening-label');
+                const burstIcon = document.querySelector('.pack-burst-icon');
+                if (isSuperResearch) {
+                    openingView.classList.add('is-super');
+                    openingLabel.classList.add('is-super');
+                    if (burstIcon) burstIcon.textContent = '⚡';
+                } else {
+                    openingView.classList.remove('is-super');
+                    openingLabel.classList.remove('is-super');
+                    if (burstIcon) burstIcon.textContent = '📦';
                 }
 
-                validPages = validPages.slice(0, PACK_SIZE);
+                App._activateView('opening');
+
+                const packSize = isSuperResearch ? SUPER_RESEARCH_SIZE : PACK_SIZE;
+
+                const label = isStarter ? 'Opening your starter pack…'
+                    : isSuperResearch ? `⚡ Super Researching "${researchFrom.title}"…`
+                        : researchFrom ? `Opening "${researchFrom.title}" pack…`
+                            : 'Opening random pack…';
+                Render.setOpeningProgress(label, 'Selecting articles…', 0);
+
+                let validPages;
+
+                if (isSuperResearch) {
+                    // ── Super research: clean 3-step pipeline ──────────────────
+                    // 1. Fetch all links in order (single request)
+                    Render.setOpeningProgress(label, 'Gathering all linked articles…', 15);
+                    const allLinks = await Api.fetchAllLinksFrom(researchFrom.title);
+
+                    // 2. Weighted random selection — biased toward early links, no requests needed
+                    const titles = Logic.weightedPickWithoutReplacement(allLinks, packSize);
+
+                    // 3. Fetch metadata for the chosen titles (rarity computed from page data, no extra requests)
+                    Render.setOpeningProgress(label, 'Fetching articles & calculating rarities…', 40);
+                    const pages = await Api.fetchCardData(titles);
+
+                    // Filter out bad pages — no retry, just take what's valid
+                    validPages = pages.filter(p => p.pageid && !p.missing && !Api.isDisambiguation(p));
+
+                } else {
+                    // ── Normal research / random pack: original retry-loop pipeline ─
+                    const titles = researchFrom
+                        ? Logic.pickRandom(await Api.fetchLinksFrom(researchFrom.title), packSize)
+                        : await Api.fetchRandomTitles(packSize);
+
+                    Render.setOpeningProgress(label, 'Fetching articles & calculating rarities…', 25);
+
+                    let candidateTitles = [...titles];
+                    let attempts = 0;
+                    const MAX_ATTEMPTS = 4;
+                    validPages = [];
+
+                    while (validPages.length < packSize && attempts < MAX_ATTEMPTS) {
+                        const pages = await Api.fetchCardData(candidateTitles);
+
+                        const good = pages.filter(p => p.pageid && !p.missing && !Api.isDisambiguation(p));
+                        validPages.push(...good);
+
+                        const needed = packSize - validPages.length;
+                        if (needed <= 0) break;
+
+                        candidateTitles = researchFrom
+                            ? Logic.pickRandom(await Api.fetchLinksFrom(researchFrom.title), needed * 2).slice(0, needed)
+                            : await Api.fetchRandomTitles(needed + 2);
+
+                        attempts++;
+                    }
+
+                    validPages = validPages.slice(0, packSize);
+                }
 
                 Render.setOpeningProgress(label, 'Building cards…', 90);
 
                 const tempSid = `tmp_${Date.now()}`;
-                const cards = validPages.map(p => Logic.buildCard(p, p._views ?? 0, tempSid));
+                const cards = validPages.map(p => Logic.buildCard(p, tempSid));
 
-                if (expandFrom?.id) Logic.incrementExpandCount(expandFrom.id);
+                if (researchFrom?.id) Logic.incrementResearchCount(researchFrom.id);
                 Logic.addPack(cards);
 
                 Render.setOpeningProgress(label, 'Done!', 100);
@@ -5014,7 +5515,7 @@
 
         // Bind callbacks used as references inside Render (so `this` context is preserved)
         App.onSellCard = App.onSellCard.bind(App);
-        App.onExpandCard = App.onExpandCard.bind(App);
+        App.onResearchCard = App.onResearchCard.bind(App);
         App.onArchiveCard = App.onArchiveCard.bind(App);
         App.onUnarchiveCard = App.onUnarchiveCard.bind(App);
 
