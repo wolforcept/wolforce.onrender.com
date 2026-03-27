@@ -30,6 +30,7 @@
             --rare: #4a8fdf;
             --epic: #9b59d0;
             --legendary: #e8540a;
+            --super: #f0c030;
 
 
             --radius: 10px;
@@ -478,6 +479,10 @@
             box-shadow: 0 8px 60px rgba(232, 84, 10, 0.8), 0 0 100px rgba(232, 84, 10, 0.2);
         }
 
+        .reveal-stack-card.is-top[data-rarity="super"] {
+            box-shadow: 0 8px 70px rgba(240, 192, 48, 0.9), 0 0 120px rgba(240, 192, 48, 0.35);
+        }
+
         /* Cards beneath the top — subtle stack peek effect */
         .reveal-stack-card.is-beneath-1 {
             transform: translateY(6px) scale(0.97);
@@ -715,6 +720,10 @@
             border-left: 3px solid var(--legendary);
         }
 
+        .card-list-row[data-rarity="super"] {
+            border-left: 3px solid var(--super);
+        }
+
         .card-list-row.is-locked {
             outline: none;
         }
@@ -793,6 +802,11 @@
         .card-list-row[data-rarity="legendary"] .card-list-rarity-icon {
             background: #2a0e04;
             color: var(--legendary);
+        }
+
+        .card-list-row[data-rarity="super"] .card-list-rarity-icon {
+            background: #2a2000;
+            color: var(--super);
         }
 
         .card-list-title {
@@ -1280,6 +1294,24 @@
             box-shadow: 0 0 24px rgba(232, 84, 10, 0.7), 0 0 48px rgba(232, 84, 10, 0.25);
         }
 
+        .card[data-rarity="super"] .card-border {
+            border-color: var(--super);
+            box-shadow: 0 0 32px rgba(240, 192, 48, 0.85), 0 0 64px rgba(240, 192, 48, 0.35);
+            animation: superBorderPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes superBorderPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 32px rgba(240, 192, 48, 0.85), 0 0 64px rgba(240, 192, 48, 0.35);
+            }
+
+            50% {
+                box-shadow: 0 0 48px rgba(240, 192, 48, 1), 0 0 96px rgba(240, 192, 48, 0.55);
+            }
+        }
+
         /* Rarity symbol — top-right corner, overlapping the image */
         .card-rarity-icon {
             position: absolute;
@@ -1319,6 +1351,12 @@
         .card[data-rarity="legendary"] .card-rarity-icon {
             background: #2a0e04;
             color: var(--legendary);
+        }
+
+        .card[data-rarity="super"] .card-rarity-icon {
+            background: #2a2000;
+            color: var(--super);
+            box-shadow: 0 0 8px rgba(240, 192, 48, 0.7);
         }
 
         /* Lock button — top-left corner */
@@ -2759,6 +2797,7 @@
             rare: 4.3,
             epic: 6.7,
             legendary: 8.1,
+            super: 9.0,
         };
 
         /**
@@ -2772,6 +2811,7 @@
             { id: 'rare', label: 'Rare', sellMin: 60, sellMax: 350, researchCostMin: 35, researchCostMax: 65 },
             { id: 'epic', label: 'Epic', sellMin: 350, sellMax: 2000, researchCostMin: 10, researchCostMax: 20 },
             { id: 'legendary', label: 'Legendary', sellMin: 2000, sellMax: 5000, researchCostMin: 3, researchCostMax: 7 },
+            { id: 'super', label: 'Super', sellMin: 5000, sellMax: 10000, researchCostMin: 1, researchCostMax: 3 },
         ];
 
         const RARITY_RANK = Object.fromEntries(RARITY_TIERS.map((t, i) => [t.id, i]));
@@ -3430,6 +3470,7 @@
 
             rarityFromPage(page) {
                 const score = Logic.rarityScore(page);
+                if (score >= RARITY_SCORE_THRESHOLDS.super) return 'super';
                 if (score >= RARITY_SCORE_THRESHOLDS.legendary) return 'legendary';
                 if (score >= RARITY_SCORE_THRESHOLDS.epic) return 'epic';
                 if (score >= RARITY_SCORE_THRESHOLDS.rare) return 'rare';
@@ -3827,6 +3868,7 @@
                     rare: '<i class="fa-solid fa-star"></i>',
                     epic: '<i class="fa-solid fa-bahai"></i>',
                     legendary: '<i class="fa-solid fa-crown"></i>',
+                    super: '<i class="fa-solid fa-atom"></i>',
                 };
 
                 const isArchived = data.archive !== null;
@@ -4188,7 +4230,14 @@
             // ── Card list row (list view) ─────────────────────────────────
 
             cardListRow(data, { onSell, onResearch, onArchive } = {}) {
-                const RARITY_ICONS = { common: 'fa-circle', uncommon: 'fa-diamond', rare: 'fa-star', epic: 'fa-bahai', legendary: 'fa-crown' };
+                const RARITY_ICONS = {
+                    common: 'fa-circle',
+                    uncommon: 'fa-diamond',
+                    rare: 'fa-star',
+                    epic: 'fa-bahai',
+                    legendary: 'fa-crown',
+                    super: 'fa-atom',
+                };
                 const isArchived = data.archive !== null;
 
                 const row = this.el('div', 'card-list-row');
@@ -4762,13 +4811,6 @@
             showHelp() {
                 const sections = [
                     {
-                        icon: 'fa-circle-info', label: 'What is WikiCards?',
-                        html: `
-          <p><strong style="color:var(--text)">WikiCards</strong> is a Wikipedia-powered card collecting game.
-          Every card is a real Wikipedia article. Open packs to discover new articles, sell cards to earn money,
-          and spend it on more packs. Rarer cards are worth more and cost less to research.</p>`,
-                    },
-                    {
                         icon: 'fa-id-card', label: 'How to read a card',
                         html: `
           <div class="help-card-demo">
@@ -4816,11 +4858,12 @@
                         icon: 'fa-star', label: 'Rarities',
                         html: `
           <div style="display:flex;flex-direction:column;gap:8px">
-            <div class="help-annotation"><div class="help-annotation-icon" style="background:#3a3a3a;color:var(--common)"><i class="fa-solid fa-circle"></i></div><span><strong style="color:var(--common)">Common</strong> — obscure articles, few monthly readers. Hard to research.</span></div>
+            <div class="help-annotation"><div class="help-annotation-icon" style="background:#3a3a3a;color:var(--common)"><i class="fa-solid fa-circle"></i></div><span><strong style="color:var(--common)">Common</strong> — obscure articles, few monthly readers.</span></div>
             <div class="help-annotation"><div class="help-annotation-icon" style="background:#1a3020;color:var(--uncommon)"><i class="fa-solid fa-diamond"></i></div><span><strong style="color:var(--uncommon)">Uncommon</strong> — niche topics with a modest following.</span></div>
             <div class="help-annotation"><div class="help-annotation-icon" style="background:#0e1f3a;color:var(--rare)"><i class="fa-solid fa-star"></i></div><span><strong style="color:var(--rare)">Rare</strong> — famous scientists, major historical events.</span></div>
-            <div class="help-annotation"><div class="help-annotation-icon" style="background:#1e0e30;color:var(--epic)"><i class="fa-solid fa-bahai"></i></div><span><strong style="color:var(--epic)">Epic</strong> — high-traffic topics. Valuable and cheap to research.</span></div>
-            <div class="help-annotation"><div class="help-annotation-icon" style="background:#2a0e04;color:var(--legendary)"><i class="fa-solid fa-crown"></i></div><span><strong style="color:var(--legendary)">Legendary</strong> — most-read articles on Wikipedia. Worth thousands, nearly free to research.</span></div>
+            <div class="help-annotation"><div class="help-annotation-icon" style="background:#1e0e30;color:var(--epic)"><i class="fa-solid fa-bahai"></i></div><span><strong style="color:var(--epic)">Epic</strong> — high-traffic topics.</span></div>
+            <div class="help-annotation"><div class="help-annotation-icon" style="background:#2a0e04;color:var(--legendary)"><i class="fa-solid fa-crown"></i></div><span><strong style="color:var(--legendary)">Legendary</strong> — most-read articles on Wikipedia.</span></div>
+            <div class="help-annotation"><div class="help-annotation-icon" style="background:#2a2000;color:var(--super);box-shadow:0 0 8px rgba(240,192,48,0.5)"><i class="fa-solid fa-atom"></i></div><span><strong style="color:var(--super)">Super</strong> — the rarest tier. Only the most monumental Wikipedia articles.</span></div>
           </div>`,
                     },
                     {
@@ -4841,7 +4884,7 @@
           <p style="margin-bottom:10px">You can <strong style="color:var(--text)">navigate toward a specific card</strong>.
           Looking for <em>Marie Curie</em>? Research <em>Physics</em> → <em>Nobel Prize</em> → <em>Radioactivity</em> — each hop gets closer.</p>
           <p>Researching the same card again costs more each time. Rarer cards cost <strong style="color:var(--gold)">less</strong> to research —
-          a Legendary like <em>Science</em> is a cheap gateway to thousands of topics.</p>`,
+          an Epic Card like <em>Science</em> is a cheap gateway to thousands of topics.</p>`,
                     },
                     {
                         icon: 'fa-award', label: 'Quests',
@@ -4849,8 +4892,8 @@
           <p style="margin-bottom:10px">Open <strong style="color:var(--text)">Quests <i class="fa-solid fa-scroll"></i></strong> from the header.
           Each quest asks you to collect a specific Wikipedia article as a card.</p>
           <p style="margin-bottom:10px"><strong style="color:var(--text)">Collection Quests</strong> are permanent — find the card, hit Complete, and a new quest replaces it.
-          The <strong style="color:#2ab5a0">Daily Quest <span style="font-size:0.7rem;border:1px solid #2ab5a0;border-radius:3px;padding:1px 5px">Daily</span></strong>
-          is the most-viewed Wikipedia article of yesterday — the same for every player. It resets each day.</p>
+          The <strong style="color:#2ab5a0">Daily Quest</strong>
+          is a recently popular Article, same for every player. It resets each day.</p>
           <p>Completing a quest earns <strong style="color:var(--gold)">$100</strong> and
           <strong style="color:#2ab5a0">1 Quest Point <i class="fa-solid fa-award"></i></strong>.
           Each day you open the game you earn <strong style="color:var(--gold)">$100 × your Quest Points</strong> automatically.</p>`,
@@ -4862,7 +4905,8 @@
                 // Intro (always visible, not in accordion)
                 const intro = this.el('div', 'help-game-intro');
                 intro.innerHTML = `<strong style="color:var(--text)">WikiCards</strong> is a Wikipedia-powered card collecting game.
-      Open packs, collect articles, research into related topics, and complete quests.`;
+          Every card is a real Wikipedia article. Open packs to discover new articles, sell cards to earn money,
+          and spend it on more packs. Rarer cards are worth more and cost less to research.`;
                 extra.appendChild(intro);
 
                 // Accordion
