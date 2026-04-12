@@ -1,113 +1,489 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <meta charset="utf-8">
-  <title>Wiki Promo Code Generator</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-      max-width: 720px;
-      margin: 36px auto;
-      padding: 0 18px;
-      color: #111;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Encoder / Decoder</title>
+    <script src="encoder.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-    h1 {
-      margin-bottom: 8px;
-    }
+        :root {
+            --bg: #0f1217;
+            --surface: #181d26;
+            --surface2: #1f2736;
+            --border: #2a3346;
+            --teal: #2dd4bf;
+            --teal-dim: #1a9e8f;
+            --gold: #f0b429;
+            --gold-dim: #b8861a;
+            --text: #d4dbe8;
+            --muted: #6b7a96;
+            --error: #f87171;
+            --success: #4ade80;
+            --mono: 'Courier New', Courier, monospace;
+        }
 
-    textarea,
-    input {
-      width: 100%;
-      padding: 10px;
-      font-size: 14px;
-      box-sizing: border-box;
-      margin-top: 6px;
-    }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
 
-    button {
-      margin-top: 10px;
-      padding: 8px 12px;
-      font-size: 14px;
-    }
+        /* ── Header ── */
+        header {
+            padding: 1.5rem 2rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
 
-    .result {
-      margin-top: 12px;
-      font-weight: 600;
-      word-break: break-all;
-    }
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: .05em;
+            color: var(--teal);
+        }
 
-    .code {
-      font-family: "Courier New", monospace;
-      letter-spacing: 1px;
-      background: #f6f6f6;
-      padding: 6px 8px;
-      display: inline-block;
-      border-radius: 4px;
-    }
-  </style>
+        header p {
+            font-size: .8rem;
+            color: var(--muted);
+            margin-top: .25rem;
+        }
+
+        /* ── Main grid ── */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+
+        @media (max-width: 700px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Panel ── */
+        .panel {
+            padding: 1.75rem 2rem;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .panel:last-child {
+            border-right: none;
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            font-size: .75rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        .panel-title .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .encode-panel .panel-title .dot {
+            background: var(--teal);
+        }
+
+        .decode-panel .panel-title .dot {
+            background: var(--gold);
+        }
+
+        .encode-panel .panel-title {
+            color: var(--teal);
+        }
+
+        .decode-panel .panel-title {
+            color: var(--gold);
+        }
+
+        /* ── Labels ── */
+        label {
+            font-size: .75rem;
+            font-weight: 600;
+            color: var(--muted);
+            letter-spacing: .06em;
+            display: block;
+            margin-bottom: .4rem;
+        }
+
+        /* ── Inputs / textareas ── */
+        textarea,
+        input[type="text"] {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: .9rem;
+            padding: .65rem .8rem;
+            outline: none;
+            transition: border-color .15s;
+            resize: vertical;
+        }
+
+        textarea:focus,
+        input[type="text"]:focus {
+            border-color: var(--teal);
+        }
+
+        textarea {
+            min-height: 110px;
+            line-height: 1.5;
+        }
+
+        input[type="text"].mono {
+            font-family: var(--mono);
+            font-size: .85rem;
+            letter-spacing: .04em;
+        }
+
+        /* readonly output */
+        .output-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: .65rem .8rem;
+            font-family: var(--mono);
+            font-size: .85rem;
+            letter-spacing: .04em;
+            color: var(--text);
+            word-break: break-all;
+            min-height: 48px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .output-box.teal {
+            color: var(--teal);
+        }
+
+        .output-box.gold {
+            color: var(--gold);
+        }
+
+        .output-box:empty::before {
+            content: attr(data-placeholder);
+            color: var(--muted);
+            font-style: italic;
+            font-family: system-ui, sans-serif;
+            font-size: .8rem;
+            letter-spacing: 0;
+        }
+
+        /* ── Buttons ── */
+        .btn-row {
+            display: flex;
+            gap: .6rem;
+            align-items: center;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-size: .8rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            padding: .55rem 1.1rem;
+            transition: background .15s, opacity .15s, transform .08s;
+        }
+
+        button:active {
+            transform: scale(.97);
+        }
+
+        button:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
+        .btn-primary-teal {
+            background: var(--teal);
+            color: #0f1217;
+        }
+
+        .btn-primary-teal:hover:not(:disabled) {
+            background: var(--teal-dim);
+        }
+
+        .btn-primary-gold {
+            background: var(--gold);
+            color: #0f1217;
+        }
+
+        .btn-primary-gold:hover:not(:disabled) {
+            background: var(--gold-dim);
+        }
+
+        .btn-ghost {
+            background: var(--surface2);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover:not(:disabled) {
+            color: var(--text);
+            border-color: var(--muted);
+        }
+
+        /* ── Feedback / status ── */
+        .status {
+            font-size: .75rem;
+            min-height: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .status.error {
+            color: var(--error);
+        }
+
+        .status.success {
+            color: var(--success);
+        }
+
+        .status.info {
+            color: var(--muted);
+        }
+
+        /* ── Byte counter ── */
+        .byte-count {
+            font-size: .72rem;
+            color: var(--muted);
+            text-align: right;
+        }
+
+        .byte-count.warn {
+            color: var(--gold);
+        }
+
+        .byte-count.over {
+            color: var(--error);
+        }
+
+        /* ── Copy button inline ── */
+        .copy-btn {
+            margin-left: auto;
+            padding: .3rem .7rem;
+            font-size: .72rem;
+        }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: .8rem;
+            font-size: .7rem;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
+        }
+    </style>
 </head>
 
 <body>
-  <h1>Wiki Promo Code Generator</h1>
 
-  <section>
-    <h3>Encode Article Title to Code</h3>
-    <textarea id="titleInput" rows="2" placeholder="Indonesian_mass_killings_of_1965–66"></textarea>
-    <button id="encodeBtn">Generate Code</button>
-    <div class="result">Code: <span id="codeOutput" class="code">—</span></div>
-  </section>
+    <header>
+        <h1>Encoder · Decoder</h1>
+        <p>Feistel cipher · Base32 Crockford · Checksum verification</p>
+    </header>
 
-  <hr>
+    <main>
 
-  <section>
-    <h3>Decode Code to Article Title</h3>
-    <input id="codeInput" placeholder="XXXX-XXXX-XXXX-..." />
-    <button id="decodeBtn">Decode Code</button>
-    <div class="result">Title: <span id="titleOutput">—</span></div>
-  </section>
+        <!-- ══ ENCODE PANEL ══ -->
+        <section class="panel encode-panel">
+            <div class="panel-title"><span class="dot"></span>Encode</div>
 
-  <script src="encoder.js"></script>
-  <script>
+            <div>
+                <label for="enc-input">Input string</label>
+                <textarea id="enc-input" placeholder="Type or paste your string here…" spellcheck="false"></textarea>
+                <div class="byte-count" id="enc-byte-count">0 / 65535 bytes</div>
+            </div>
 
-    const titleInput = document.getElementById("titleInput");
-    const encodeBtn = document.getElementById("encodeBtn");
-    const codeOutput = document.getElementById("codeOutput");
+            <div class="btn-row">
+                <button class="btn-primary-teal" id="enc-btn" disabled>Encode</button>
+                <button class="btn-ghost" id="enc-clear">Clear</button>
+            </div>
 
-    const codeInput = document.getElementById("codeInput");
-    const decodeBtn = document.getElementById("decodeBtn");
-    const titleOutput = document.getElementById("titleOutput");
+            <div class="status info" id="enc-status"></div>
 
-    encodeBtn.addEventListener("click", () => {
-      const title = titleInput.value;
-      if (!title) {
-        codeOutput.textContent = "—";
-        return;
-      }
-      try {
-        const code = encodeTitleToCode(title);
-        codeOutput.textContent = code;
-      } catch (e) {
-        codeOutput.textContent = "Error: " + e.message;
-      }
-    });
+            <div>
+                <div class="btn-row" style="margin-bottom:.4rem">
+                    <label style="margin:0" for="enc-output">Output code</label>
+                    <button class="btn-ghost copy-btn" id="enc-copy" disabled>Copy</button>
+                </div>
+                <div class="output-box teal" id="enc-output" data-placeholder="Encoded code will appear here"></div>
+            </div>
+        </section>
 
-    decodeBtn.addEventListener("click", () => {
-      const code = codeInput.value.trim();
-      if (!code) {
-        titleOutput.textContent = "—";
-        return;
-      }
-      try {
-        const title = decodeCodeToTitle(code);
-        titleOutput.textContent = title;
-      } catch (e) {
-        titleOutput.textContent = "Invalid code";
-      }
-    });
+        <!-- ══ DECODE PANEL ══ -->
+        <section class="panel decode-panel">
+            <div class="panel-title"><span class="dot"></span>Decode</div>
 
-  </script>
+            <div>
+                <label for="dec-input">Code</label>
+                <input type="text" id="dec-input" class="mono" placeholder="Paste a code here, e.g. ABCD-1234-XY" spellcheck="false" />
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-primary-gold" id="dec-btn" disabled>Decode</button>
+                <button class="btn-ghost" id="dec-clear">Clear</button>
+            </div>
+
+            <div class="status info" id="dec-status"></div>
+
+            <div>
+                <div class="btn-row" style="margin-bottom:.4rem">
+                    <label style="margin:0">Decoded string</label>
+                    <button class="btn-ghost copy-btn" id="dec-copy" disabled>Copy</button>
+                </div>
+                <div class="output-box gold" id="dec-output" data-placeholder="Decoded text will appear here"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>encoder.js · Feistel / Base32 / Checksum</footer>
+
+    <script>
+        /* ── Byte helpers ── */
+        function getByteLength(str) {
+            return new TextEncoder().encode(str).length;
+        }
+
+        /* ── Encode panel ── */
+        const encInput = document.getElementById('enc-input');
+        const encBtn = document.getElementById('enc-btn');
+        const encClear = document.getElementById('enc-clear');
+        const encOutput = document.getElementById('enc-output');
+        const encStatus = document.getElementById('enc-status');
+        const encByteCount = document.getElementById('enc-byte-count');
+        const encCopy = document.getElementById('enc-copy');
+
+        const MAX_BYTES = 0xffff;
+
+        encInput.addEventListener('input', () => {
+            const bytes = getByteLength(encInput.value);
+            encByteCount.textContent = `${bytes} / ${MAX_BYTES} bytes`;
+            encByteCount.className = 'byte-count' + (bytes > MAX_BYTES ? ' over' : bytes > MAX_BYTES * 0.9 ? ' warn' : '');
+            encBtn.disabled = encInput.value.trim() === '' || bytes > MAX_BYTES;
+            setStatus(encStatus, '', '');
+        });
+
+        encBtn.addEventListener('click', () => {
+            encStatus.className = 'status';
+            encOutput.textContent = '';
+            encCopy.disabled = true;
+            try {
+                const code = encodeTitleToCode(encInput.value);
+                encOutput.textContent = code;
+                encCopy.disabled = false;
+                setStatus(encStatus, 'success', '✓ Encoded successfully');
+            } catch (e) {
+                setStatus(encStatus, 'error', '✗ ' + e.message);
+            }
+        });
+
+        encClear.addEventListener('click', () => {
+            encInput.value = '';
+            encOutput.textContent = '';
+            encStatus.className = 'status';
+            encStatus.textContent = '';
+            encByteCount.textContent = `0 / ${MAX_BYTES} bytes`;
+            encByteCount.className = 'byte-count';
+            encBtn.disabled = true;
+            encCopy.disabled = true;
+        });
+
+        encCopy.addEventListener('click', () => copyText(encOutput.textContent, encCopy));
+
+        /* ── Decode panel ── */
+        const decInput = document.getElementById('dec-input');
+        const decBtn = document.getElementById('dec-btn');
+        const decClear = document.getElementById('dec-clear');
+        const decOutput = document.getElementById('dec-output');
+        const decStatus = document.getElementById('dec-status');
+        const decCopy = document.getElementById('dec-copy');
+
+        decInput.addEventListener('input', () => {
+            decBtn.disabled = decInput.value.trim() === '';
+            setStatus(decStatus, '', '');
+            decOutput.textContent = '';
+            decCopy.disabled = true;
+        });
+
+        decBtn.addEventListener('click', () => {
+            decOutput.textContent = '';
+            decCopy.disabled = true;
+            try {
+                const title = decodeCodeToTitle(decInput.value.trim());
+                decOutput.textContent = title;
+                decCopy.disabled = false;
+                setStatus(decStatus, 'success', '✓ Decoded successfully');
+            } catch (e) {
+                // surface a friendlier version of common errors
+                let msg = e.message;
+                if (msg.includes('checksum')) msg = 'Checksum mismatch — code may be corrupted or mistyped';
+                else if (msg.includes('length')) msg = 'Invalid code — unexpected length';
+                setStatus(decStatus, 'error', '✗ ' + msg);
+            }
+        });
+
+        decInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !decBtn.disabled) decBtn.click();
+        });
+
+        decClear.addEventListener('click', () => {
+            decInput.value = '';
+            decOutput.textContent = '';
+            decStatus.className = 'status';
+            decStatus.textContent = '';
+            decBtn.disabled = true;
+            decCopy.disabled = true;
+        });
+
+        decCopy.addEventListener('click', () => copyText(decOutput.textContent, decCopy));
+
+        /* ── Shared helpers ── */
+        function setStatus(el, type, msg) {
+            el.className = 'status' + (type ? ' ' + type : '');
+            el.textContent = msg;
+        }
+
+        async function copyText(text, btn) {
+            if (!text) return;
+            try {
+                await navigator.clipboard.writeText(text);
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = orig; }, 1500);
+            } catch {
+                setStatus(encStatus, 'error', 'Clipboard access denied');
+            }
+        }
+    </script>
 </body>
 
 </html>
