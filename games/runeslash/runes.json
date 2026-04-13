@@ -1,0 +1,346 @@
+{
+  "runes": [
+    {
+      "id": "ember_ring",
+      "name": "Ember Ring",
+      "unlockedAtLevel": 2,
+      "shape": "circle",
+      "strokeCount": 1,
+      "templatePoints": [
+        [150,80],[139,66],[124,60],[108,61],[94,69],[84,83],[80,100],[82,117],[90,131],[104,141],[120,146],[137,144],[152,137],[162,124],[166,108],[163,92],[154,80],[142,72],[128,67]
+      ],
+      "effect": {
+        "attackType": "zone_damage",
+        "damageType": "fire",
+        "baseDamage": 45,
+        "radius": 140,
+        "statusEffect": "burn",
+        "statusDuration": 3.0,
+        "statusMagnitude": 8
+      },
+      "description": "Burns all nearby enemies, applying burn",
+      "visualColor": "#FF6B35",
+      "particleTheme": "fire",
+      "icon": "○"
+    },
+    {
+      "id": "frost_shard",
+      "name": "Frost Shard",
+      "unlockedAtLevel": 3,
+      "shape": "triangle",
+      "strokeCount": 1,
+      "templatePoints": [
+        [123,40],[130,55],[138,72],[147,89],[156,107],[163,124],[170,140],[160,140],[148,140],[135,140],[122,140],[109,140],[96,140],[83,140],[96,124],[107,108],[116,92],[123,76],[123,60],[123,40]
+      ],
+      "effect": {
+        "attackType": "projectile",
+        "damageType": "frost",
+        "baseDamage": 30,
+        "projectileCount": 1,
+        "projectileSpeed": 320,
+        "statusEffect": "slow",
+        "statusDuration": 2.5,
+        "statusMagnitude": 50,
+        "aimed": true
+      },
+      "description": "Fires a frost shard in the drawn direction, slowing on hit",
+      "visualColor": "#4FC3F7",
+      "particleTheme": "frost",
+      "icon": "△"
+    },
+    {
+      "id": "chain_strike",
+      "name": "Chain Strike",
+      "unlockedAtLevel": 4,
+      "shape": "zigzag",
+      "strokeCount": 1,
+      "templatePoints": [
+        [60,80],[75,100],[90,120],[105,100],[120,80],[135,100],[150,120],[165,100],[180,80],[195,100],[210,120]
+      ],
+      "effect": {
+        "attackType": "chain_damage",
+        "damageType": "basic",
+        "baseDamage": 35,
+        "chainCount": 5,
+        "chainRange": 120,
+        "chainDecay": 0.8
+      },
+      "description": "Chains lightning between up to 5 enemies",
+      "visualColor": "#FFD700",
+      "particleTheme": "arcane",
+      "icon": "⌁"
+    },
+    {
+      "id": "arcane_nova",
+      "name": "Arcane Nova",
+      "unlockedAtLevel": 5,
+      "shape": "star",
+      "strokeCount": 1,
+      "templatePoints": [
+        [123,40],[132,70],[160,70],[138,90],[147,120],[123,103],[99,120],[108,90],[86,70],[114,70],[123,40]
+      ],
+      "effect": {
+        "attackType": "projectile",
+        "damageType": "arcane",
+        "baseDamage": 28,
+        "projectileCount": 5,
+        "projectileSpeed": 280,
+        "aimed": false,
+        "statusEffect": "arcane_mark",
+        "statusDuration": 4.0
+      },
+      "description": "Fires 5 arcane bolts in all directions",
+      "visualColor": "#CE93D8",
+      "particleTheme": "arcane",
+      "icon": "✦"
+    },
+    {
+      "id": "verdant_shot",
+      "name": "Verdant Shot",
+      "unlockedAtLevel": 5,
+      "shape": "checkmark",
+      "strokeCount": 1,
+      "templatePoints": [
+        [60,100],[75,115],[90,130],[108,110],[128,85],[148,60],[168,38]
+      ],
+      "effect": {
+        "attackType": "projectile",
+        "damageType": "nature",
+        "baseDamage": 55,
+        "projectileCount": 1,
+        "projectileSpeed": 420,
+        "aimed": true,
+        "statusEffect": "root",
+        "statusDuration": 2.0
+      },
+      "description": "Fast aimed shot that roots on hit",
+      "visualColor": "#81C784",
+      "particleTheme": "nature",
+      "icon": "✓"
+    },
+    {
+      "id": "fortress",
+      "name": "Fortress",
+      "unlockedAtLevel": 7,
+      "shape": "square",
+      "strokeCount": 1,
+      "templatePoints": [
+        [80,80],[100,80],[120,80],[140,80],[160,80],[160,100],[160,120],[160,140],[160,160],[140,160],[120,160],[100,160],[80,160],[80,140],[80,120],[80,100],[80,80]
+      ],
+      "effect": {
+        "attackType": "spawn_tower",
+        "damageType": "basic",
+        "baseDamage": 20,
+        "towerDuration": 15,
+        "towerRange": 160,
+        "towerAttackRate": 1.2,
+        "towerHP": 60
+      },
+      "description": "Spawns a turret at the drawn location",
+      "visualColor": "#90A4AE",
+      "particleTheme": "basic",
+      "icon": "□"
+    },
+    {
+      "id": "void_loop",
+      "name": "Void Loop",
+      "unlockedAtLevel": 7,
+      "shape": "figure8",
+      "strokeCount": 1,
+      "templatePoints": [
+        [123,80],[140,70],[155,75],[160,90],[155,105],[140,110],[123,100],[106,110],[91,105],[86,90],[91,75],[106,70],[123,80],[140,90],[155,95],[160,110],[155,125],[140,130],[123,120],[106,130],[91,125],[86,110],[91,95],[106,90],[123,80]
+      ],
+      "effect": {
+        "attackType": "orbit",
+        "damageType": "void",
+        "baseDamage": 22,
+        "orbitCount": 2,
+        "orbitRadius": 100,
+        "orbitSpeed": 2.5,
+        "orbitDuration": 8,
+        "statusEffect": "pull",
+        "statusDuration": 0.5,
+        "statusMagnitude": 180
+      },
+      "description": "Spawns 2 void orbs that orbit the core",
+      "visualColor": "#7E57C2",
+      "particleTheme": "void",
+      "icon": "∞"
+    },
+    {
+      "id": "static_surge",
+      "name": "Static Surge",
+      "unlockedAtLevel": 9,
+      "shape": "lightning",
+      "strokeCount": 1,
+      "templatePoints": [
+        [140,40],[125,70],[138,70],[118,100],[132,100],[105,140]
+      ],
+      "effect": {
+        "attackType": "chain_damage",
+        "damageType": "arcane",
+        "baseDamage": 40,
+        "chainCount": 8,
+        "chainRange": 140,
+        "chainDecay": 0.9,
+        "statusEffect": "arcane_mark",
+        "statusDuration": 3.0
+      },
+      "description": "Chains arcane energy through 8 enemies",
+      "visualColor": "#B39DDB",
+      "particleTheme": "arcane",
+      "icon": "↯"
+    },
+    {
+      "id": "frost_wave",
+      "name": "Frost Wave",
+      "unlockedAtLevel": 9,
+      "shape": "wave",
+      "strokeCount": 1,
+      "templatePoints": [
+        [60,100],[75,85],[90,75],[105,85],[120,100],[135,85],[150,75],[165,85],[180,100],[195,85],[210,75]
+      ],
+      "effect": {
+        "attackType": "zone_damage",
+        "damageType": "frost",
+        "baseDamage": 25,
+        "radius": 200,
+        "radiusGrowthTime": 0.6,
+        "statusEffect": "slow",
+        "statusDuration": 3.5,
+        "statusMagnitude": 65
+      },
+      "description": "Expanding frost wave that slows all enemies hit",
+      "visualColor": "#80DEEA",
+      "particleTheme": "frost",
+      "icon": "〜"
+    },
+    {
+      "id": "geyser",
+      "name": "Geyser",
+      "unlockedAtLevel": 12,
+      "shape": "caret",
+      "strokeCount": 1,
+      "templatePoints": [
+        [80,140],[100,110],[115,85],[123,60],[131,85],[146,110],[166,140]
+      ],
+      "effect": {
+        "attackType": "delayed_explosion",
+        "damageType": "nature",
+        "baseDamage": 90,
+        "fuseTime": 1.5,
+        "explosionRadius": 120,
+        "statusEffect": "push",
+        "statusMagnitude": 320
+      },
+      "description": "Plants a delayed explosion at the drawn location",
+      "visualColor": "#A5D6A7",
+      "particleTheme": "nature",
+      "icon": "^"
+    },
+    {
+      "id": "void_rift",
+      "name": "Void Rift",
+      "unlockedAtLevel": 12,
+      "shape": "spiral",
+      "strokeCount": 1,
+      "templatePoints": [
+        [123,100],[130,90],[140,84],[151,83],[161,88],[167,98],[168,110],[163,121],[153,128],[141,130],[129,127],[120,119],[115,108],[115,97],[120,88],[128,82],[137,80],[148,82],[157,88],[163,98],[165,110]
+      ],
+      "effect": {
+        "attackType": "spawn_friendly",
+        "damageType": "void",
+        "baseDamage": 18,
+        "friendlyDuration": 10,
+        "friendlyHP": 40,
+        "friendlyRange": 120,
+        "friendlyAttackRate": 1.5,
+        "statusEffect": "pull",
+        "statusDuration": 0.4,
+        "statusMagnitude": 150
+      },
+      "description": "Summons a void imp that attacks nearby enemies",
+      "visualColor": "#9C27B0",
+      "particleTheme": "void",
+      "icon": "◎"
+    },
+    {
+      "id": "sundering_cross",
+      "name": "Sundering Cross",
+      "unlockedAtLevel": 15,
+      "shape": "cross",
+      "strokeCount": 2,
+      "templatePoints": [
+        [80,80],[123,123],[166,166]
+      ],
+      "templatePoints2": [
+        [166,80],[123,123],[80,166]
+      ],
+      "effect": {
+        "attackType": "ray",
+        "damageType": "basic",
+        "baseDamage": 70,
+        "rayCount": 2,
+        "rayWidth": 12,
+        "rayLength": 600,
+        "statusEffect": "vulnerability",
+        "statusDuration": 3.0,
+        "statusMagnitude": 25
+      },
+      "description": "Two crossing rays that shred all enemies in their path",
+      "visualColor": "#ECEFF1",
+      "particleTheme": "basic",
+      "icon": "✕"
+    },
+    {
+      "id": "natures_blessing",
+      "name": "Nature's Blessing",
+      "unlockedAtLevel": 15,
+      "shape": "heart",
+      "strokeCount": 1,
+      "templatePoints": [
+        [123,140],[100,120],[80,100],[78,80],[85,65],[98,60],[112,63],[123,72],[134,63],[148,60],[161,65],[168,80],[166,100],[146,120],[123,140]
+      ],
+      "effect": {
+        "attackType": "aura",
+        "damageType": "nature",
+        "baseDamage": 20,
+        "auraRadius": 150,
+        "auraDuration": 5.0,
+        "auraTickRate": 1.0,
+        "coreHealAmount": 15,
+        "statusEffect": "root",
+        "statusDuration": 1.5
+      },
+      "description": "Heals the core and roots nearby enemies in vines",
+      "visualColor": "#66BB6A",
+      "particleTheme": "nature",
+      "icon": "♡"
+    },
+    {
+      "id": "vortex",
+      "name": "Vortex",
+      "unlockedAtLevel": 20,
+      "shape": "spiral_cw",
+      "strokeCount": 1,
+      "templatePoints": [
+        [123,60],[145,65],[162,78],[170,97],[168,117],[157,133],[140,142],[120,143],[102,136],[89,122],[83,104],[85,85],[94,70],[108,61],[124,58],[139,62],[151,73],[157,88],[156,105],[147,119],[133,127],[118,127],[105,119],[98,106],[98,93],[105,82],[116,76],[128,76]
+      ],
+      "effect": {
+        "attackType": "zone_damage",
+        "damageType": "void",
+        "baseDamage": 60,
+        "radius": 220,
+        "radiusGrowthTime": 0.8,
+        "statusEffect": "pull",
+        "statusDuration": 1.2,
+        "statusMagnitude": 250,
+        "secondaryEffect": "void_explosion"
+      },
+      "description": "Pulls all enemies in, then detonates in void energy",
+      "visualColor": "#7B1FA2",
+      "particleTheme": "void",
+      "icon": "⊛"
+    }
+  ]
+}

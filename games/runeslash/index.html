@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rune Slash</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #0A0A14;
+      font-family: monospace;
+    }
+
+    #canvas-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #gameCanvas, #drawCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #gameCanvas { z-index: 1; }
+    #drawCanvas {
+      z-index: 2;
+      cursor: crosshair;
+      /* Touch: prevent default scroll/zoom while drawing */
+      touch-action: none;
+    }
+
+    #ui-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #0A0A14;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      color: #9C88FF;
+      font-family: monospace;
+      gap: 20px;
+      transition: opacity 0.5s;
+    }
+
+    #loading h1 {
+      font-size: 2.5rem;
+      letter-spacing: 0.15em;
+      color: #fff;
+    }
+
+    #loading .subtitle {
+      font-size: 0.85rem;
+      color: #666;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    #loading .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #333;
+      border-top-color: #9C88FF;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #loading.hidden { opacity: 0; pointer-events: none; }
+
+    /* Tab hint */
+    #tab-hint {
+      position: absolute;
+      bottom: 60px;
+      right: 16px;
+      z-index: 3;
+      pointer-events: none;
+      color: rgba(255,255,255,0.3);
+      font-size: 11px;
+      font-family: monospace;
+    }
+
+    /* Mobile tap-to-open talents button (only when points available) */
+    #talent-btn {
+      position: absolute;
+      top: 58px;
+      right: 12px;
+      z-index: 3;
+      background: rgba(123,104,238,0.2);
+      border: 1px solid #7B68EE;
+      color: #9C88FF;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: none;
+    }
+
+    #talent-btn.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <h1>✦ RUNE SLASH</h1>
+  <div class="subtitle">draw to cast · survive as long as you can</div>
+  <div class="spinner"></div>
+</div>
+
+<div id="canvas-container">
+  <canvas id="gameCanvas"></canvas>
+  <canvas id="drawCanvas"></canvas>
+</div>
+
+<div id="tab-hint">TAB = talents</div>
+<button id="talent-btn" id="talent-btn">⬡ TALENTS</button>
+
+<script type="module">
+  import { initGame } from './game.js';
+
+  const gameCanvas = document.getElementById('gameCanvas');
+  const drawCanvas = document.getElementById('drawCanvas');
+  const loading = document.getElementById('loading');
+  const talentBtn = document.getElementById('talent-btn');
+
+  let gs = null;
+
+  async function main() {
+    gs = await initGame(gameCanvas, drawCanvas);
+    loading.classList.add('hidden');
+    setTimeout(() => loading.remove(), 600);
+
+    // Mobile talent button
+    const checkTalentBtn = () => {
+      if (gs && gs.talents && gs.talents.points > 0 && gs._state === 'playing') {
+        talentBtn.classList.add('visible');
+        talentBtn.textContent = `⬡ TALENTS (${gs.talents.points})`;
+      } else {
+        talentBtn.classList.remove('visible');
+      }
+    };
+
+    talentBtn.addEventListener('click', () => {
+      if (gs) gs.handleTab();
+    });
+
+    // Poll for button visibility
+    setInterval(checkTalentBtn, 500);
+  }
+
+  main().catch(err => {
+    console.error('Failed to start game:', err);
+    document.getElementById('loading').innerHTML = `
+      <h1 style="color:#FF1744">Load Error</h1>
+      <p style="color:#aaa;font-size:12px">${err.message}</p>
+      <p style="color:#666;font-size:11px">Make sure you're running from a local server (not file://)</p>
+    `;
+  });
+</script>
+</body>
+</html>
