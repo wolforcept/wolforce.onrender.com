@@ -31,7 +31,7 @@ function MsgHandler(Event)
     
     switch(Data.MsgType){
         case "start":
-            StartFit(JSON.parse(Data.Shapes), JSON.parse(Data.Board));
+            StartFit(JSON.parse(Data.Shapes), JSON.parse(Data.Board), JSON.parse(Data.PrePlacedIdx || "[]"));
             break;
         default:
             Debug("Unrecognised command " + Data.MsgType);
@@ -39,11 +39,13 @@ function MsgHandler(Event)
     }
 }
 
-function StartFit(Shapes, Board)
+function StartFit(Shapes, Board, PrePlacedIdx)
 {    
     var ShapeList = [];
     for(i=0; i<Shapes.length; i++){
-        ShapeList.push(i);
+        if(PrePlacedIdx.indexOf(i) === -1){
+            ShapeList.push(i);
+        }
     }
 
     FitShapes(Shapes, Board, 0, 0, ShapeList);
