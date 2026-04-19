@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectrograph</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap');
+
+        :root {
+            --bg: #060608;
+            --surface: #0c0c10;
+            --border: #1e1e28;
+            --accent: #ffcc00;
+            --dim: #5454ff;
+            --text: #c0c0b8;
+            --text-size-1: 1em;
+            --text-size-2: 0.75em;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Barlow Condensed', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 16px 28px;
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.2em;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        header span {
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            letter-spacing: 0.15em;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 55px);
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 350px;
+            border-right: 1px solid var(--border);
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .section-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.2em;
+            color: var(--dim);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .upload-zone {
+            border: 1px dashed var(--border);
+            padding: 18px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: rgba(255, 204, 0, 0.03);
+        }
+
+        .upload-zone input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .upload-zone p {
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            line-height: 1.6;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .upload-zone .icon {
+            font-size: var(--text-size-1);
+            margin-bottom: 6px;
+            display: block;
+            color: var(--dim);
+        }
+
+        .setting-row {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 14px;
+        }
+
+        .setting-header {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .setting-name {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            letter-spacing: 0.1em;
+        }
+
+        .setting-val {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--accent);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 2px;
+            background: var(--border);
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+        }
+
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            margin-top: 2px;
+        }
+
+        .colormap-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .cm-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--dim);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 7px 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cm-btn:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .cm-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .cm-swatch {
+            height: 10px;
+            flex: 1;
+            border-radius: 0;
+        }
+
+        .btn {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 9px 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-top: 4px;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .btn.primary {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .progress-bar {
+            height: 2px;
+            background: var(--border);
+            margin-top: 8px;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* Main */
+        .main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .spectro-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        #spectroCanvas {
+            position: absolute;
+            left: 50px;
+            right: 0;
+            top: 0;
+            bottom: 30px;
+        }
+
+        /* Freq axis (Y) */
+        #freqAxis {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 50px;
+            bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4px 4px 4px 0;
+        }
+
+        .freq-tick {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            text-align: right;
+            line-height: 1;
+        }
+
+        /* Time axis (X) */
+        #timeAxis {
+            position: absolute;
+            left: 50px;
+            right: 0;
+            bottom: 0;
+            height: 30px;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 4px;
+        }
+
+        .time-tick {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            position: absolute;
+            transform: translateX(-50%);
+        }
+
+        .placeholder-msg {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .placeholder-msg p {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            letter-spacing: 0.1em;
+        }
+
+        .placeholder-msg .bigIcon {
+            font-size: var(--text-size-1);
+            opacity: 0.1;
+        }
+
+        .status-bar {
+            flex-shrink: 0;
+            padding: 8px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            background: var(--bg);
+        }
+
+        .status-item {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.12em;
+            color: var(--dim);
+        }
+
+        .status-item span {
+            color: var(--text);
+            margin-left: 6px;
+        }
+
+        /* Colorbar */
+        #colorbar {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            bottom: 40px;
+            width: 12px;
+        }
+
+        #colorbarCanvas {
+            width: 12px;
+            height: 100%;
+        }
+
+        .colorbar-label {
+            position: absolute;
+            right: 16px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            transform: translateY(-50%);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>// Spectrograph</h1>
+        <span>frequency domain analysis</span>
+    </header>
+
+    <div class="workspace">
+        <div class="sidebar">
+            <div>
+                <div class="section-label">Input</div>
+                <div class="upload-zone" id="dropZone">
+                    <span class="icon">◈</span>
+                    <p>Drop audio here<br>or click to upload</p>
+                    <input type="file" accept="audio/*" id="fileInput">
+                </div>
+            </div>
+
+            <div>
+                <div class="section-label">FFT Settings</div>
+                <div class="setting-row">
+                    <div class="setting-header">
+                        <span class="setting-name">FFT SIZE</span>
+                        <span class="setting-val" id="fftVal">4096</span>
+                    </div>
+                    <input type="range" id="fftSize" min="0" max="4" value="2" step="1">
+                    <!-- <div class="range-labels"><span>512</span><span>16384</span></div> -->
+                </div>
+                <div class="setting-row">
+                    <div class="setting-header">
+                        <span class="setting-name">OVERLAP</span>
+                        <span class="setting-val" id="overlapVal">75%</span>
+                    </div>
+                    <input type="range" id="overlap" min="0" max="95" value="75" step="5">
+                    <!-- <div class="range-labels"><span>0%</span><span>95%</span></div> -->
+                </div>
+                <div class="setting-row">
+                    <div class="setting-header">
+                        <span class="setting-name">FREQ SCALE</span>
+                        <span class="setting-val" id="scaleVal">LOG</span>
+                    </div>
+                    <input type="range" id="freqScale" min="0" max="1" value="1" step="1">
+                    <!-- <div class="range-labels"><span>LIN</span><span>LOG</span></div> -->
+                </div>
+                <div class="setting-row">
+                    <div class="setting-header">
+                        <span class="setting-name">dB FLOOR</span>
+                        <span class="setting-val" id="floorVal">-80 dB</span>
+                    </div>
+                    <input type="range" id="dbFloor" min="-120" max="-20" value="-80" step="5">
+                    <!-- <div class="range-labels"><span>-120</span><span>-20</span></div> -->
+                </div>
+            </div>
+
+            <!-- <div>
+                <div class="section-label">Colormap</div>
+                <div class="colormap-btns">
+                    <button class="cm-btn active" data-cm="inferno">
+                        Inferno
+                        <canvas class="cm-swatch" id="sw-inferno" width="80" height="10"></canvas>
+                    </button>
+                    <button class="cm-btn" data-cm="viridis">
+                        Viridis
+                        <canvas class="cm-swatch" id="sw-viridis" width="80" height="10"></canvas>
+                    </button>
+                    <button class="cm-btn" data-cm="cyan">
+                        Cyan
+                        <canvas class="cm-swatch" id="sw-cyan" width="80" height="10"></canvas>
+                    </button>
+                    <button class="cm-btn" data-cm="grey">
+                        Greyscale
+                        <canvas class="cm-swatch" id="sw-grey" width="80" height="10"></canvas>
+                    </button>
+                </div>
+            </div> -->
+
+            <div>
+                <button class="btn" id="analyseBtn" disabled>▶ Analyse</button>
+                <button class="btn primary" id="saveBtn" disabled style="opacity:0">Save PNG</button>
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="spectro-area" id="spectroArea">
+                <div class="placeholder-msg" id="placeholder">
+                    <span class="bigIcon">⬡</span>
+                    <p>Load audio to analyse</p>
+                </div>
+                <canvas id="spectroCanvas"></canvas>
+                <div id="freqAxis"></div>
+                <div id="timeAxis"></div>
+                <div id="colorbar">
+                    <canvas id="colorbarCanvas" width="12"></canvas>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <span class="status-item">FILE <span id="statFile">—</span></span>
+                <span class="status-item">DURATION <span id="statDur">—</span></span>
+                <span class="status-item">SAMPLE RATE <span id="statSr">—</span></span>
+                <span class="status-item">FRAMES <span id="statFrames">—</span></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FFT_SIZES = [512, 1024, 4096, 8192, 16384];
+
+        // Colormaps
+        const COLORMAPS = {
+            inferno: t => {
+                const r = Math.round(Math.min(255, 255 * (1.6 * t * t + 0.2 * t)));
+                const g = Math.round(Math.min(255, 255 * (1.2 * t * t * t - 0.2 * t)));
+                const b = Math.round(Math.min(255, 255 * (0.6 - 1.2 * (t - 0.5) * (t - 0.5))));
+                return [r, g, b];
+            },
+            viridis: t => {
+                const r = Math.round(255 * (0.267 + 0.003 * t + 0.737 * t * t));
+                const g = Math.round(255 * (0.005 + 0.874 * t - 0.021 * t * t));
+                const b = Math.round(255 * (0.329 + 0.501 * t - 0.574 * t * t));
+                return [Math.min(255, r), Math.min(255, g), Math.min(255, b)];
+            },
+            cyan: t => {
+                const v = Math.round(t * 255);
+                return [Math.min(255, Math.round(t * 80)), Math.min(255, Math.round(t * 220)), Math.min(255, Math.round(v * 1.0))];
+            },
+            grey: t => { const v = Math.round(t * 255); return [v, v, v]; }
+        };
+
+        let currentCM = 'inferno';
+        let audioBuffer = null;
+
+        // Draw swatches
+        Object.keys(COLORMAPS).forEach(cm => {
+            const sw = document.getElementById('sw-' + cm);
+            if (!sw) return;
+            const c = sw.getContext('2d');
+            for (let x = 0; x < 80; x++) {
+                const [r, g, b] = COLORMAPS[cm](x / 79);
+                c.fillStyle = `rgb(${r},${g},${b})`;
+                c.fillRect(x, 0, 1, 10);
+            }
+        });
+
+        document.querySelectorAll('.cm-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.cm-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentCM = btn.dataset.cm;
+            });
+        });
+
+        // Slider labels
+        const fftSlider = document.getElementById('fftSize');
+        const overlapSlider = document.getElementById('overlap');
+        const scaleSlider = document.getElementById('freqScale');
+        const dbSlider = document.getElementById('dbFloor');
+
+        fftSlider.addEventListener('input', () => { document.getElementById('fftVal').textContent = FFT_SIZES[parseInt(fftSlider.value)]; });
+        overlapSlider.addEventListener('input', () => { document.getElementById('overlapVal').textContent = overlapSlider.value + '%'; });
+        scaleSlider.addEventListener('input', () => { document.getElementById('scaleVal').textContent = parseInt(scaleSlider.value) ? 'LOG' : 'LIN'; });
+        dbSlider.addEventListener('input', () => { document.getElementById('floorVal').textContent = dbSlider.value + ' dB'; });
+
+        // File load
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; });
+        dropZone.addEventListener('dragleave', () => dropZone.style.borderColor = '');
+        dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.style.borderColor = ''; const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+        fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+        async function loadFile(file) {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const ab = await file.arrayBuffer();
+            audioBuffer = await audioCtx.decodeAudioData(ab);
+            audioCtx.close();
+
+            document.getElementById('statFile').textContent = file.name;
+            document.getElementById('statDur').textContent = audioBuffer.duration.toFixed(2) + 's';
+            document.getElementById('statSr').textContent = audioBuffer.sampleRate + ' Hz';
+            document.getElementById('analyseBtn').disabled = false;
+        }
+
+        document.getElementById('analyseBtn').addEventListener('click', runAnalysis);
+
+        function hann(n, N) { return 0.5 * (1 - Math.cos(2 * Math.PI * n / (N - 1))); }
+
+        async function runAnalysis() {
+            if (!audioBuffer) return;
+
+            const fftSize = FFT_SIZES[parseInt(fftSlider.value)];
+            const overlapPct = parseInt(overlapSlider.value) / 100;
+            const logScale = parseInt(scaleSlider.value) === 1;
+            const dbFloor = parseInt(dbSlider.value);
+            const hop = Math.max(1, Math.round(fftSize * (1 - overlapPct)));
+            const samples = audioBuffer.getChannelData(0);
+            const sampleRate = audioBuffer.sampleRate;
+            const numFrames = Math.floor((samples.length - fftSize) / hop) + 1;
+
+            document.getElementById('statFrames').textContent = numFrames;
+
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            progressBar.style.display = 'block';
+
+            // Build window
+            const window_ = new Float32Array(fftSize);
+            for (let i = 0; i < fftSize; i++) window_[i] = hann(i, fftSize);
+
+            // Compute STFT using Web Audio OfflineAudioContext per frame — 
+            // Instead, implement a simple DFT using recursive FFT in JS
+            const freqBins = fftSize / 2;
+            const specData = new Float32Array(numFrames * freqBins);
+
+            // FFT implementation (Cooley-Tukey, radix-2)
+            function fft(re, im) {
+                const N = re.length;
+                if (N <= 1) return;
+                const re_even = new Float32Array(N / 2), im_even = new Float32Array(N / 2);
+                const re_odd = new Float32Array(N / 2), im_odd = new Float32Array(N / 2);
+                for (let i = 0; i < N / 2; i++) {
+                    re_even[i] = re[2 * i]; im_even[i] = im[2 * i];
+                    re_odd[i] = re[2 * i + 1]; im_odd[i] = im[2 * i + 1];
+                }
+                fft(re_even, im_even); fft(re_odd, im_odd);
+                for (let k = 0; k < N / 2; k++) {
+                    const angle = -2 * Math.PI * k / N;
+                    const cos_a = Math.cos(angle), sin_a = Math.sin(angle);
+                    const t_re = cos_a * re_odd[k] - sin_a * im_odd[k];
+                    const t_im = sin_a * re_odd[k] + cos_a * im_odd[k];
+                    re[k] = re_even[k] + t_re; im[k] = im_even[k] + t_im;
+                    re[k + N / 2] = re_even[k] - t_re; im[k + N / 2] = im_even[k] - t_im;
+                }
+            }
+
+            const CHUNK = 50;
+            for (let frame = 0; frame < numFrames; frame++) {
+                if (frame % CHUNK === 0) {
+                    progressFill.style.width = (frame / numFrames * 100) + '%';
+                    await new Promise(r => setTimeout(r, 0)); // yield to UI
+                }
+                const offset = frame * hop;
+                const re = new Float32Array(fftSize);
+                const im = new Float32Array(fftSize);
+                for (let i = 0; i < fftSize; i++) {
+                    re[i] = (samples[offset + i] || 0) * window_[i];
+                }
+                fft(re, im);
+                for (let b = 0; b < freqBins; b++) {
+                    const mag = Math.sqrt(re[b] * re[b] + im[b] * im[b]);
+                    const db = 20 * Math.log10(Math.max(mag / fftSize, 1e-12));
+                    specData[frame * freqBins + b] = db;
+                }
+            }
+
+            progressFill.style.width = '100%';
+            drawSpectrogram(specData, numFrames, freqBins, sampleRate, logScale, dbFloor, audioBuffer.duration);
+            progressBar.style.display = 'none';
+            document.getElementById('placeholder').style.display = 'none';
+        }
+
+        function drawSpectrogram(data, numFrames, freqBins, sampleRate, logScale, dbFloor, duration) {
+            const area = document.getElementById('spectroArea');
+            const canvas = document.getElementById('spectroCanvas');
+            const W = area.clientWidth - 50 - 30; // subtract axes
+            const H = area.clientHeight - 30;
+            canvas.width = W;
+            canvas.height = H;
+
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.createImageData(W, H);
+            const pix = imgData.data;
+            const cmap = COLORMAPS[currentCM];
+
+            for (let px = 0; px < W; px++) {
+                const frame = Math.floor(px / W * numFrames);
+                for (let py = 0; py < H; py++) {
+                    const normY = 1 - py / H; // 0=bottom, 1=top
+                    let bin;
+                    if (logScale) {
+                        // Log frequency mapping
+                        const minF = 20, maxF = sampleRate / 2;
+                        const f = minF * Math.pow(maxF / minF, normY);
+                        bin = Math.floor(f / (sampleRate / 2) * freqBins);
+                    } else {
+                        bin = Math.floor(normY * freqBins);
+                    }
+                    bin = Math.max(0, Math.min(freqBins - 1, bin));
+                    const db = data[frame * freqBins + bin];
+                    const t = Math.max(0, Math.min(1, (db - dbFloor) / (-dbFloor)));
+                    const [r, g, b] = cmap(t);
+                    const idx = (py * W + px) * 4;
+                    pix[idx] = r; pix[idx + 1] = g; pix[idx + 2] = b; pix[idx + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            // Draw freq axis
+            const freqAxisEl = document.getElementById('freqAxis');
+            freqAxisEl.innerHTML = '';
+            const freqTicks = logScale
+                ? [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
+                : [0, 2000, 4000, 6000, 8000, 10000, 12000, 14000, 16000, 18000, 20000];
+
+            const nyquist = sampleRate / 2;
+            freqTicks.forEach(f => {
+                if (f > nyquist) return;
+                let pct;
+                if (logScale) {
+                    pct = Math.log(f / 20) / Math.log(nyquist / 20);
+                } else {
+                    pct = f / nyquist;
+                }
+                const yPct = (1 - pct) * 100;
+                const tick = document.createElement('div');
+                tick.className = 'freq-tick';
+                tick.style.position = 'absolute';
+                tick.style.top = yPct + '%';
+                tick.style.right = '4px';
+                tick.style.transform = 'translateY(-50%)';
+                tick.textContent = f >= 1000 ? (f / 1000) + 'k' : f;
+                freqAxisEl.appendChild(tick);
+            });
+
+            // Time axis
+            const timeAxisEl = document.getElementById('timeAxis');
+            timeAxisEl.innerHTML = '';
+            const numTicks = 10;
+            for (let i = 0; i <= numTicks; i++) {
+                const t = (i / numTicks) * duration;
+                const tick = document.createElement('div');
+                tick.className = 'time-tick';
+                tick.style.left = (i / numTicks * 100) + '%';
+                tick.textContent = t.toFixed(1) + 's';
+                timeAxisEl.appendChild(tick);
+            }
+
+            // Colorbar
+            const cbCanvas = document.getElementById('colorbarCanvas');
+            cbCanvas.height = H;
+            const cbCtx = cbCanvas.getContext('2d');
+            for (let y = 0; y < H; y++) {
+                const t = 1 - y / H;
+                const [r, g, b] = cmap(t);
+                cbCtx.fillStyle = `rgb(${r},${g},${b})`;
+                cbCtx.fillRect(0, y, 12, 1);
+            }
+
+            // Colorbar labels
+            document.querySelectorAll('.colorbar-label').forEach(e => e.remove());
+            const cbArea = document.getElementById('colorbar');
+            [-20, dbFloor / 2, dbFloor].forEach((db, i) => {
+                const lbl = document.createElement('div');
+                lbl.className = 'colorbar-label';
+                const pct = (db - dbFloor) / (-dbFloor);
+                lbl.style.top = ((1 - pct) * 100) + '%';
+                lbl.textContent = db + 'dB';
+                cbArea.appendChild(lbl);
+            });
+        }
+
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const canvas = document.getElementById('spectroCanvas');
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = 'spectrogram_' + Date.now() + '.png';
+            a.click();
+        });
+    </script>
+</body>
+
+</html>

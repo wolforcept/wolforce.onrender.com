@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Filter</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap');
+
+        :root {
+            --bg: #08080a;
+            --surface: #0f0f12;
+            --border: #252530;
+            --accent: #ff7474;
+            --dim: #75ce97;
+            --text: #c8c8c0;
+            --warn: #f2fa7c;
+            --mid: #ff8f33;
+            --text-size-1: 1em;
+            --text-size-2: .75em;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Barlow Condensed', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 16px 28px;
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.2em;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        header span {
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            letter-spacing: 0.15em;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 55px);
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 350px;
+            border-right: 1px solid var(--border);
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .section-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.2em;
+            color: var(--dim);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .upload-zone {
+            border: 1px dashed var(--border);
+            padding: 18px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: rgba(0, 229, 255, 0.03);
+        }
+
+        .upload-zone input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .upload-zone p {
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            line-height: 1.6;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .upload-zone .icon {
+            font-size: var(--text-size-1);
+            margin-bottom: 6px;
+            display: block;
+            color: var(--dim);
+        }
+
+        .filter-block {
+            border: 1px solid var(--border);
+            padding: 14px 12px;
+        }
+
+        .filter-title {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.15em;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pill {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .pill-lp {
+            background: var(--warn);
+        }
+
+        .pill-hp {
+            background: var(--mid);
+        }
+
+        .slider-row {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 12px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .slider-name {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            letter-spacing: 0.1em;
+        }
+
+        .slider-val {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.1em;
+        }
+
+        .val-lp {
+            color: var(--warn);
+        }
+
+        .val-hp {
+            color: var(--mid);
+        }
+
+        .val-generic {
+            color: var(--accent);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 2px;
+            background: var(--border);
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type=range].lp::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--warn);
+            border: none;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        input[type=range].hp::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--mid);
+            border: none;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        input[type=range].gen::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        input[type=range].lp::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: var(--warn);
+            border: none;
+            border-radius: 0;
+        }
+
+        input[type=range].hp::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: var(--mid);
+            border: none;
+            border-radius: 0;
+        }
+
+        input[type=range].gen::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: var(--accent);
+            border: none;
+            border-radius: 0;
+        }
+
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            margin-top: 2px;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            letter-spacing: 0.1em;
+        }
+
+        .toggle {
+            background: var(--border);
+            border: none;
+            cursor: pointer;
+            width: 32px;
+            height: 16px;
+            border-radius: 0;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            left: 3px;
+            top: 3px;
+            width: 10px;
+            height: 10px;
+            background: var(--dim);
+            transition: all 0.2s;
+        }
+
+        .toggle.lp-on {
+            background: rgba(255, 51, 102, 0.2);
+        }
+
+        .toggle.lp-on::after {
+            left: 19px;
+            background: var(--warn);
+        }
+
+        .toggle.hp-on {
+            background: rgba(119, 51, 255, 0.2);
+        }
+
+        .toggle.hp-on::after {
+            left: 19px;
+            background: var(--mid);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 9px 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn.primary {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        /* Main panel */
+        .main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Waveform section — layered canvases */
+        .waveform-section {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            min-height: 0;
+        }
+
+        .waveform-section canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #waveformCanvas {
+            z-index: 1;
+        }
+
+        #filteredCanvas {
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        #freqRespCanvas {
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .waveform-label {
+            position: absolute;
+            top: 10px;
+            left: 14px;
+            z-index: 10;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.15em;
+            color: var(--dim);
+            text-transform: uppercase;
+        }
+
+        .wave-legend {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            z-index: 10;
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.1em;
+            color: var(--dim);
+        }
+
+        .legend-line {
+            width: 18px;
+            height: 2px;
+        }
+
+        .legend-line.orig {
+            background: rgba(0, 229, 255, 0.5);
+        }
+
+        .legend-line.filtered {
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        #computingBadge {
+            position: absolute;
+            bottom: 36%;
+            right: 14px;
+            z-index: 10;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.15em;
+            color: var(--warn);
+            border: 1px solid var(--warn);
+            padding: 3px 8px;
+            display: none;
+            animation: blink 0.7s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            z-index: 20;
+            width: 1px;
+            background: var(--accent);
+            pointer-events: none;
+            display: none;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        #noAudio {
+            position: absolute;
+            inset: 0;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--surface);
+        }
+
+        #noAudio p {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--dim);
+            letter-spacing: 0.1em;
+        }
+
+        #noAudio .bigIcon {
+            font-size: var(--text-size-1);
+            opacity: 0.15;
+        }
+
+        .transport-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+            flex-shrink: 0;
+        }
+
+        .play-btn {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 7px 20px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .play-btn:hover {
+            background: rgba(0, 229, 255, 0.08);
+        }
+
+        .play-btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .stop-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--dim);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 7px 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .stop-btn:hover {
+            border-color: var(--warn);
+            color: var(--warn);
+        }
+
+        .stop-btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .time-display {
+            margin-left: auto;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            color: var(--accent);
+            letter-spacing: 0.1em;
+        }
+
+        .status-bar {
+            flex-shrink: 0;
+            padding: 8px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            background: var(--bg);
+        }
+
+        .status-item {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--text-size-1);
+            letter-spacing: 0.12em;
+            color: var(--dim);
+        }
+
+        .status-item span {
+            color: var(--text);
+            margin-left: 6px;
+        }
+
+        input {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>// Signal Filter</h1>
+        <span>low-pass / high-pass — audio forensics</span>
+    </header>
+
+    <div class="workspace">
+        <div class="sidebar">
+            <div>
+                <div class="section-label">Input</div>
+                <div class="upload-zone" id="dropZone">
+                    <span class="icon">♫</span>
+                    <p>Drop audio here<br>or click to upload</p>
+                    <input type="file" accept="audio/*" id="fileInput">
+                </div>
+            </div>
+
+            <div class="filter-block">
+                <div class="filter-title">
+                    <span class="pill pill-lp"></span>
+                    <span style="color:var(--warn)">Low-Pass Filter</span>
+                </div>
+                <div class="toggle-row" style="margin-bottom:14px;">
+                    <span class="toggle-label">ENABLED</span>
+                    <button class="toggle" id="lpToggle"></button>
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span class="slider-name">CUTOFF FREQ</span>
+                        <span class="slider-val val-lp" id="lpFreqVal">2000 Hz</span>
+                    </div>
+                    <input type="range" class="lp" id="lpFreq" min="20" max="20000" value="2000" step="10">
+                    <!-- <div class="range-labels"><span>20Hz</span><span>20kHz</span></div> -->
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span class="slider-name">RESONANCE (Q)</span>
+                        <span class="slider-val val-lp" id="lpQVal">1.0</span>
+                    </div>
+                    <input type="range" class="lp" id="lpQ" min="0.1" max="30" value="1" step="0.1">
+                    <!-- <div class="range-labels"><span>0.1</span><span>30</span></div> -->
+                </div>
+            </div>
+
+            <div class="filter-block">
+                <div class="filter-title">
+                    <span class="pill pill-hp"></span>
+                    <span style="color:var(--mid)">High-Pass Filter</span>
+                </div>
+                <div class="toggle-row" style="margin-bottom:14px;">
+                    <span class="toggle-label">ENABLED</span>
+                    <button class="toggle" id="hpToggle"></button>
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span class="slider-name">CUTOFF FREQ</span>
+                        <span class="slider-val val-hp" id="hpFreqVal">500 Hz</span>
+                    </div>
+                    <input type="range" class="hp" id="hpFreq" min="20" max="20000" value="500" step="10">
+                    <!-- <div class="range-labels"><span>20Hz</span><span>20kHz</span></div> -->
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span class="slider-name">RESONANCE (Q)</span>
+                        <span class="slider-val val-hp" id="hpQVal">1.0</span>
+                    </div>
+                    <input type="range" class="hp" id="hpQ" min="0.1" max="30" value="1" step="0.1">
+                    <!-- <div class="range-labels"><span>0.1</span><span>30</span></div> -->
+                </div>
+            </div>
+
+            <div class="filter-block">
+                <div class="filter-title" style="margin-bottom:10px;">
+                    <span class="pill" style="background:var(--accent)"></span>
+                    <span style="color:var(--accent)">Output Gain</span>
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span class="slider-name">GAIN</span>
+                        <span class="slider-val val-generic" id="gainVal">0 dB</span>
+                    </div>
+                    <input type="range" class="gen" id="gainSlider" min="-40" max="40" value="0" step="1">
+                    <!-- <div class="range-labels"><span>-40dB</span><span>+40dB</span></div> -->
+                </div>
+            </div>
+
+            <div class="btn-row" style="opacity:0;">
+                <button class="btn primary" id="exportBtn" disabled>Export WAV</button>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="transport-row">
+                <button class="play-btn" id="playBtn" disabled>▶ Play</button>
+                <button class="stop-btn" id="stopBtn" disabled>■ Stop</button>
+                <span class="time-display" id="timeDisplay">—:——</span>
+            </div>
+
+            <div class="waveform-section" id="waveformSection">
+                <canvas id="waveformCanvas"></canvas>
+                <canvas id="filteredCanvas"></canvas>
+                <canvas id="freqRespCanvas"></canvas>
+
+                <div class="waveform-label">WAVEFORM</div>
+
+                <div class="wave-legend">
+                    <div class="legend-item">
+                        <div class="legend-line orig"></div>ORIGINAL
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line filtered"></div>FILTERED
+                    </div>
+                </div>
+
+                <div id="computingBadge">COMPUTING…</div>
+                <div class="playhead" id="playhead"></div>
+
+                <div id="noAudio">
+                    <span class="bigIcon">◈</span>
+                    <p>No audio loaded</p>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <span class="status-item">FILE <span id="statFile">—</span></span>
+                <span class="status-item">DURATION <span id="statDur">—</span></span>
+                <span class="status-item">SAMPLE RATE <span id="statSr">—</span></span>
+                <span class="status-item">CHANNELS <span id="statCh">—</span></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── Elements ───────────────────────────────────────────────────────────────
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const waveformSection = document.getElementById('waveformSection');
+        const wCanvas = document.getElementById('waveformCanvas');
+        const fCanvas = document.getElementById('filteredCanvas');
+        const rCanvas = document.getElementById('freqRespCanvas');
+        const wCtx = wCanvas.getContext('2d');
+        const fCtx = fCanvas.getContext('2d');
+        const rCtx = rCanvas.getContext('2d');
+        const noAudio = document.getElementById('noAudio');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const playhead = document.getElementById('playhead');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const computingBadge = document.getElementById('computingBadge');
+
+        const lpToggle = document.getElementById('lpToggle');
+        const hpToggle = document.getElementById('hpToggle');
+        const lpFreq = document.getElementById('lpFreq');
+        const lpQ = document.getElementById('lpQ');
+        const hpFreq = document.getElementById('hpFreq');
+        const hpQ = document.getElementById('hpQ');
+        const gainSlider = document.getElementById('gainSlider');
+
+        // ── State ──────────────────────────────────────────────────────────────────
+        let audioCtx, audioBuffer, filteredBuffer;
+        let sourceNode, lpNode, hpNode, gainNode;
+        let isPlaying = false;
+        let startTime = 0, startOffset = 0;
+        let lpEnabled = false, hpEnabled = false;
+        let animFrame, debounceTimer;
+        let computeVersion = 0;
+
+        // ── Utility ────────────────────────────────────────────────────────────────
+        function fmtHz(v) {
+            v = parseInt(v);
+            return v >= 1000 ? (v / 1000).toFixed(1) + ' kHz' : v + ' Hz';
+        }
+
+        function ensureCtx() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // ── Controls ───────────────────────────────────────────────────────────────
+        lpToggle.addEventListener('click', () => {
+            lpEnabled = !lpEnabled;
+            lpToggle.className = 'toggle ' + (lpEnabled ? 'lp-on' : '');
+            reconnect(); scheduleFiltered(); drawFreqResponse();
+        });
+        hpToggle.addEventListener('click', () => {
+            hpEnabled = !hpEnabled;
+            hpToggle.className = 'toggle ' + (hpEnabled ? 'hp-on' : '');
+            reconnect(); scheduleFiltered(); drawFreqResponse();
+        });
+
+        function onSliderChange() { updateLiveFilters(); scheduleFiltered(); drawFreqResponse(); }
+
+        lpFreq.addEventListener('input', () => { document.getElementById('lpFreqVal').textContent = fmtHz(lpFreq.value); onSliderChange(); });
+        lpQ.addEventListener('input', () => { document.getElementById('lpQVal').textContent = parseFloat(lpQ.value).toFixed(1); onSliderChange(); });
+        hpFreq.addEventListener('input', () => { document.getElementById('hpFreqVal').textContent = fmtHz(hpFreq.value); onSliderChange(); });
+        hpQ.addEventListener('input', () => { document.getElementById('hpQVal').textContent = parseFloat(hpQ.value).toFixed(1); onSliderChange(); });
+        gainSlider.addEventListener('input', () => {
+            const g = parseInt(gainSlider.value);
+            document.getElementById('gainVal').textContent = (g > 0 ? '+' : '') + g + ' dB';
+            if (gainNode) gainNode.gain.value = Math.pow(10, g / 20);
+            scheduleFiltered(); drawFreqResponse();
+        });
+
+        function updateLiveFilters() {
+            if (lpNode) { lpNode.frequency.value = parseFloat(lpFreq.value); lpNode.Q.value = parseFloat(lpQ.value); }
+            if (hpNode) { hpNode.frequency.value = parseFloat(hpFreq.value); hpNode.Q.value = parseFloat(hpQ.value); }
+        }
+
+        // ── File loading ───────────────────────────────────────────────────────────
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = ''; });
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault(); dropZone.style.borderColor = '';
+            const f = e.dataTransfer.files[0]; if (f) loadFile(f);
+        });
+        fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+        async function loadFile(file) {
+            stopAudio();
+            ensureCtx();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            const ab = await file.arrayBuffer();
+            audioBuffer = await audioCtx.decodeAudioData(ab);
+
+            noAudio.style.display = 'none';
+            playBtn.disabled = false;
+            stopBtn.disabled = false;
+            exportBtn.disabled = false;
+
+            document.getElementById('statFile').textContent = file.name;
+            document.getElementById('statDur').textContent = audioBuffer.duration.toFixed(2) + 's';
+            document.getElementById('statSr').textContent = audioBuffer.sampleRate + ' Hz';
+            document.getElementById('statCh').textContent = audioBuffer.numberOfChannels;
+
+            resizeCanvases();
+            drawOriginalWaveform();
+            drawFreqResponse();
+            scheduleFiltered();
+        }
+
+        // ── Canvas sizing ──────────────────────────────────────────────────────────
+        function resizeCanvases() {
+            const W = waveformSection.clientWidth;
+            const H = waveformSection.clientHeight;
+            [wCanvas, fCanvas, rCanvas].forEach(c => { c.width = W; c.height = H; });
+        }
+
+        window.addEventListener('resize', () => {
+            if (!audioBuffer) return;
+            resizeCanvases();
+            drawOriginalWaveform();
+            drawFreqResponse();
+            if (filteredBuffer) drawFilteredWaveform(filteredBuffer);
+        });
+
+        // ── Draw: original waveform ────────────────────────────────────────────────
+        function drawOriginalWaveform() {
+            const W = wCanvas.width, H = wCanvas.height;
+            const data = audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / W);
+            const mid = H / 2, amp = mid * 0.82;
+
+            wCtx.clearRect(0, 0, W, H);
+
+            // Grid
+            wCtx.strokeStyle = 'rgba(255,255,255,0.04)'; wCtx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const py = (i / 4) * H;
+                wCtx.beginPath(); wCtx.moveTo(0, py); wCtx.lineTo(W, py); wCtx.stroke();
+            }
+            // Centre
+            wCtx.strokeStyle = 'rgba(0,229,255,0.12)';
+            wCtx.beginPath(); wCtx.moveTo(0, mid); wCtx.lineTo(W, mid); wCtx.stroke();
+
+            // Fill
+            const grad = wCtx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, 'rgba(0,229,255,0.0)');
+            grad.addColorStop(0.42, 'rgba(0,229,255,0.13)');
+            grad.addColorStop(0.5, 'rgba(0,229,255,0.20)');
+            grad.addColorStop(0.58, 'rgba(0,229,255,0.13)');
+            grad.addColorStop(1, 'rgba(0,229,255,0.0)');
+
+            wCtx.beginPath(); wCtx.moveTo(0, mid);
+            for (let x = 0; x < W; x++) {
+                let mx = -1;
+                for (let j = 0; j < step; j++) { const v = data[x * step + j] || 0; if (v > mx) mx = v; }
+                wCtx.lineTo(x, mid - mx * amp);
+            }
+            for (let x = W - 1; x >= 0; x--) {
+                let mn = 1;
+                for (let j = 0; j < step; j++) { const v = data[x * step + j] || 0; if (v < mn) mn = v; }
+                wCtx.lineTo(x, mid - mn * amp);
+            }
+            wCtx.closePath(); wCtx.fillStyle = grad; wCtx.fill();
+
+            // Outline
+            wCtx.beginPath(); wCtx.strokeStyle = 'rgba(0,229,255,0.42)'; wCtx.lineWidth = 1;
+            for (let x = 0; x < W; x++) {
+                let mx = -1;
+                for (let j = 0; j < step; j++) { const v = data[x * step + j] || 0; if (v > mx) mx = v; }
+                x === 0 ? wCtx.moveTo(x, mid - mx * amp) : wCtx.lineTo(x, mid - mx * amp);
+            }
+            wCtx.stroke();
+        }
+
+        // ── Draw: filtered waveform overlay ───────────────────────────────────────
+        function drawFilteredWaveform(buf) {
+            const W = fCanvas.width, H = fCanvas.height;
+            fCtx.clearRect(0, 0, W, H);
+
+            if (!lpEnabled && !hpEnabled) return; // nothing to show
+
+            const data = buf.getChannelData(0);
+            const step = Math.ceil(data.length / W);
+            const mid = H / 2, amp = mid * 0.82;
+
+            // Subtle fill
+            const grad = fCtx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, 'rgba(255,255,255,0.0)');
+            grad.addColorStop(0.42, 'rgba(255,255,255,0.08)');
+            grad.addColorStop(0.5, 'rgba(255,255,255,0.14)');
+            grad.addColorStop(0.58, 'rgba(255,255,255,0.08)');
+            grad.addColorStop(1, 'rgba(255,255,255,0.0)');
+
+            fCtx.beginPath(); fCtx.moveTo(0, mid);
+            for (let x = 0; x < W; x++) {
+                let mx = -1;
+                for (let j = 0; j < step; j++) { const v = data[x * step + j] || 0; if (v > mx) mx = v; }
+                fCtx.lineTo(x, mid - mx * amp);
+            }
+            for (let x = W - 1; x >= 0; x--) {
+                let mn = 1;
+                for (let j = 0; j < step; j++) { const v = data[x * step + j] || 0; if (v < mn) mn = v; }
+                fCtx.lineTo(x, mid - mn * amp);
+            }
+            fCtx.closePath(); fCtx.fillStyle = grad; fCtx.fill();
+
+            // Bright white outline
+            fCtx.beginPath(); fCtx.strokeStyle = 'rgba(255,255,255,0.88)'; fCtx.lineWidth = 1.5;
+            for (let x = 0; x < W; x++) {
+                let mx = -1;
+                for (let j = 0; j < step; j++) { const v = data[x * step + j] || 0; if (v > mx) mx = v; }
+                x === 0 ? fCtx.moveTo(x, mid - mx * amp) : fCtx.lineTo(x, mid - mx * amp);
+            }
+            fCtx.stroke();
+        }
+
+        // ── Compute filtered waveform offline ─────────────────────────────────────
+        function scheduleFiltered() {
+            clearTimeout(debounceTimer);
+            if (!audioBuffer) return;
+            debounceTimer = setTimeout(computeFiltered, 90);
+        }
+
+        async function computeFiltered() {
+            const myVersion = ++computeVersion;
+            computingBadge.style.display = 'block';
+
+            const sr = audioBuffer.sampleRate;
+            const len = audioBuffer.length;
+            const numCh = audioBuffer.numberOfChannels;
+
+            const offline = new OfflineAudioContext(numCh, len, sr);
+            const src = offline.createBufferSource();
+            src.buffer = audioBuffer;
+
+            const lp = offline.createBiquadFilter();
+            lp.type = 'lowpass'; lp.frequency.value = parseFloat(lpFreq.value); lp.Q.value = parseFloat(lpQ.value);
+
+            const hp = offline.createBiquadFilter();
+            hp.type = 'highpass'; hp.frequency.value = parseFloat(hpFreq.value); hp.Q.value = parseFloat(hpQ.value);
+
+            const gn = offline.createGain();
+            gn.gain.value = Math.pow(10, parseInt(gainSlider.value) / 20);
+
+            let chain = src;
+            if (lpEnabled) { chain.connect(lp); chain = lp; }
+            if (hpEnabled) { chain.connect(hp); chain = hp; }
+            chain.connect(gn);
+            gn.connect(offline.destination);
+            src.start(0);
+
+            const rendered = await offline.startRendering();
+            if (myVersion !== computeVersion) return; // stale — a newer run is coming
+
+            filteredBuffer = rendered;
+            drawFilteredWaveform(rendered);
+            computingBadge.style.display = 'none';
+        }
+
+        // ── Draw: frequency response curve ────────────────────────────────────────
+        // Analytically evaluate biquad magnitude response
+        function biquadMag(type, fc, Q, sr, f) {
+            const w0 = 2 * Math.PI * fc / sr;
+            const alpha = Math.sin(w0) / (2 * Q);
+            let b0, b1, b2, a0, a1, a2;
+            if (type === 'lowpass') {
+                b0 = (1 - Math.cos(w0)) / 2; b1 = 1 - Math.cos(w0); b2 = b0;
+            } else {
+                b0 = (1 + Math.cos(w0)) / 2; b1 = -(1 + Math.cos(w0)); b2 = b0;
+            }
+            a0 = 1 + alpha; a1 = -2 * Math.cos(w0); a2 = 1 - alpha;
+
+            const w = 2 * Math.PI * f / sr;
+            const c1 = Math.cos(w), s1 = Math.sin(w);
+            const c2 = Math.cos(2 * w), s2 = Math.sin(2 * w);
+            const nRe = b0 + b1 * c1 + b2 * c2, nIm = -(b1 * s1 + b2 * s2);
+            const dRe = a0 + a1 * c1 + a2 * c2, dIm = -(a1 * s1 + a2 * s2);
+            const dMag = Math.sqrt(dRe * dRe + dIm * dIm);
+            if (dMag < 1e-12) return 0;
+            return Math.sqrt(nRe * nRe + nIm * nIm) / dMag;
+        }
+
+        function drawFreqResponse() {
+            if (!audioBuffer) return;
+            const W = rCanvas.width, H = rCanvas.height;
+            rCtx.clearRect(0, 0, W, H);
+
+            if (!lpEnabled && !hpEnabled) return;
+
+            const sr = audioBuffer.sampleRate;
+            const nyquist = sr / 2;
+            const panelH = Math.round(H * 0.30);
+            const panelY = H - panelH;
+
+            // Background
+            rCtx.fillStyle = 'rgba(0,0,0,0.60)';
+            rCtx.fillRect(0, panelY, W, panelH);
+
+            // Top border
+            rCtx.strokeStyle = 'rgba(255,255,255,0.10)';
+            rCtx.lineWidth = 1;
+            rCtx.beginPath(); rCtx.moveTo(0, panelY); rCtx.lineTo(W, panelY); rCtx.stroke();
+
+            // Frequency grid lines + labels
+            const freqTicks = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+            rCtx.font = '8px "Share Tech Mono", monospace';
+            freqTicks.forEach(f => {
+                if (f > nyquist) return;
+                const x = Math.log(f / 20) / Math.log(nyquist / 20) * W;
+                rCtx.strokeStyle = 'rgba(255,255,255,0.07)'; rCtx.lineWidth = 1;
+                rCtx.beginPath(); rCtx.moveTo(x, panelY); rCtx.lineTo(x, H); rCtx.stroke();
+                rCtx.fillStyle = 'rgba(255,255,255,0.22)';
+                rCtx.fillText(f >= 1000 ? (f / 1000) + 'k' : f, x + 2, H - 4);
+            });
+
+            // dB grid (0, -6, -12, -24)
+            [0, -6, -12, -24].forEach(db => {
+                const lin = Math.pow(10, db / 20);
+                const y = panelY + panelH * (1 - Math.min(1, lin));
+                rCtx.strokeStyle = 'rgba(255,255,255,0.07)'; rCtx.lineWidth = 1;
+                rCtx.beginPath(); rCtx.moveTo(0, y); rCtx.lineTo(W, y); rCtx.stroke();
+                rCtx.fillStyle = 'rgba(255,255,255,0.22)';
+                rCtx.fillText(db + 'dB', 4, y - 2);
+            });
+
+            // Compute combined response
+            const pts = new Float32Array(W);
+            const gainLin = Math.pow(10, parseInt(gainSlider.value) / 20);
+            for (let px = 0; px < W; px++) {
+                const f = 20 * Math.pow(nyquist / 20, px / (W - 1));
+                let mag = gainLin;
+                if (lpEnabled) mag *= biquadMag('lowpass', parseFloat(lpFreq.value), parseFloat(lpQ.value), sr, f);
+                if (hpEnabled) mag *= biquadMag('highpass', parseFloat(hpFreq.value), parseFloat(hpQ.value), sr, f);
+                pts[px] = Math.max(0, Math.min(1.8, mag));
+            }
+
+            // Fill
+            const fillG = rCtx.createLinearGradient(0, panelY, 0, H);
+            fillG.addColorStop(0, 'rgba(0,229,255,0.30)');
+            fillG.addColorStop(1, 'rgba(0,229,255,0.04)');
+            rCtx.beginPath(); rCtx.moveTo(0, H);
+            for (let x = 0; x < W; x++) {
+                const y = panelY + panelH * (1 - Math.min(1, pts[x]));
+                rCtx.lineTo(x, y);
+            }
+            rCtx.lineTo(W, H); rCtx.closePath();
+            rCtx.fillStyle = fillG; rCtx.fill();
+
+            // Curve
+            rCtx.beginPath(); rCtx.strokeStyle = '#00e5ff'; rCtx.lineWidth = 1.5;
+            for (let x = 0; x < W; x++) {
+                const y = panelY + panelH * (1 - Math.min(1, pts[x]));
+                x === 0 ? rCtx.moveTo(x, y) : rCtx.lineTo(x, y);
+            }
+            rCtx.stroke();
+
+            // LP cutoff marker
+            if (lpEnabled) {
+                const lf = parseFloat(lpFreq.value);
+                const lx = Math.log(lf / 20) / Math.log(nyquist / 20) * W;
+                rCtx.strokeStyle = 'rgba(255,51,102,0.75)'; rCtx.lineWidth = 1;
+                rCtx.setLineDash([3, 3]);
+                rCtx.beginPath(); rCtx.moveTo(lx, panelY); rCtx.lineTo(lx, H); rCtx.stroke();
+                rCtx.setLineDash([]);
+                rCtx.fillStyle = '#ff3366';
+                rCtx.font = '9px "Share Tech Mono", monospace';
+                rCtx.fillText('LP ' + fmtHz(lf), lx + 4, panelY + 13);
+            }
+
+            // HP cutoff marker
+            if (hpEnabled) {
+                const hf = parseFloat(hpFreq.value);
+                const hx = Math.log(hf / 20) / Math.log(nyquist / 20) * W;
+                rCtx.strokeStyle = 'rgba(119,51,255,0.75)'; rCtx.lineWidth = 1;
+                rCtx.setLineDash([3, 3]);
+                rCtx.beginPath(); rCtx.moveTo(hx, panelY); rCtx.lineTo(hx, H); rCtx.stroke();
+                rCtx.setLineDash([]);
+                rCtx.fillStyle = '#7733ff';
+                rCtx.font = '9px "Share Tech Mono", monospace';
+                rCtx.fillText('HP ' + fmtHz(hf), hx + 4, panelY + 13);
+            }
+
+            // Panel label
+            rCtx.fillStyle = 'rgba(255,255,255,0.20)';
+            rCtx.font = '9px "Share Tech Mono", monospace';
+            rCtx.fillText('FREQ RESPONSE', W - 114, panelY + 13);
+        }
+
+        // ── Playback ───────────────────────────────────────────────────────────────
+        function reconnect() {
+            if (!isPlaying || !audioCtx) return;
+            const elapsed = audioCtx.currentTime - startTime;
+            stopAudio(false);
+            startOffset = (startOffset + elapsed) % audioBuffer.duration;
+            startPlayback();
+        }
+
+        function startPlayback() {
+            if (!audioBuffer || !audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            sourceNode = audioCtx.createBufferSource();
+            sourceNode.buffer = audioBuffer;
+
+            lpNode = audioCtx.createBiquadFilter();
+            lpNode.type = 'lowpass'; lpNode.frequency.value = parseFloat(lpFreq.value); lpNode.Q.value = parseFloat(lpQ.value);
+
+            hpNode = audioCtx.createBiquadFilter();
+            hpNode.type = 'highpass'; hpNode.frequency.value = parseFloat(hpFreq.value); hpNode.Q.value = parseFloat(hpQ.value);
+
+            gainNode = audioCtx.createGain();
+            gainNode.gain.value = Math.pow(10, parseInt(gainSlider.value) / 20);
+
+            let chain = sourceNode;
+            if (lpEnabled) { chain.connect(lpNode); chain = lpNode; }
+            if (hpEnabled) { chain.connect(hpNode); chain = hpNode; }
+            chain.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            sourceNode.start(0, startOffset);
+            startTime = audioCtx.currentTime;
+            isPlaying = true;
+            playBtn.textContent = '⏸ Pause';
+            playhead.style.display = 'block';
+            animatePlayhead();
+            sourceNode.onended = () => { if (isPlaying) stopAudio(); };
+        }
+
+        function stopAudio(reset = true) {
+            if (sourceNode) { try { sourceNode.stop(); } catch (e) { } sourceNode = null; }
+            isPlaying = false;
+            playBtn.textContent = '▶ Play';
+            playhead.style.display = 'none';
+            cancelAnimationFrame(animFrame);
+            if (reset) { startOffset = 0; timeDisplay.textContent = '0:00'; }
+        }
+
+        function animatePlayhead() {
+            if (!isPlaying) return;
+            const elapsed = audioCtx.currentTime - startTime + startOffset;
+            const pct = Math.min(elapsed / audioBuffer.duration, 1);
+            playhead.style.left = (pct * waveformSection.clientWidth) + 'px';
+            const s = Math.floor(elapsed);
+            timeDisplay.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            animFrame = requestAnimationFrame(animatePlayhead);
+        }
+
+        playBtn.addEventListener('click', () => {
+            if (!audioBuffer) return;
+            ensureCtx();
+            if (isPlaying) {
+                const elapsed = audioCtx.currentTime - startTime;
+                startOffset = (startOffset + elapsed) % audioBuffer.duration;
+                stopAudio(false);
+            } else {
+                startPlayback();
+            }
+        });
+
+        stopBtn.addEventListener('click', () => stopAudio(true));
+
+        // ── Export WAV ─────────────────────────────────────────────────────────────
+        exportBtn.addEventListener('click', async () => {
+            if (!audioBuffer) return;
+            exportBtn.disabled = true; exportBtn.textContent = 'RENDERING…';
+
+            const sr = audioBuffer.sampleRate;
+            const numCh = audioBuffer.numberOfChannels;
+            const offline = new OfflineAudioContext(numCh, audioBuffer.length, sr);
+
+            const src = offline.createBufferSource(); src.buffer = audioBuffer;
+            const lp = offline.createBiquadFilter();
+            lp.type = 'lowpass'; lp.frequency.value = parseFloat(lpFreq.value); lp.Q.value = parseFloat(lpQ.value);
+            const hp = offline.createBiquadFilter();
+            hp.type = 'highpass'; hp.frequency.value = parseFloat(hpFreq.value); hp.Q.value = parseFloat(hpQ.value);
+            const gn = offline.createGain(); gn.gain.value = Math.pow(10, parseInt(gainSlider.value) / 20);
+
+            let chain = src;
+            if (lpEnabled) { chain.connect(lp); chain = lp; }
+            if (hpEnabled) { chain.connect(hp); chain = hp; }
+            chain.connect(gn); gn.connect(offline.destination); src.start(0);
+
+            const rendered = await offline.startRendering();
+            const wav = encodeWAV(rendered);
+            const blob = new Blob([wav], { type: 'audio/wav' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'filtered_' + Date.now() + '.wav';
+            a.click();
+
+            exportBtn.disabled = false; exportBtn.textContent = 'Export WAV';
+        });
+
+        function encodeWAV(buf) {
+            const numCh = buf.numberOfChannels, sr = buf.sampleRate, len = buf.length;
+            const bps = 2, blk = numCh * bps, dataSize = len * blk;
+            const ab = new ArrayBuffer(44 + dataSize);
+            const v = new DataView(ab);
+            const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+            ws(0, 'RIFF'); v.setUint32(4, 36 + dataSize, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+            v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, numCh, true);
+            v.setUint32(24, sr, true); v.setUint32(28, sr * blk, true);
+            v.setUint16(32, blk, true); v.setUint16(34, 16, true);
+            ws(36, 'data'); v.setUint32(40, dataSize, true);
+            let offset = 44;
+            for (let i = 0; i < len; i++) {
+                for (let ch = 0; ch < numCh; ch++) {
+                    const s = Math.max(-1, Math.min(1, buf.getChannelData(ch)[i]));
+                    v.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                    offset += 2;
+                }
+            }
+            return ab;
+        }
+    </script>
+</body>
+
+</html>

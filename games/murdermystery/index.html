@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murder Mystery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <meta name="password-manager" content="off">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Germania+One&family=Quicksand:wght@300..700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+        :root {
+            --bg: #0d123a;
+            --surface: #2f4d6c;
+            --surface-darker: #203d5a;
+            --border: #acd6e234;
+            --gold: #ffffff;
+            --gold-dim: #ffffff;
+            --red: #ac1d1d;
+            --text: #ffffff;
+            --muted: #ffffff;
+            --lock-bg: #4b0a13;
+            --radius: 6px;
+            --nav-h: 52px;
+            --text-size-1: 1em;
+            --text-size-2: 0.75em;
+            --font: "Quicksand";
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            scrollbar-width: thin;
+            scrollbar-color: var(--surface) var(--bg);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--surface);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border);
+        }
+
+        html {
+            height: 100%;
+            margin: 10px;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            height: calc(100% - 20px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #panel-left {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        #btn-settings {
+            border: 1px solid var(--border);
+            color: var(--muted);
+            cursor: pointer;
+            border-radius: var(--radius);
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            font-size: var(--text-size-1);
+            transition: background .2s, color .2s;
+            margin: 8px;
+        }
+
+        #btn-settings:hover {
+            background-color: var(--surface-darker);
+        }
+
+        #btn-settings .material-icons {
+            font-size: var(--text-size-1);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 220px 1fr 300px;
+            grid-template-rows: 1fr;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #panel-center {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── CENTER PANEL ── */
+        #panel-main {
+            flex: 1;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--muted);
+            background: var(--bg);
+            overflow: hidden;
+        }
+
+        #panel-main .material-icons {
+            font-size: var(--text-size-1);
+            opacity: .25;
+        }
+
+        #panel-main p {
+            font-style: italic;
+            font-size: var(--text-size-1);
+            opacity: .4;
+            letter-spacing: .05em;
+        }
+
+        /* ── LEFT PANEL ── */
+        #panel-tools {
+            background: var(--bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-title {
+            font-size: var(--text-size-2);
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: var(--gold-dim);
+            padding: 12px 16px 8px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        #tools-list {
+            overflow-y: auto;
+            padding: 10px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            height: 100%;
+        }
+
+        .tool-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+            position: relative;
+            height: 110px;
+            background: var(--surface);
+        }
+
+        .tool-item:hover {
+            border-color: var(--surface-darker);
+            background: var(--surface-darker);
+        }
+
+        .tool-item .tool-img {
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+            filter: sepia(.4) brightness(.9);
+            margin-bottom: 5px;
+        }
+
+        .tool-item .tool-name {
+            font-size: var(--text-size-1);
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .tool-item.locked .tool-img {
+            filter: sepia(1) brightness(.35) contrast(1.2);
+        }
+
+        .tool-item.locked .tool-name {
+            visibility: hidden;
+        }
+
+        .lock-icon {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 13px !important;
+            color: var(--red);
+        }
+
+        .tool-unlock {
+            visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 6px;
+            width: 100%;
+        }
+
+        .tool-unlock.open {
+            visibility: visible;
+        }
+
+        .tool-unlock input {
+            width: 100%;
+            background: var(--lock-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-size: var(--text-size-1);
+            padding: 4px 7px;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .tool-unlock input:focus {
+            border-color: var(--gold-dim);
+        }
+
+        .tool-unlock button {
+            width: 100%;
+            background: none;
+            border: 1px solid var(--red);
+            color: var(--red);
+            border-radius: 4px;
+            font-size: var(--text-size-1);
+            padding: 3px 0;
+            cursor: pointer;
+            transition: background .2s, color .2s;
+        }
+
+        .tool-unlock button:hover {
+            background: var(--red);
+            color: #fff;
+        }
+
+        #panel-right {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* clues */
+
+        #panel-clues {
+            display: flex;
+            flex-grow: 1;
+            flex-direction: column;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #clues-list {
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #clues-list img {
+            width: 100px;
+            height: 100px;
+        }
+
+        .clue-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            animation: fadeIn .3s ease;
+        }
+
+        .place-overlay {
+            cursor: pointer;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .clue-item img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            filter: sepia(.3);
+            flex-shrink: 0;
+        }
+
+        .clue-download {
+            cursor: pointer;
+            color: var(--gold);
+            text-decoration: none;
+        }
+
+        .clue-body {
+            flex: 1;
+        }
+
+        .clue-name {
+            font-size: var(--text-size-1);
+            color: var(--gold);
+            margin-bottom: 2px;
+        }
+
+        .clue-desc {
+            font-size: var(--text-size-2);
+            color: var(--muted);
+            line-height: 1.5;
+            min-height: 50px;
+        }
+
+        /* ── SUSPECTS ── */
+
+        #panel-suspects {
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        #suspects-list {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .suspect-item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            cursor: pointer;
+            transition: background .2s, border-color .2s;
+            flex-shrink: 0;
+        }
+
+        .suspect-item:hover {
+            background: var(--surface-darker);
+            border-color: #acd6e266;
+        }
+
+        .suspect-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .suspect-body {
+            display: grid;
+            grid-template-columns: 0fr;
+            overflow: hidden;
+            transition: grid-template-columns 0.28s ease;
+        }
+
+        .suspect-item.open .suspect-body {
+            grid-template-columns: 1fr;
+        }
+
+        .suspect-body-inner {
+            overflow: hidden;
+            min-width: 0;
+            white-space: nowrap;
+        }
+
+        .suspect-body-inner>* {
+            padding-left: 2px;
+        }
+
+        .suspect-name {
+            font-size: var(--text-size-1);
+            color: var(--gold);
+            margin-bottom: 2px;
+            font-weight: 600;
+        }
+
+        .suspect-desc {
+            font-size: var(--text-size-2);
+            color: var(--muted);
+            line-height: 1.45;
+            white-space: normal;
+            width: 240px;
+        }
+
+        .suspect-tag {
+            font-size: 0.62em;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: #ac1d1d33;
+            color: #ff8a8a;
+            border: 1px solid #ac1d1d55;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        #panel-final {
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gold);
+            font-size: 1.25em;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            border-top: 1px solid var(--border);
+            cursor: pointer;
+            height: 50px;
+        }
+
+        .room:hover {
+            fill: rgba(201, 168, 76, .08);
+            stroke: var(--gold-dim);
+        }
+
+        .room-label {
+            fill: var(--muted);
+            font-size: var(--text-size-1);
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+            transition: fill .2s;
+        }
+
+        .room-group:hover .room-label {
+            fill: var(--gold);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-title {
+            color: var(--gold);
+            margin-bottom: 10px;
+            font-size: var(--text-size-1);
+        }
+
+        .modal-content {
+            color: var(--muted);
+            font-size: var(--text-size-1);
+            line-height: 1.6;
+        }
+
+        .modal-button {
+            margin-top: 20px;
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: var(--radius);
+            padding: 5px 16px;
+            cursor: pointer;
+            font-size: var(--text-size-1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="layout">
+
+        <div id="panel-left">
+
+            <div id="panel-tools">
+                <div class="panel-title">Tools</div>
+                <div id="tools-list"></div>
+            </div>
+
+            <div style="flex-grow:1"></div>
+
+            <div id="btn-settings">Settings</div>
+        </div>
+
+        <div id="panel-center">
+
+            <!-- CENTER: MAIN (reserved) -->
+            <div id="panel-main">
+                <div id="main-container" style="position:relative; display:inline-block;">
+                </div>
+            </div>
+
+            <!-- SUSPECTS -->
+            <div id="panel-suspects">
+                <div class="panel-title">Suspects</div>
+                <div id="suspects-list"></div>
+            </div>
+
+        </div>
+
+        <div id="panel-right">
+
+            <div id="panel-clues">
+                <div class="panel-title">Clues</div>
+                <div id="clues-list"></div>
+            </div>
+
+            <div id="panel-final">
+                <div>FINAL THOUGHTS</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // #region DATA ──────────────────────────────────────────────────
+
+        const DEBUG = false;
+
+        const PLACE_DEFS = [
+            {
+                id: 'medical report',
+                x: 578, y: 293, w: 244, h: 158
+                , onClick: (id) => {
+                    places[id] = true;
+                    showModal("Medical Report", "Lucy's body was found dead on the 16th. I have the medical report.");
+                    addClue('medical report');
+                    refresh();
+                }
+            },
+            {
+                id: 'photo with lucy',
+                x: 377, y: 564, w: 32, h: 7
+                , onClick: (id) => {
+                    places[id] = true;
+                    addSuspect("lucy");
+                    showModal("Photo with Lucy", "A photo of Olivia with her friend Lucy.");
+                    refresh();
+                }
+            },
+            {
+                id: 'phone',
+                x: 832, y: 508, w: 8, h: 13
+                , onClick: (id) => {
+                    places[id] = true;
+
+                    let close;
+                    const query = makeQuery("It is password protected.", "ibiza2014", () => {
+                        close();
+
+                        addSuspect("mark");
+                        showModal("Olivia's phone.", "Has some deleted photos and messages of a guy called Mark.");
+                        addClue("marks voice");
+                        refresh();
+
+                    });
+                    close = showModal("Olivia's Phone", query)
+                    refresh();
+                }
+            },
+            {
+                id: 'password postit',
+                x: 1048, y: 625, w: 3, h: 20
+                , onClick: (id) => {
+                    places[id] = true;
+                    addClue("password postit");
+                    refresh();
+                }
+            },
+            {
+                id: 'unburnt corner',
+                x: 660, y: 90, w: 10, h: 10
+                , onClick: (id) => {
+                    places[id] = true;
+                    showModal("Unburnt Corner", "An unburnt corner of a photograph. Why would they burn any photos?");
+                    addClue("unburnt corner");
+                    refresh();
+                }
+            },
+            {
+                id: 'olivias laptop',
+                x: 912, y: 529, w: 50, h: 42
+                , onClick: (id) => {
+                    places[id] = true;
+                    let close;
+                    const query = makeQuery("It is password protected.", "meowington", () => {
+                        close();
+                        addClue("olivias laptop");
+                        refresh();
+                    });
+                    close = showModal("Olivia's Laptop", query)
+                    refresh();
+                }
+            },
+        ];
+
+        const CLUE_DEFS = {
+            "medical report": { name: 'Medical Report', img: 'report', desc: 'Information on Olivia\'s death.', path: "clues/report.pdf" },
+            "olivias laptop": {
+                name: 'Olivia\'s Laptop', img: 'laptop', desc: '', learn: () => {
+                    showModal("Olivia's Laptop", "Olivia was working on her finances. Things were not looking great for the couple. They were having financial help from their friend Devin.");
+                    addSuspect("devin");
+                }
+            },
+            "password postit": { name: "Password Post-It", img: "password", path: "clues/password.png" },
+            "unburnt corner": { name: "Unburnt Corner", img: "unburnt_corner", path: "clues/unburnt_corner.png", desc: "An unburnt corner of a photograph. Why would they burn any photos?" },
+            "marks voice": { name: "Mark's Message", img: "phone", path: "clues/marks_message.mp3", desc: "Mark left a message and Olivia deleted it." },
+        };
+
+        const SUSPECT_DEFS = [
+            { id: 'victim', name: 'Olivia Ashford', desc: 'Female, 32. Lived with her husband in 526 Sartre Drive. Found dead in her home on the 16th of April.' },
+            { id: 'husband', name: 'Stuart Ashford', desc: "Male, 37. The victim's husband. Was on a business trip. Got home on the 16th of April and found her wife dead. Immediately called 911 and the police." },
+            { id: 'lucy', name: 'Lucy Pemberton', desc: "A victim's old friend from school. Hasn't seen Olivia for some time now. Says she used to keep her passwords written in post-its in between her books." },
+            { id: 'devin', name: 'Devin Crane', desc: "A friend of the couple. Works in finance. Says Olivia went to ibiza in 2014, thinks it might be the phone's password." },
+            { id: 'mark', name: 'Mark Holloway', desc: 'The victim\'s hidden lover.' },
+        ];
+
+        const TOOL_DEFS = {
+            investigate: { name: 'Investigate', img: 'assets/icons/investigate.png', use: () => showModal("Investigate.", "<p>The room contains information waiting to be discovered. Find clickable parts of the room image to find hints and clues.</p>") },
+            exposure_lab: { name: 'Exposure Lab', img: 'assets/icons/exposure_lab.png', code: '857439', use: () => window.open('./tools/brightness_and_contrast.html', '_blank') },
+            color_channels: { name: 'Channel Inspector', img: 'assets/icons/color_channels.png', code: '3271', use: () => window.open('./tools/color_channels.html', '_blank') },
+            // noise_filter: { name: 'Signal Filter', img: 'assets/icons/noise_filter.png', code: '8561', use: () => window.open('./tools/noise_filter.html', '_blank') },
+            spectrograph: { name: 'spectrograph', img: 'assets/icons/spectrograph.png', code: '8561', use: () => window.open('./tools/spectrograph.html', '_blank') },
+            final: { name: 'Congratulations', img: 'assets/icons/final.png', code: '3147', use: () => showModal("The End", "Congratulations! You finished the game and found Olivia's real killer.") },
+        };
+
+        // true = unlocked, false = locked
+        let toolState = {};
+        Object.keys(TOOL_DEFS).forEach(k => toolState[k] = false);
+        toolState.investigate = true;
+        let clues = [];
+        let suspects = ['victim', 'husband'];
+        let places = {};
+
+        const SAVE_KEY = 'murder_mystery_save';
+
+        function saveData() {
+            localStorage.setItem(SAVE_KEY, JSON.stringify({ savedToolState: toolState, savedClues: clues, savedPlaces: places, savedSuspects: suspects }));
+        }
+
+        function loadData() {
+            const raw = localStorage.getItem(SAVE_KEY); if (!raw) return;
+            const data = JSON.parse(raw); if (!data) return;
+            if (data.savedToolState) toolState = data.savedToolState;
+            if (data.savedClues) clues = data.savedClues;
+            if (data.savedSuspects) suspects = data.savedSuspects;
+            if (data.savedPlaces) places = data.savedPlaces;
+        }
+
+        // #endregion
+
+        // #region TOOLS ─────────────────────────────────────────────────
+
+        function renderTools() {
+            const $list = $('#tools-list').empty();
+            Object.entries(toolState).forEach(([key, unlocked]) => {
+                const def = {
+                    img: "",
+                    name: "",
+                    ...TOOL_DEFS[key]
+                };
+                const $item = $('<div>').addClass('tool-item' + (unlocked ? '' : ' locked'));
+
+                if (!unlocked) {
+                    $item.append($('<span>').addClass('material-icons lock-icon').text('lock'));
+                    const $unlock = $('<div>').addClass('tool-unlock');
+                    const $input = $('<input>').attr({ type: 'text', placeholder: 'Enter code…' });
+                    const $btn = $('<button>').text('Unlock');
+                    $unlock.append($input, $btn);
+                    $item.append($unlock);
+                    $btn.on('click', e => {
+                        e.stopPropagation();
+                        if ($input.val() === def.code) {
+                            toolState[key] = true;
+                            renderTools();
+                        } else {
+                            $input.css('border-color', 'var(--red)');
+                            setTimeout(() => $input.css('border-color', ''), 800);
+                        }
+                    });
+                    $input.on('click', e => e.stopPropagation());
+                    $item.on('click', () => {
+                        $('.tool-unlock').not($unlock).removeClass('open');
+                        setTimeout(() => {
+                            $unlock.toggleClass('open');
+                        }, 1);
+                    });
+                } else {
+                    $item.append(
+                        $('<img>').addClass('tool-img').attr({ src: def.img, alt: def.name }),
+                        $('<div>').addClass('tool-name').text(def.name)
+                    );
+                    $item.on('click', def.use);
+                }
+                $list.append($item);
+            });
+
+        }
+
+        // #endregion
+
+        // #region CLUES ─────────────────────────────────────────────────
+
+        function hasClue(id) {
+            return clues.includes(id);
+        }
+
+        function addClue(id) {
+            if (!CLUE_DEFS[id]) return;
+            if (clues.includes(id)) return;
+            clues.push(id);
+        }
+
+        function renderClues() {
+            const $list = $('#clues-list').empty();
+            clues.forEach(id => {
+                const c = CLUE_DEFS[id];
+                $list.append(
+                    $('<div>').addClass('clue-item').append(
+                        $('<img>').attr({ src: "clues/" + c.img + ".png", alt: c.name }),
+                        $('<div>').addClass("right").append(
+                            $('<div>').addClass('clue-body').append(
+                                $('<div>').addClass('clue-name').text(c.name),
+                                $('<div>').addClass('clue-desc').append(c.desc)
+                            ),
+                            (c.path ?
+                                $('<a>')
+                                    .addClass('clue-download')
+                                    .attr({ href: c.path, download: c.path })
+                                    .append($('<div>').text('Download')) : undefined),
+                            (c.learn ?
+                                $('<a>')
+                                    .on('click', c.learn)
+                                    .addClass('clue-download')
+                                    .append($('<div>').text('Learn More')) : undefined),
+                        ),
+                    )
+                );
+            });
+        }
+
+        // #endregion
+
+        // #region ROOMS ─────────────────────────────────────────────────
+
+        function onRoom(name) {
+            alert('Investigating: ' + name);
+        }
+
+        // #endregion
+
+        // #region SUSPECTS ──────────────────────────────────────────────────
+
+        function addSuspect(id) {
+            if (!suspects.includes(id))
+                suspects.push(id)
+        }
+
+        function renderSuspects() {
+
+            const $list = $('#suspects-list').empty();
+
+            SUSPECT_DEFS.forEach(def => {
+
+                if (!suspects.includes(def.id)) return;
+
+                const $item = $('<div>').addClass('suspect-item');
+
+                // The inner div is required for the grid column trick to work —
+                // grid-template-columns: 0fr/1fr needs exactly one child, and that
+                // child must have overflow:hidden so content is clipped while animating.
+                const $bodyInner = $('<div>').addClass('suspect-body-inner').append(
+                    $('<div>').addClass('suspect-name').text(def.name),
+                    $('<div>').addClass('suspect-desc').text(def.desc),
+                    def.tag ? $('<span>').addClass('suspect-tag').text(def.tag) : undefined
+                );
+                const $body = $('<div>').addClass('suspect-body').append($bodyInner);
+
+                $item.append(
+                    $(`<img src="suspects/${def.id}.png">`).addClass('suspect-photo'),
+                    $body
+                );
+
+                $item.on('click', () => {
+                    $('#suspects-list .suspect-item').removeClass('open');
+                    $item.addClass('open');
+                });
+
+                $list.append($item);
+            });
+
+            $('#suspects-list .suspect-item').first().addClass('open');
+
+        }
+        // #endregion
+
+        // region MAIN ──────────────────────────────────────────────────
+
+        function renderMain() {
+            const $container = $('#main-container');
+            $container.empty();
+
+            $container.append($(`<img id="map-img" src="room1.png" draggable="false" style="display:block;">`));
+
+            $container.find('.place-overlay').remove();
+
+            PLACE_DEFS.forEach(place => {
+                const $el = $('<div class="place-overlay"></div>');
+
+                let color1 = places[place.id] ? "#55AAFF22" : '#00000001';
+                let color2 = places[place.id] ? "#55AAFF99" : '#00000001';
+
+                if (!places[place.id] && DEBUG) {
+                    color1 = "#FF555522";
+                    color2 = "#FF555599";
+                }
+
+                $el.css({
+                    position: 'absolute',
+                    left: place.x + 'px',
+                    top: place.y + 'px',
+                    width: place.w + 'px',
+                    height: place.h + 'px',
+                    background: color1,
+                    border: '1px solid ' + color2,
+                });
+
+                $el.on('click', () => place.onClick(place.id));
+
+                $container.append($el);
+            });
+        }
+
+        function makeQuery(text, answer, callback) {
+            var overlay = $('<div></div>');
+
+            var box = $('<div>').css({
+                padding: '24px', borderRadius: '8px',
+                display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '280px'
+            });
+
+            var label = $('<p></p>').text(text).css({ margin: 0, fontWeight: 'bold' });
+            var input = $('<input type="text"></input>').css({ padding: '8px', fontSize: '14px' });
+            var btn = $('<div></div>').text('Submit').css({ marginLeft: 'auto', cursor: 'pointer' });
+
+            btn.on('click', function () {
+                if (input.val().trim().toLowerCase() === answer.trim().toLowerCase()) {
+                    callback();
+                } else {
+                    input.val('');
+                }
+            });
+
+            input.on('keydown', function (e) {
+                if (e.key === 'Enter') btn.trigger('click');
+            });
+
+            box.append(label, input, btn);
+            overlay.append(box);
+            input.focus();
+
+            return overlay;
+        }
+
+        function showModal(title, content) {
+            const $overlay = $('<div class="modal-overlay">');
+            const $modal = $('<div class="modal">');
+            const $title = $('<h2 class="modal-title">').text(title);
+            const $desc = $(`<div class="modal-content"></div>`);
+            $desc.append(content);
+            const $close = $('<button class="modal-button">').text('Close').on('click', () => $overlay.remove());
+
+            $overlay.on('click', e => { if ($(e.target).is($overlay)) $overlay.remove(); });
+
+            $modal.append($title, $desc, $close);
+            $overlay.append($modal);
+            $('body').append($overlay);
+            return () => $overlay.remove();
+        }
+
+        function renderSettings() {
+            const settings = $(`<p></p>`);
+
+            settings.append($('<button class="modal-button">').text('Reset Progress').on('click',
+                () => {
+                    localStorage.removeItem(SAVE_KEY);
+                    location.reload();
+                }));
+            return settings;
+        }
+
+        function refresh() {
+            renderTools();
+            renderClues();
+            renderSuspects();
+            renderMain();
+        }
+
+        $(function () {
+
+            loadData();
+            saveData();
+
+            setInterval(() => {
+                saveData()
+            }, 10000);
+
+            refresh();
+            $('#btn-settings').on('click', () => showModal('Settings', renderSettings()));
+        });
+
+    </script>
+</body>
+
+</html>
