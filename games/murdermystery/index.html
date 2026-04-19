@@ -671,12 +671,12 @@
         ];
 
         const TOOL_DEFS = {
-            investigate: { name: 'Investigate', img: 'assets/icons/investigate.png', use: () => showModal("Investigate.", "<p>The room contains information waiting to be discovered. Find clickable parts of the room image to find hints and clues.</p>") },
-            exposure_lab: { name: 'Exposure Lab', img: 'assets/icons/exposure_lab.png', code: '857439', use: () => window.open('./tools/brightness_and_contrast.html', '_blank') },
-            color_channels: { name: 'Channel Inspector', img: 'assets/icons/color_channels.png', code: '3271', use: () => window.open('./tools/color_channels.html', '_blank') },
-            // noise_filter: { name: 'Signal Filter', img: 'assets/icons/noise_filter.png', code: '8561', use: () => window.open('./tools/noise_filter.html', '_blank') },
-            spectrograph: { name: 'spectrograph', img: 'assets/icons/spectrograph.png', code: '8561', use: () => window.open('./tools/spectrograph.html', '_blank') },
-            final: { name: 'Congratulations', img: 'assets/icons/final.png', code: '3147', use: () => showModal("The End", "Congratulations! You finished the game and found Olivia's real killer.") },
+            investigate: { name: 'Investigate', img: './assets/icons/investigate.png', use: () => showModal("Investigate.", "<p>The room contains information waiting to be discovered. Find clickable parts of the room image to find hints and clues.</p>") },
+            exposure_lab: { name: 'Exposure Lab', img: './assets/icons/exposure_lab.png', code: '857439', use: () => window.open('./tools/brightness_and_contrast.html', '_blank') },
+            color_channels: { name: 'Channel Inspector', img: './assets/icons/color_channels.png', code: '3271', use: () => window.open('./tools/color_channels.html', '_blank') },
+            // noise_filter: { name: 'Signal Filter', img: './assets/icons/noise_filter.png', code: '8561', use: () => window.open('./tools/noise_filter.html', '_blank') },
+            spectrograph: { name: 'spectrograph', img: './assets/icons/spectrograph.png', code: '8561', use: () => window.open('./tools/spectrograph.html', '_blank') },
+            final: { name: 'Congratulations', img: './assets/icons/final.png', code: '3147', use: () => showModal("The End", "Congratulations! You finished the game and found Olivia's real killer.") },
         };
 
         // true = unlocked, false = locked
