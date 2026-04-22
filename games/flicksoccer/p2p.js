@@ -9,155 +9,155 @@
  */
 
 class P2P {
-  constructor() {
-    this._pc = null;
-    this._dc = null;
-    this._isHost = false;
-    this._onConnectedCb = null;
-    this._onMessageCb = null;
-    this._onDisconnectedCb = null;
+    constructor() {
+        this._pc = null;
+        this._dc = null;
+        this._isHost = false;
+        this._onConnectedCb = null;
+        this._onMessageCb = null;
+        this._onDisconnectedCb = null;
 
-    this._injectStyles();
-    this._createOverlay();
-    this._renderRoleScreen();
-  }
-
-  // ── Public API ──────────────────────────────────────────────────────────────
-
-  onConnected(cb)    { this._onConnectedCb = cb; }
-  onMessage(cb)      { this._onMessageCb = cb; }
-  onDisconnected(cb) { this._onDisconnectedCb = cb; }
-
-  send(msg) {
-    if (this._dc && this._dc.readyState === 'open') {
-      this._dc.send(msg);
-    } else {
-      console.warn('P2P: not connected yet.');
+        this._injectStyles();
+        this._createOverlay();
+        this._renderRoleScreen();
     }
-  }
 
-  isConnected() {
-    return !!(this._dc && this._dc.readyState === 'open');
-  }
+    // ── Public API ──────────────────────────────────────────────────────────────
 
-  // ── Overlay ─────────────────────────────────────────────────────────────────
+    onConnected(cb) { this._onConnectedCb = cb; }
+    onMessage(cb) { this._onMessageCb = cb; }
+    onDisconnected(cb) { this._onDisconnectedCb = cb; }
 
-  _createOverlay() {
-    this._overlay = document.createElement('div');
-    this._overlay.id = 'p2p-overlay';
-    document.body.appendChild(this._overlay);
-  }
-
-  _hideUI() {
-    this._overlay.style.display = 'none';
-  }
-
-  _setStatus(msg, type = '') {
-    const el = this._overlay.querySelector('.p2p-status');
-    if (!el) return;
-    el.textContent = msg;
-    el.className = 'p2p-status ' + type;
-  }
-
-  // ── ICE / WebRTC ────────────────────────────────────────────────────────────
-
-  _iceConfig() {
-    return {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    };
-  }
-
-  _waitForIce(pc) {
-    return new Promise(resolve => {
-      if (pc.iceGatheringState === 'complete') {
-        resolve(btoa(JSON.stringify(pc.localDescription)));
-        return;
-      }
-      pc.onicegatheringstatechange = () => {
-        if (pc.iceGatheringState === 'complete') {
-          resolve(btoa(JSON.stringify(pc.localDescription)));
+    send(msg) {
+        if (this._dc && this._dc.readyState === 'open') {
+            this._dc.send(msg);
+        } else {
+            console.warn('P2P: not connected yet.');
         }
-      };
-    });
-  }
-
-  _decode(str) {
-    return JSON.parse(atob(str.trim()));
-  }
-
-  _setupChannel(channel) {
-    this._dc = channel;
-    this._dc.onopen = () => {
-      this._hideUI();
-      this._onConnectedCb && this._onConnectedCb(this._isHost);
-    };
-    this._dc.onclose = () => {
-      this._onDisconnectedCb && this._onDisconnectedCb();
-    };
-    this._dc.onmessage = (e) => {
-      this._onMessageCb && this._onMessageCb(e.data);
-    };
-  }
-
-  // ── Host flow ───────────────────────────────────────────────────────────────
-
-  async _startHost() {
-    this._pc = new RTCPeerConnection(this._iceConfig());
-    this._setupChannel(this._pc.createDataChannel('p2p'));
-    this._pc.onconnectionstatechange = () => {
-      if (this._pc.connectionState === 'failed')
-        this._setStatus('❌ Connection failed.', 'error');
-    };
-
-    const offer = await this._pc.createOffer();
-    await this._pc.setLocalDescription(offer);
-    this._setStatus('Gathering candidates…', 'pending');
-
-    const code = await this._waitForIce(this._pc);
-    this._renderHostStep2(code);
-  }
-
-  async _setAnswer(code) {
-    try {
-      await this._pc.setRemoteDescription(this._decode(code));
-      this._setStatus('Waiting for connection…', 'pending');
-    } catch (e) {
-      this._setStatus('❌ Invalid answer code.', 'error');
-      console.error(e);
     }
-  }
 
-  // ── Join flow ───────────────────────────────────────────────────────────────
-
-  async _processOffer(code) {
-    try {
-      this._pc = new RTCPeerConnection(this._iceConfig());
-      this._pc.ondatachannel = (e) => this._setupChannel(e.channel);
-      this._pc.onconnectionstatechange = () => {
-        if (this._pc.connectionState === 'failed')
-          this._setStatus('❌ Connection failed.', 'error');
-      };
-
-      await this._pc.setRemoteDescription(this._decode(code));
-      const answer = await this._pc.createAnswer();
-      await this._pc.setLocalDescription(answer);
-      this._setStatus('Gathering candidates…', 'pending');
-
-      const answerCode = await this._waitForIce(this._pc);
-      this._renderJoinStep2(answerCode);
-    } catch (e) {
-      this._setStatus('❌ Invalid offer code.', 'error');
-      console.error(e);
+    isConnected() {
+        return !!(this._dc && this._dc.readyState === 'open');
     }
-  }
 
-  // ── UI rendering ────────────────────────────────────────────────────────────
+    // ── Overlay ─────────────────────────────────────────────────────────────────
 
-  _renderRoleScreen() {
-    this._overlay.innerHTML = `
+    _createOverlay() {
+        this._overlay = document.createElement('div');
+        this._overlay.id = 'p2p-overlay';
+        document.body.appendChild(this._overlay);
+    }
+
+    _hideUI() {
+        this._overlay.style.display = 'none';
+    }
+
+    _setStatus(msg, type = '') {
+        const el = this._overlay.querySelector('.p2p-status');
+        if (!el) return;
+        el.textContent = msg;
+        el.className = 'p2p-status ' + type;
+    }
+
+    // ── ICE / WebRTC ────────────────────────────────────────────────────────────
+
+    _iceConfig() {
+        return {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+    }
+
+    _waitForIce(pc) {
+        return new Promise(resolve => {
+            if (pc.iceGatheringState === 'complete') {
+                resolve(btoa(JSON.stringify(pc.localDescription)));
+                return;
+            }
+            pc.onicegatheringstatechange = () => {
+                if (pc.iceGatheringState === 'complete') {
+                    resolve(btoa(JSON.stringify(pc.localDescription)));
+                }
+            };
+        });
+    }
+
+    _decode(str) {
+        return JSON.parse(atob(str.trim()));
+    }
+
+    _setupChannel(channel) {
+        this._dc = channel;
+        this._dc.onopen = () => {
+            this._hideUI();
+            this._onConnectedCb && this._onConnectedCb(this._isHost);
+        };
+        this._dc.onclose = () => {
+            this._onDisconnectedCb && this._onDisconnectedCb();
+        };
+        this._dc.onmessage = (e) => {
+            this._onMessageCb && this._onMessageCb(e.data);
+        };
+    }
+
+    // ── Host flow ───────────────────────────────────────────────────────────────
+
+    async _startHost() {
+        this._pc = new RTCPeerConnection(this._iceConfig());
+        this._setupChannel(this._pc.createDataChannel('p2p'));
+        this._pc.onconnectionstatechange = () => {
+            if (this._pc.connectionState === 'failed')
+                this._setStatus('❌ Connection failed.', 'error');
+        };
+
+        const offer = await this._pc.createOffer();
+        await this._pc.setLocalDescription(offer);
+        this._setStatus('Gathering candidates…', 'pending');
+
+        const code = await this._waitForIce(this._pc);
+        this._renderHostStep2(code);
+    }
+
+    async _setAnswer(code) {
+        try {
+            await this._pc.setRemoteDescription(this._decode(code));
+            this._setStatus('Waiting for connection…', 'pending');
+        } catch (e) {
+            this._setStatus('❌ Invalid answer code.', 'error');
+            console.error(e);
+        }
+    }
+
+    // ── Join flow ───────────────────────────────────────────────────────────────
+
+    async _processOffer(code) {
+        try {
+            this._pc = new RTCPeerConnection(this._iceConfig());
+            this._pc.ondatachannel = (e) => this._setupChannel(e.channel);
+            this._pc.onconnectionstatechange = () => {
+                if (this._pc.connectionState === 'failed')
+                    this._setStatus('❌ Connection failed.', 'error');
+            };
+
+            await this._pc.setRemoteDescription(this._decode(code));
+            const answer = await this._pc.createAnswer();
+            await this._pc.setLocalDescription(answer);
+            this._setStatus('Gathering candidates…', 'pending');
+
+            const answerCode = await this._waitForIce(this._pc);
+            this._renderJoinStep2(answerCode);
+        } catch (e) {
+            this._setStatus('❌ Invalid offer code.', 'error');
+            console.error(e);
+        }
+    }
+
+    // ── UI rendering ────────────────────────────────────────────────────────────
+
+    _renderRoleScreen() {
+        this._overlay.innerHTML = `
       <div class="p2p-box">
         <div class="p2p-title">P2P Connect</div>
         <div class="p2p-row">
@@ -167,28 +167,28 @@ class P2P {
         <div class="p2p-status"></div>
       </div>
     `;
-    this._overlay.querySelector('#p2p-host-btn').addEventListener('click', () => {
-      this._isHost = true;
-      this._renderHostStep1();
-      this._startHost();
-    });
-    this._overlay.querySelector('#p2p-join-btn').addEventListener('click', () => {
-      this._isHost = false;
-      this._renderJoinStep1();
-    });
-  }
+        this._overlay.querySelector('#p2p-host-btn').addEventListener('click', () => {
+            this._isHost = true;
+            this._renderHostStep1();
+            this._startHost();
+        });
+        this._overlay.querySelector('#p2p-join-btn').addEventListener('click', () => {
+            this._isHost = false;
+            this._renderJoinStep1();
+        });
+    }
 
-  _renderHostStep1() {
-    this._overlay.innerHTML = `
+    _renderHostStep1() {
+        this._overlay.innerHTML = `
       <div class="p2p-box">
         <div class="p2p-title">Host</div>
         <div class="p2p-status pending">Generating offer…</div>
       </div>
     `;
-  }
+    }
 
-  _renderHostStep2(offerCode) {
-    this._overlay.innerHTML = `
+    _renderHostStep2(offerCode) {
+        this._overlay.innerHTML = `
       <div class="p2p-box">
         <div class="p2p-title">Host</div>
         <label class="p2p-label">① Copy and send this to the other person:</label>
@@ -202,19 +202,19 @@ class P2P {
         <div class="p2p-status"></div>
       </div>
     `;
-    this._overlay.querySelector('#p2p-copy-offer').addEventListener('click', (e) => {
-      navigator.clipboard.writeText(offerCode);
-      e.target.textContent = 'Copied!';
-      setTimeout(() => e.target.textContent = 'Copy', 1500);
-    });
-    this._overlay.querySelector('#p2p-connect-btn').addEventListener('click', () => {
-      const code = this._overlay.querySelector('#p2p-answer-input').value.trim();
-      if (code) this._setAnswer(code);
-    });
-  }
+        this._overlay.querySelector('#p2p-copy-offer').addEventListener('click', (e) => {
+            navigator.clipboard.writeText(offerCode);
+            e.target.textContent = 'Copied!';
+            setTimeout(() => e.target.textContent = 'Copy', 1500);
+        });
+        this._overlay.querySelector('#p2p-connect-btn').addEventListener('click', () => {
+            const code = this._overlay.querySelector('#p2p-answer-input').value.trim();
+            if (code) this._setAnswer(code);
+        });
+    }
 
-  _renderJoinStep1() {
-    this._overlay.innerHTML = `
+    _renderJoinStep1() {
+        this._overlay.innerHTML = `
       <div class="p2p-box">
         <div class="p2p-title">Join</div>
         <label class="p2p-label">① Paste the host's offer code:</label>
@@ -223,14 +223,14 @@ class P2P {
         <div class="p2p-status"></div>
       </div>
     `;
-    this._overlay.querySelector('#p2p-answer-btn').addEventListener('click', () => {
-      const code = this._overlay.querySelector('#p2p-offer-input').value.trim();
-      if (code) this._processOffer(code);
-    });
-  }
+        this._overlay.querySelector('#p2p-answer-btn').addEventListener('click', () => {
+            const code = this._overlay.querySelector('#p2p-offer-input').value.trim();
+            if (code) this._processOffer(code);
+        });
+    }
 
-  _renderJoinStep2(answerCode) {
-    this._overlay.innerHTML = `
+    _renderJoinStep2(answerCode) {
+        this._overlay.innerHTML = `
       <div class="p2p-box">
         <div class="p2p-title">Join</div>
         <label class="p2p-label">② Copy this and send it back to the host:</label>
@@ -241,20 +241,20 @@ class P2P {
         <div class="p2p-status pending">Waiting for host to connect…</div>
       </div>
     `;
-    this._overlay.querySelector('#p2p-copy-answer').addEventListener('click', (e) => {
-      navigator.clipboard.writeText(answerCode);
-      e.target.textContent = 'Copied!';
-      setTimeout(() => e.target.textContent = 'Copy', 1500);
-    });
-  }
+        this._overlay.querySelector('#p2p-copy-answer').addEventListener('click', (e) => {
+            navigator.clipboard.writeText(answerCode);
+            e.target.textContent = 'Copied!';
+            setTimeout(() => e.target.textContent = 'Copy', 1500);
+        });
+    }
 
-  // ── Styles ──────────────────────────────────────────────────────────────────
+    // ── Styles ──────────────────────────────────────────────────────────────────
 
-  _injectStyles() {
-    if (document.getElementById('p2p-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'p2p-styles';
-    style.textContent = `
+    _injectStyles() {
+        if (document.getElementById('p2p-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'p2p-styles';
+        style.textContent = `
       #p2p-overlay {
         position: fixed;
         inset: 0;
@@ -351,6 +351,6 @@ class P2P {
       .p2p-status.pending { color: #fa0; }
       .p2p-status.error   { color: #f44; }
     `;
-    document.head.appendChild(style);
-  }
+        document.head.appendChild(style);
+    }
 }

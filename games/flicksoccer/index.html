@@ -2,144 +2,917 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>P2P Example</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flicker Soccer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
     <script src="p2p.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: monospace;
-            background: #0d0d0d;
-            color: #eee;
-            max-width: 500px;
-            margin: 60px auto;
-            padding: 0 20px;
-        }
-
-        h2 {
-            color: #0f0;
-            margin-bottom: 4px;
-        }
-
-        p {
-            color: #555;
-            font-size: 0.85rem;
-            margin-bottom: 0;
-        }
-
-        #chat {
-            display: none;
-            margin-top: 32px;
-        }
-
-        #messages {
-            background: #0a0a0a;
-            border: 1px solid #222;
-            padding: 10px;
-            height: 220px;
-            overflow-y: auto;
-            font-size: 0.85rem;
-            line-height: 1.8;
-        }
-
-        .msg-me {
-            color: #0ff;
-        }
-
-        .msg-them {
-            color: #f80;
-        }
-
-        #send-row {
+            background: #060d06;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
             display: flex;
-            gap: 8px;
-            margin-top: 8px;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
 
-        #msg-input {
-            flex: 1;
-            background: #111;
-            border: 1px solid #333;
-            color: #eee;
-            font-family: monospace;
+        canvas {
+            display: block;
+        }
+
+        #lobby {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.90);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        #lobby.visible {
+            display: flex;
+        }
+
+        .lobby-panel {
+            background: #0a180a;
+            border: 2px solid #1e6b1e;
+            padding: 36px 44px;
+            min-width: 360px;
+            max-width: 480px;
+            width: 100%;
+            color: #c8e6c8;
+            box-shadow: 0 0 60px rgba(0, 200, 0, 0.10);
+        }
+
+        .lobby-title {
+            font-size: 1.6rem;
+            letter-spacing: 0.28em;
+            color: #4cff4c;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            text-shadow: 0 0 12px #0f0;
+        }
+
+        .lobby-subtitle {
+            font-size: 0.68rem;
+            color: #3a6b3a;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 28px;
+        }
+
+        .field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            gap: 12px;
+        }
+
+        .field-row label {
+            font-size: 0.78rem;
+            color: #7ab87a;
+            letter-spacing: 0.08em;
+            min-width: 160px;
+        }
+
+        .field-row input[type=number] {
+            background: #050f05;
+            border: 1px solid #1a4a1a;
+            color: #4cff4c;
+            font-family: 'Courier New', monospace;
             font-size: 0.88rem;
-            padding: 8px;
+            padding: 6px 10px;
+            width: 80px;
+            text-align: center;
             outline: none;
         }
 
-        #send-btn {
-            padding: 8px 16px;
-            background: #1a1a1a;
-            color: #0f0;
-            border: 1px solid #0f0;
-            font-family: monospace;
-            cursor: pointer;
+        .field-row input:focus {
+            border-color: #0f0;
         }
 
-        #send-btn:hover {
+        .field-row input:disabled {
+            color: #2a5a2a;
+            border-color: #0d1a0d;
+            cursor: not-allowed;
+        }
+
+        .lobby-btn {
+            margin-top: 24px;
+            width: 100%;
+            padding: 13px;
+            background: #0a2a0a;
+            border: 2px solid #0f0;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .lobby-btn:hover:not(:disabled) {
             background: #0f0;
-            color: #111;
+            color: #000;
+            box-shadow: 0 0 20px #0f08;
+        }
+
+        .lobby-btn:disabled {
+            opacity: 0.35;
+            cursor: default;
+        }
+
+        .waiting-msg {
+            margin-top: 16px;
+            font-size: 0.72rem;
+            color: #3a7a3a;
+            text-align: center;
+            letter-spacing: 0.12em;
+            min-height: 1.2em;
+        }
+
+        #hud {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            pointer-events: none;
+            padding: 8px 24px;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+        }
+
+        #hud.visible {
+            display: flex;
+        }
+
+        .hud-team {
+            font-size: 1rem;
+            letter-spacing: 0.15em;
+            text-shadow: 0 0 8px currentColor;
+            font-weight: bold;
+        }
+
+        #hud-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        #hud-score {
+            font-size: 2rem;
+            color: #fff;
+            letter-spacing: 0.3em;
+            text-shadow: 0 0 16px #fff4;
+        }
+
+        #hud-timer {
+            font-size: 0.75rem;
+            color: #aaa;
+            letter-spacing: 0.15em;
+        }
+
+        #hud-turn {
+            font-size: 0.68rem;
+            color: #888;
+            letter-spacing: 0.12em;
+        }
+
+        #goal-flash {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            background: rgba(255, 220, 0, 0.08);
+        }
+
+        #goal-flash.visible {
+            display: flex;
+        }
+
+        .goal-text {
+            font-size: 6rem;
+            color: #ffe000;
+            letter-spacing: 0.25em;
+            text-shadow: 0 0 40px #ff0, 0 0 80px #fa04;
+            animation: goalPop 0.35s cubic-bezier(0.2, 1.4, 0.5, 1);
+            text-transform: uppercase;
+        }
+
+        @keyframes goalPop {
+            from {
+                transform: scale(0.2);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #end-screen {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        #end-screen.visible {
+            display: flex;
+        }
+
+        .end-winner {
+            font-size: 2.8rem;
+            letter-spacing: 0.25em;
+            text-shadow: 0 0 30px currentColor;
+        }
+
+        .end-score {
+            font-size: 1.1rem;
+            color: #aaa;
+            letter-spacing: 0.2em;
         }
     </style>
 </head>
 
 <body>
 
-    <h2>P2P Chat</h2>
-    <p>The connection dialog will appear automatically.</p>
-
-    <!-- Your app UI — shown only after connecting -->
-    <div id="chat">
-        <div id="messages"></div>
-        <div id="send-row">
-            <input type="text" id="msg-input" placeholder="Type a message…">
-            <button id="send-btn">Send</button>
+    <div id="lobby">
+        <div class="lobby-panel">
+            <div class="lobby-title">⚽ Flicker Soccer</div>
+            <div class="lobby-subtitle" id="lobby-role">Connecting…</div>
+            <div class="field-row"><label>Team size (players)</label><input type="number" id="cfg-team-size" min="1" max="6" value="4" /></div>
+            <div class="field-row"><label>Game length (min)</label><input type="number" id="cfg-game-length" min="1" max="20" value="5" /></div>
+            <div class="field-row"><label>Goals to win</label><input type="number" id="cfg-goals-win" min="1" max="20" value="5" /></div>
+            <div class="field-row"><label>Warmup time (sec)</label><input type="number" id="cfg-warmup" min="10" max="120" value="30" /></div>
+            <button class="lobby-btn" id="lobby-start" disabled>Start Game</button>
+            <div class="waiting-msg" id="lobby-msg">Waiting for opponent…</div>
         </div>
     </div>
 
+    <div id="hud">
+        <div class="hud-team" id="hud-team-a" style="color:#4fc3f7">◀ BLUE 0</div>
+        <div id="hud-center">
+            <div id="hud-score">0 : 0</div>
+            <div id="hud-timer">5:00</div>
+            <div id="hud-turn">—</div>
+        </div>
+        <div class="hud-team" id="hud-team-b" style="color:#ef9a9a">0 RED ▶</div>
+    </div>
+
+    <div id="goal-flash">
+        <div class="goal-text">GOAL!</div>
+    </div>
+    <div id="end-screen">
+        <div class="end-winner" id="end-winner">BLUE WINS!</div>
+        <div class="end-score" id="end-score">3 – 1</div>
+    </div>
+
     <script>
-        // ── That's all you need to set up P2P ──
-        const p2p = new P2P();
+        // ═══════════════════════════════════════════════════════
+        //  ALL GAME STATE — global scope so p5 sketch AND
+        //  network callbacks can both access them freely
+        // ═══════════════════════════════════════════════════════
 
-        p2p.onConnected((isHost) => {
-            console.log(isHost ? "im the host!" : "not the host...")
-            document.getElementById('chat').style.display = 'block';
+        const STATE = { LOBBY: 'lobby', WARMUP: 'warmup', PLAYING: 'playing', GOAL: 'goal', ENDED: 'ended' };
+
+        let gameState = STATE.LOBBY;
+        let isHost = false;
+        let cfg = { teamSize: 4, gameLength: 5, goalsWin: 5, warmup: 30 };
+
+        let scoreA = 0, scoreB = 0;
+        let gameTimeLeft = 0;
+        let warmupLeft = 0;
+        let lastTimeTick = 0;
+
+        const FRICTION = 0.985;
+        const RESTITUTION = 0.72;
+        const MIN_SPEED = 0.08;
+        const PLAYER_RADIUS = 16;
+        const BALL_RADIUS = 10;
+
+        // Board geometry — set by p5 setup/resize, used by both sketch and global fns
+        let BW = 0, BH = 0, OX = 0, OY = 0, GOAL_W = 0, GOAL_DEPTH = 0;
+
+        let currentTurn = 'A';
+        let waitingForStop = false;
+
+        let players = [];
+        let ball = { x: 0, y: 0, vx: 0, vy: 0 };
+        let savedPositionsA = [];
+        let savedPositionsB = [];
+
+        let flickTarget = null;
+        let isDragging = false;
+        let goalFlashTimer = 0;
+
+        // p2p set on load
+        let p2p = null;
+
+        // ═══════════════════════════════════════════════════════
+        //  P2P SETUP
+        // ═══════════════════════════════════════════════════════
+        window.addEventListener('load', () => {
+            p2p = new P2P();
+
+            p2p.onConnected((hostFlag) => {
+                isHost = hostFlag;
+                document.getElementById('lobby-role').textContent =
+                    isHost ? 'HOST — Configure and start' : 'GUEST — Waiting for host…';
+                document.getElementById('lobby').classList.add('visible');
+                if (!isHost) {
+                    document.querySelectorAll('#lobby input').forEach(i => i.disabled = true);
+                    document.getElementById('lobby-start').disabled = true;
+                    document.getElementById('lobby-msg').textContent = 'Waiting for host to start…';
+                } else {
+                    document.getElementById('lobby-start').disabled = false;
+                    document.getElementById('lobby-msg').textContent = 'Opponent connected! Configure and start.';
+                }
+            });
+
+            p2p.onMessage((raw) => {
+                let msg;
+                try { msg = JSON.parse(raw); } catch (e) { return; }
+                handleNetMessage(msg);
+            });
+
+            p2p.onDisconnected(() => {
+                document.getElementById('lobby-msg').textContent = 'Opponent disconnected.';
+            });
+
+            document.getElementById('lobby-start').addEventListener('click', () => {
+                if (!isHost) return;
+                cfg.teamSize = parseInt(document.getElementById('cfg-team-size').value) || 4;
+                cfg.gameLength = parseInt(document.getElementById('cfg-game-length').value) || 5;
+                cfg.goalsWin = parseInt(document.getElementById('cfg-goals-win').value) || 5;
+                cfg.warmup = parseInt(document.getElementById('cfg-warmup').value) || 30;
+                p2p.send(JSON.stringify({ type: 'game_start', cfg }));
+                beginGame(cfg);
+            });
         });
 
-        p2p.onMessage((msg) => {
-            addMessage(msg, 'them');
-        });
+        // ═══════════════════════════════════════════════════════
+        //  NETWORK MESSAGE HANDLER — global, called from p2p callback
+        // ═══════════════════════════════════════════════════════
+        function handleNetMessage(msg) {
+            if (msg.type === 'game_start') {
+                cfg = msg.cfg;
+                beginGame(cfg);
 
-        p2p.onDisconnected(() => {
-            console.log('disconnected');
-        });
+            } else if (msg.type === 'state_sync') {
+                if (!isHost) applyStateSync(msg);   // applyStateSync is global — no scope issue
 
-        p2p.send(text);
+            } else if (msg.type === 'flick') {
+                // Host receives flick from guest
+                if (isHost && currentTurn === 'B' && !waitingForStop) {
+                    const p = players[msg.idx];
+                    if (p) { p.vx = msg.vx; p.vy = msg.vy; }
+                    waitingForStop = true;
+                    // currentTurn stays 'B'; checkTurnEnd will flip to 'A' when everything stops
+                }
 
-        // ── Rest is just your app ───────────────
-        document.getElementById('send-btn').addEventListener('click', sendMsg);
-        document.getElementById('msg-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') sendMsg();
-        });
-
-        function sendMsg() {
-            const input = document.getElementById('msg-input');
-            const text = input.value.trim();
-            if (!text) return;
-            p2p.send(text);
-            addMessage(text, 'me');
-            input.value = '';
+            } else if (msg.type === 'warmup_positions') {
+                if (isHost) {
+                    for (let pos of msg.positions) {
+                        const p = players.find(pl => pl.id === pos.id);
+                        if (p) { p.x = pos.x; p.y = pos.y; }
+                    }
+                    savedPositionsB = players.filter(p => p.team === 'B').map(p => ({ x: p.x, y: p.y }));
+                }
+            }
         }
 
-        function addMessage(text, who) {
-            const msgs = document.getElementById('messages');
-            const div = document.createElement('div');
-            div.className = who === 'me' ? 'msg-me' : 'msg-them';
-            div.textContent = (who === 'me' ? 'me: ' : 'them: ') + text;
-            msgs.appendChild(div);
-            msgs.scrollTop = msgs.scrollHeight;
+        // ═══════════════════════════════════════════════════════
+        //  STATE SYNC — global, called from handleNetMessage
+        // ═══════════════════════════════════════════════════════
+        function applyStateSync(msg) {
+            const prevState = gameState;
+
+            gameState = msg.gameState;
+            scoreA = msg.scoreA;
+            scoreB = msg.scoreB;
+            gameTimeLeft = msg.gameTimeLeft;
+            warmupLeft = msg.warmupLeft;
+            currentTurn = msg.currentTurn;
+            waitingForStop = msg.waitingForStop;
+            if (msg.savedA && msg.savedA.length) savedPositionsA = msg.savedA;
+            if (msg.savedB && msg.savedB.length) savedPositionsB = msg.savedB;
+
+            // Sync players — but don't overwrite our own pieces while we're dragging in warmup
+            if (msg.players) {
+                for (let sp of msg.players) {
+                    let lp = players.find(p => p.id === sp.id);
+                    if (!lp) {
+                        players.push({ id: sp.id, team: sp.team, x: sp.x, y: sp.y, vx: sp.vx, vy: sp.vy });
+                    } else {
+                        // Guest is team B. During warmup, skip overwriting B positions so dragging works.
+                        if (prevState === STATE.WARMUP && sp.team === 'B') continue;
+                        lp.x = sp.x; lp.y = sp.y; lp.vx = sp.vx; lp.vy = sp.vy;
+                    }
+                }
+            }
+            if (msg.ball) {
+                ball.x = msg.ball.x; ball.y = msg.ball.y; ball.vx = msg.ball.vx; ball.vy = msg.ball.vy;
+            }
+
+            // Warmup just ended — send our final B positions to the host
+            if (prevState === STATE.WARMUP && gameState === STATE.PLAYING) {
+                const myPos = players.filter(p => p.team === 'B').map(p => ({ id: p.id, x: p.x, y: p.y }));
+                p2p.send(JSON.stringify({ type: 'warmup_positions', positions: myPos }));
+            }
+
+            // Goal flash
+            if (prevState !== STATE.GOAL && gameState === STATE.GOAL) {
+                document.getElementById('goal-flash').classList.add('visible');
+                goalFlashTimer = 2400;
+            }
+
+            if (prevState !== STATE.ENDED && gameState === STATE.ENDED) {
+                showEndScreen();
+            }
+
+            if (gameState !== STATE.LOBBY) {
+                document.getElementById('lobby').classList.remove('visible');
+                document.getElementById('hud').classList.add('visible');
+            }
+
+            updateHUD();
         }
+
+        // ═══════════════════════════════════════════════════════
+        //  GAME SETUP — global
+        // ═══════════════════════════════════════════════════════
+        function beginGame(config) {
+            cfg = config;
+            gameState = STATE.WARMUP;
+            scoreA = 0; scoreB = 0;
+            gameTimeLeft = cfg.gameLength * 60;
+            warmupLeft = cfg.warmup;
+            lastTimeTick = Date.now();
+            document.getElementById('lobby').classList.remove('visible');
+            document.getElementById('hud').classList.add('visible');
+            spawnPlayers();
+            updateHUD();
+        }
+
+        function spawnPlayers() {
+            players = [];
+            // BW/BH/OX/OY may be 0 if p5 hasn't set them yet — positions will be overwritten
+            // by the first state_sync from host anyway, so this is just a safe default
+            const cx = OX + BW / 2;
+            const spacing = BH > 0 ? (BH * 0.7) / cfg.teamSize : 60;
+            for (let i = 0; i < cfg.teamSize; i++) {
+                const y = OY + BH * 0.15 + spacing * i;
+                players.push({ id: 'A' + i, team: 'A', x: cx - BW * 0.22, y, vx: 0, vy: 0 });
+                players.push({ id: 'B' + i, team: 'B', x: cx + BW * 0.22, y, vx: 0, vy: 0 });
+            }
+            ball.x = cx; ball.y = OY + BH / 2; ball.vx = 0; ball.vy = 0;
+            currentTurn = 'A';
+            waitingForStop = false;
+        }
+
+        function saveWarmupPositions() {
+            savedPositionsA = players.filter(p => p.team === 'A').map(p => ({ x: p.x, y: p.y }));
+            savedPositionsB = players.filter(p => p.team === 'B').map(p => ({ x: p.x, y: p.y }));
+        }
+
+        function resetToSavedPositions() {
+            let ia = 0, ib = 0;
+            for (let p of players) {
+                if (p.team === 'A') { p.x = savedPositionsA[ia].x; p.y = savedPositionsA[ia].y; ia++; }
+                else { p.x = savedPositionsB[ib].x; p.y = savedPositionsB[ib].y; ib++; }
+                p.vx = 0; p.vy = 0;
+            }
+            ball.x = OX + BW / 2; ball.y = OY + BH / 2; ball.vx = 0; ball.vy = 0;
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  HUD + END SCREEN — global
+        // ═══════════════════════════════════════════════════════
+        function updateHUD() {
+            const mins = Math.floor(gameTimeLeft / 60);
+            const secs = Math.floor(gameTimeLeft % 60);
+            document.getElementById('hud-timer').textContent =
+                `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            document.getElementById('hud-score').textContent = `${scoreA} : ${scoreB}`;
+            document.getElementById('hud-team-a').textContent = `◀ BLUE  ${scoreA}`;
+            document.getElementById('hud-team-b').textContent = `${scoreB}  RED ▶`;
+            let turn = '';
+            if (gameState === STATE.WARMUP) turn = `Warmup — ${Math.ceil(Math.max(0, warmupLeft))}s`;
+            else if (gameState === STATE.PLAYING) turn = waitingForStop ? '⏳ Ball in play…'
+                : currentTurn === 'A' ? '🔵 BLUE to flick' : '🔴 RED to flick';
+            document.getElementById('hud-turn').textContent = turn;
+        }
+
+        function showEndScreen() {
+            gameState = STATE.ENDED;
+            document.getElementById('hud').classList.remove('visible');
+            document.getElementById('goal-flash').classList.remove('visible');
+            const w = document.getElementById('end-winner');
+            const s = document.getElementById('end-score');
+            if (scoreA > scoreB) { w.textContent = 'BLUE WINS!'; w.style.color = '#4fc3f7'; }
+            else if (scoreB > scoreA) { w.textContent = 'RED WINS!'; w.style.color = '#ef9a9a'; }
+            else { w.textContent = 'DRAW!'; w.style.color = '#ffe000'; }
+            s.textContent = `${scoreA} – ${scoreB}`;
+            document.getElementById('end-screen').classList.add('visible');
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  TIMER — global (both host and guest call this)
+        // ═══════════════════════════════════════════════════════
+        function tickTime() {
+            const now = Date.now();
+            const dt = (now - lastTimeTick) / 1000;
+            lastTimeTick = now;
+
+            if (isHost) {
+                if (gameState === STATE.WARMUP) {
+                    warmupLeft -= dt;
+                    if (warmupLeft <= 0) {
+                        warmupLeft = 0;
+                        saveWarmupPositions();
+                        gameState = STATE.PLAYING;
+                        currentTurn = 'A';
+                        // broadcastState() runs every frame from the draw loop — transition goes out next frame
+                    }
+                } else if (gameState === STATE.PLAYING) {
+                    gameTimeLeft -= dt;
+                    if (gameTimeLeft <= 0) { gameTimeLeft = 0; endGameHost(); }
+                }
+            } else {
+                // Guest: interpolate locally for smooth display; authoritative value comes via state_sync
+                if (gameState === STATE.WARMUP) {
+                    warmupLeft = Math.max(0, warmupLeft - dt);
+                } else if (gameState === STATE.PLAYING) {
+                    gameTimeLeft = Math.max(0, gameTimeLeft - dt);
+                }
+            }
+
+            updateHUD();
+        }
+
+        function endGameHost() {
+            // Only host calls this; it broadcasts and shows end screen
+            gameState = STATE.ENDED;
+            broadcastState();
+            showEndScreen();
+        }
+
+        function broadcastState() {
+            if (!isHost || !p2p || !p2p.isConnected()) return;
+            p2p.send(JSON.stringify({
+                type: 'state_sync',
+                gameState, scoreA, scoreB, gameTimeLeft, warmupLeft,
+                currentTurn, waitingForStop,
+                players: players.map(p => ({ id: p.id, team: p.team, x: p.x, y: p.y, vx: p.vx, vy: p.vy })),
+                ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy },
+                savedA: savedPositionsA,
+                savedB: savedPositionsB,
+            }));
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  p5 SKETCH — only drawing + input + physics
+        // ═══════════════════════════════════════════════════════
+        new p5((sk) => {
+
+            sk.setup = () => {
+                sk.createCanvas(sk.windowWidth, sk.windowHeight).parent(document.body);
+                sk.frameRate(60);
+                computeBoard();
+            };
+
+            sk.windowResized = () => {
+                sk.resizeCanvas(sk.windowWidth, sk.windowHeight);
+                computeBoard();
+            };
+
+            function computeBoard() {
+                const aspect = 1.6;
+                let w = sk.width * 0.88, h = sk.height * 0.82;
+                if (w / h > aspect) w = h * aspect; else h = w / aspect;
+                BW = w; BH = h;
+                OX = (sk.width - BW) / 2;
+                OY = (sk.height - BH) / 2 + 30;
+                GOAL_W = BH * 0.22;
+                GOAL_DEPTH = BW * 0.04;
+            }
+
+            sk.draw = () => {
+                sk.background(10, 16, 10);
+                if (gameState === STATE.LOBBY) return;
+
+                tickTime(); // global — works for both host and guest
+
+                if (isHost && gameState !== STATE.ENDED) {
+                    if (gameState === STATE.PLAYING || gameState === STATE.WARMUP) {
+                        stepPhysics();
+                        checkGoal();
+                        checkTurnEnd();
+                    }
+                    broadcastState(); // global
+                }
+
+                drawPitch();
+                drawGoals();
+                drawBall();
+                drawPlayers();
+                drawFlickArrow();
+                if (gameState === STATE.WARMUP) drawWarmupUI();
+                if (gameState === STATE.GOAL) tickGoalFlash();
+            };
+
+            // ── Drawing ────────────────────────────────────────
+            function drawPitch() {
+                const sw = BW / 8;
+                for (let i = 0; i < 8; i++) {
+                    sk.noStroke();
+                    sk.fill(i % 2 === 0 ? sk.color(20, 70, 20) : sk.color(16, 58, 16));
+                    sk.rect(OX + i * sw, OY, sw, BH);
+                }
+                sk.noFill(); sk.stroke(60, 160, 60); sk.strokeWeight(2);
+                sk.rect(OX, OY, BW, BH);
+                sk.stroke(70, 160, 70, 160); sk.strokeWeight(1.5);
+                sk.line(OX + BW / 2, OY + 8, OX + BW / 2, OY + BH - 8);
+                sk.noFill(); sk.stroke(70, 160, 70, 140); sk.strokeWeight(1.5);
+                sk.ellipse(OX + BW / 2, OY + BH / 2, BH * 0.3, BH * 0.3);
+                const paw = BW * 0.15, pah = BH * 0.45;
+                sk.rect(OX, OY + (BH - pah) / 2, paw, pah);
+                sk.rect(OX + BW - paw, OY + (BH - pah) / 2, paw, pah);
+                sk.fill(70, 160, 70, 160); sk.noStroke();
+                sk.ellipse(OX + BW * 0.12, OY + BH / 2, 5, 5);
+                sk.ellipse(OX + BW * 0.88, OY + BH / 2, 5, 5);
+                sk.ellipse(OX + BW / 2, OY + BH / 2, 6, 6);
+            }
+
+            function drawGoals() {
+                const gy = OY + (BH - GOAL_W) / 2;
+                sk.fill(10, 30, 80, 160); sk.stroke(80, 160, 255); sk.strokeWeight(2);
+                sk.rect(OX - GOAL_DEPTH, gy, GOAL_DEPTH, GOAL_W);
+                sk.fill(80, 10, 10, 160); sk.stroke(255, 100, 100); sk.strokeWeight(2);
+                sk.rect(OX + BW, gy, GOAL_DEPTH, GOAL_W);
+            }
+
+            function drawPlayers() {
+                for (let i = 0; i < players.length; i++) {
+                    const p = players[i];
+                    const isA = p.team === 'A';
+                    const isMyTeam = (isHost && isA) || (!isHost && !isA);
+                    const isSel = flickTarget === i;
+                    sk.noStroke(); sk.fill(0, 0, 0, 60);
+                    sk.ellipse(p.x + 3, p.y + 3, PLAYER_RADIUS * 2, PLAYER_RADIUS * 2);
+                    if (isA) {
+                        sk.fill(isSel ? sk.color(120, 200, 255) : sk.color(40, 120, 220));
+                        sk.stroke(isSel ? 255 : 80, isSel ? 255 : 180, 255);
+                    } else {
+                        sk.fill(isSel ? sk.color(255, 150, 150) : sk.color(210, 50, 50));
+                        sk.stroke(255, isSel ? 180 : 100, isSel ? 180 : 100);
+                    }
+                    sk.strokeWeight(isSel ? 2.5 : 1.5);
+                    sk.ellipse(p.x, p.y, PLAYER_RADIUS * 2, PLAYER_RADIUS * 2);
+                    sk.noFill(); sk.stroke(255, 255, 255, 50); sk.strokeWeight(1);
+                    sk.arc(p.x, p.y, PLAYER_RADIUS * 1.4, PLAYER_RADIUS * 1.4, -sk.PI * 0.6, sk.PI * 0.6);
+                    if (isMyTeam && canFlick() && !waitingForStop) {
+                        sk.noFill();
+                        sk.stroke(isA ? sk.color(100, 200, 255, 60) : sk.color(255, 120, 120, 60));
+                        sk.strokeWeight(3);
+                        sk.ellipse(p.x, p.y, PLAYER_RADIUS * 2.6, PLAYER_RADIUS * 2.6);
+                    }
+                }
+            }
+
+            function drawBall() {
+                sk.noStroke(); sk.fill(0, 0, 0, 70);
+                sk.ellipse(ball.x + 3, ball.y + 4, BALL_RADIUS * 2, BALL_RADIUS * 2);
+                sk.fill(240, 230, 200); sk.stroke(80, 70, 50); sk.strokeWeight(1.5);
+                sk.ellipse(ball.x, ball.y, BALL_RADIUS * 2, BALL_RADIUS * 2);
+                sk.fill(30, 30, 30, 180); sk.noStroke();
+                sk.ellipse(ball.x - 2, ball.y - 2, BALL_RADIUS * 0.7, BALL_RADIUS * 0.7);
+                sk.ellipse(ball.x + 3, ball.y + 3, BALL_RADIUS * 0.5, BALL_RADIUS * 0.5);
+            }
+
+            function drawFlickArrow() {
+                if (!isDragging || flickTarget === null) return;
+                const p = players[flickTarget];
+                const dx = p.x - sk.mouseX, dy = p.y - sk.mouseY;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                if (len < 4) return;
+                const power = Math.min(len / 120, 1);
+                sk.push();
+                sk.stroke(255, 220, 0, 200); sk.strokeWeight(2.5);
+                sk.line(p.x, p.y, p.x + dx * 0.8, p.y + dy * 0.8);
+                sk.noFill(); sk.stroke(255, 220, 0, 130); sk.strokeWeight(3);
+                sk.arc(p.x, p.y, PLAYER_RADIUS * 3.5, PLAYER_RADIUS * 3.5,
+                    -sk.PI * 0.4, -sk.PI * 0.4 + sk.PI * 0.8 * power);
+                sk.pop();
+            }
+
+            function drawWarmupUI() {
+                sk.push();
+                sk.fill(0, 0, 0, 140); sk.noStroke();
+                sk.rect(OX, OY + BH - 34, BW, 34);
+                sk.fill(255, 220, 0); sk.noStroke();
+                sk.textFont('Courier New'); sk.textSize(13); sk.textAlign(sk.CENTER);
+                const team = isHost ? 'BLUE (left half)' : 'RED (right half)';
+                const secs = Math.max(0, Math.ceil(warmupLeft));
+                sk.text(`WARMUP — drag your ${team} players · ${secs}s remaining`, OX + BW / 2, OY + BH - 12);
+                sk.push();
+                sk.drawingContext.setLineDash([6, 6]);
+                sk.stroke(255, 220, 0, 100); sk.strokeWeight(2); sk.noFill();
+                sk.line(OX + BW / 2, OY, OX + BW / 2, OY + BH);
+                sk.pop();
+                sk.pop();
+            }
+
+            function tickGoalFlash() {
+                goalFlashTimer -= sk.deltaTime;
+                if (goalFlashTimer <= 0) {
+                    document.getElementById('goal-flash').classList.remove('visible');
+                    if (isHost) {
+                        resetToSavedPositions();
+                        gameState = STATE.PLAYING;
+                        currentTurn = 'A';
+                        waitingForStop = false;
+                        broadcastState();
+                    }
+                }
+            }
+
+            // ── Input ──────────────────────────────────────────
+            sk.mousePressed = () => {
+                if (gameState === STATE.WARMUP) {
+                    handleWarmupPress();
+                } else if (gameState === STATE.PLAYING && canFlick() && !waitingForStop) {
+                    handleFlickPress();
+                }
+            };
+
+            sk.mouseDragged = () => {
+                if (gameState === STATE.WARMUP && flickTarget !== null) {
+                    const p = players[flickTarget];
+                    const cx = OX + BW / 2;
+                    let nx = sk.mouseX, ny = sk.mouseY;
+                    if (isHost) nx = Math.min(nx, cx - PLAYER_RADIUS - 2);
+                    else nx = Math.max(nx, cx + PLAYER_RADIUS + 2);
+                    p.x = sk.constrain(nx, OX + PLAYER_RADIUS, OX + BW - PLAYER_RADIUS);
+                    p.y = sk.constrain(ny, OY + PLAYER_RADIUS, OY + BH - PLAYER_RADIUS);
+                }
+                if (gameState === STATE.PLAYING && flickTarget !== null) isDragging = true;
+            };
+
+            sk.mouseReleased = () => {
+                if (gameState === STATE.WARMUP) {
+                    flickTarget = null;
+                } else if (gameState === STATE.PLAYING && isDragging && flickTarget !== null) {
+                    releaseFlick();
+                }
+                isDragging = false;
+            };
+
+            function handleWarmupPress() {
+                const myTeam = isHost ? 'A' : 'B';
+                for (let i = 0; i < players.length; i++) {
+                    if (players[i].team !== myTeam) continue;
+                    if (sk.dist(sk.mouseX, sk.mouseY, players[i].x, players[i].y) < PLAYER_RADIUS + 6) {
+                        flickTarget = i; return;
+                    }
+                }
+                flickTarget = null;
+            }
+
+            function handleFlickPress() {
+                const myTeam = isHost ? 'A' : 'B';
+                for (let i = 0; i < players.length; i++) {
+                    if (players[i].team !== myTeam) continue;
+                    if (sk.dist(sk.mouseX, sk.mouseY, players[i].x, players[i].y) < PLAYER_RADIUS + 8) {
+                        flickTarget = i; isDragging = false; return;
+                    }
+                }
+                flickTarget = null;
+            }
+
+            function releaseFlick() {
+                if (flickTarget === null) return;
+                const p = players[flickTarget];
+                const dx = p.x - sk.mouseX, dy = p.y - sk.mouseY;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const power = Math.min(len / 120, 1);
+                if (power > 0.05) {
+                    const imp = power * 18, nx = dx / len, ny = dy / len;
+                    if (isHost) {
+                        p.vx = nx * imp; p.vy = ny * imp;
+                        // currentTurn stays 'A'; checkTurnEnd flips to 'B' when ball stops
+                    } else {
+                        p2p.send(JSON.stringify({ type: 'flick', idx: flickTarget, vx: nx * imp, vy: ny * imp }));
+                    }
+                    waitingForStop = true;
+                }
+                flickTarget = null; isDragging = false;
+            }
+
+            function canFlick() {
+                if (gameState !== STATE.PLAYING) return false;
+                return (isHost && currentTurn === 'A') || (!isHost && currentTurn === 'B');
+            }
+
+            // ── Physics ────────────────────────────────────────
+            function stepPhysics() {
+                ball.x += ball.vx; ball.y += ball.vy;
+                ball.vx *= FRICTION; ball.vy *= FRICTION;
+                if (Math.abs(ball.vx) < MIN_SPEED) ball.vx = 0;
+                if (Math.abs(ball.vy) < MIN_SPEED) ball.vy = 0;
+                for (let p of players) {
+                    p.x += p.vx; p.y += p.vy;
+                    p.vx *= FRICTION; p.vy *= FRICTION;
+                    if (Math.abs(p.vx) < MIN_SPEED) p.vx = 0;
+                    if (Math.abs(p.vy) < MIN_SPEED) p.vy = 0;
+                }
+                for (let p of players) {
+                    if (p.x - PLAYER_RADIUS < OX) { p.x = OX + PLAYER_RADIUS; p.vx = Math.abs(p.vx) * RESTITUTION; }
+                    if (p.x + PLAYER_RADIUS > OX + BW) { p.x = OX + BW - PLAYER_RADIUS; p.vx = -Math.abs(p.vx) * RESTITUTION; }
+                    if (p.y - PLAYER_RADIUS < OY) { p.y = OY + PLAYER_RADIUS; p.vy = Math.abs(p.vy) * RESTITUTION; }
+                    if (p.y + PLAYER_RADIUS > OY + BH) { p.y = OY + BH - PLAYER_RADIUS; p.vy = -Math.abs(p.vy) * RESTITUTION; }
+                }
+                const gy = OY + (BH - GOAL_W) / 2, inGoalY = ball.y > gy && ball.y < gy + GOAL_W;
+                if (!inGoalY) {
+                    if (ball.x - BALL_RADIUS < OX) { ball.x = OX + BALL_RADIUS; ball.vx = Math.abs(ball.vx) * RESTITUTION; }
+                    if (ball.x + BALL_RADIUS > OX + BW) { ball.x = OX + BW - BALL_RADIUS; ball.vx = -Math.abs(ball.vx) * RESTITUTION; }
+                } else {
+                    if (ball.x - BALL_RADIUS < OX - GOAL_DEPTH) { ball.x = OX - GOAL_DEPTH + BALL_RADIUS; ball.vx = Math.abs(ball.vx) * RESTITUTION; }
+                    if (ball.x + BALL_RADIUS > OX + BW + GOAL_DEPTH) { ball.x = OX + BW + GOAL_DEPTH - BALL_RADIUS; ball.vx = -Math.abs(ball.vx) * RESTITUTION; }
+                }
+                if (ball.y - BALL_RADIUS < OY) { ball.y = OY + BALL_RADIUS; ball.vy = Math.abs(ball.vy) * RESTITUTION; }
+                if (ball.y + BALL_RADIUS > OY + BH) { ball.y = OY + BH - BALL_RADIUS; ball.vy = -Math.abs(ball.vy) * RESTITUTION; }
+                for (let i = 0; i < players.length; i++)
+                    for (let j = i + 1; j < players.length; j++)
+                        resolveCircle(players[i], players[j], PLAYER_RADIUS, PLAYER_RADIUS);
+                for (let p of players) resolveCircle(p, ball, PLAYER_RADIUS, BALL_RADIUS);
+            }
+
+            function resolveCircle(a, b, ra, rb) {
+                const dx = b.x - a.x, dy = b.y - a.y, dist = Math.sqrt(dx * dx + dy * dy), minD = ra + rb;
+                if (dist < minD && dist > 0.001) {
+                    const nx = dx / dist, ny = dy / dist, ov = (minD - dist) / 2;
+                    a.x -= nx * ov; a.y -= ny * ov; b.x += nx * ov; b.y += ny * ov;
+                    const dvx = b.vx - a.vx, dvy = b.vy - a.vy, dot = dvx * nx + dvy * ny;
+                    if (dot < 0) {
+                        const j = dot * RESTITUTION;
+                        a.vx += j * nx; a.vy += j * ny; b.vx -= j * nx; b.vy -= j * ny;
+                    }
+                }
+            }
+
+            function checkTurnEnd() {
+                if (!waitingForStop) return;
+                const stopped = ball.vx === 0 && ball.vy === 0 && players.every(p => p.vx === 0 && p.vy === 0);
+                if (stopped) {
+                    waitingForStop = false;
+                    currentTurn = (currentTurn === 'A') ? 'B' : 'A';
+                }
+            }
+
+            function checkGoal() {
+                if (gameState !== STATE.PLAYING) return;
+                const gy = OY + (BH - GOAL_W) / 2, inGoalY = ball.y > gy + BALL_RADIUS && ball.y < gy + GOAL_W - BALL_RADIUS;
+                if (ball.x < OX - GOAL_DEPTH * 0.5 && inGoalY) { scoreB++; triggerGoal(); }
+                if (ball.x > OX + BW + GOAL_DEPTH * 0.5 && inGoalY) { scoreA++; triggerGoal(); }
+            }
+
+            function triggerGoal() {
+                gameState = STATE.GOAL; goalFlashTimer = 2400;
+                document.getElementById('goal-flash').classList.add('visible');
+                updateHUD(); broadcastState();
+                if (scoreA >= cfg.goalsWin || scoreB >= cfg.goalsWin) setTimeout(endGameHost, 2500);
+            }
+
+        }); // end p5
     </script>
-
 </body>
 
 </html>
