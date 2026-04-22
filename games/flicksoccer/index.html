@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>P2P Example</title>
+    <script src="p2p.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0d0d0d;
+            color: #eee;
+            max-width: 500px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        h2 {
+            color: #0f0;
+            margin-bottom: 4px;
+        }
+
+        p {
+            color: #555;
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+
+        #chat {
+            display: none;
+            margin-top: 32px;
+        }
+
+        #messages {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            padding: 10px;
+            height: 220px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+
+        .msg-me {
+            color: #0ff;
+        }
+
+        .msg-them {
+            color: #f80;
+        }
+
+        #send-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        #msg-input {
+            flex: 1;
+            background: #111;
+            border: 1px solid #333;
+            color: #eee;
+            font-family: monospace;
+            font-size: 0.88rem;
+            padding: 8px;
+            outline: none;
+        }
+
+        #send-btn {
+            padding: 8px 16px;
+            background: #1a1a1a;
+            color: #0f0;
+            border: 1px solid #0f0;
+            font-family: monospace;
+            cursor: pointer;
+        }
+
+        #send-btn:hover {
+            background: #0f0;
+            color: #111;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>P2P Chat</h2>
+    <p>The connection dialog will appear automatically.</p>
+
+    <!-- Your app UI — shown only after connecting -->
+    <div id="chat">
+        <div id="messages"></div>
+        <div id="send-row">
+            <input type="text" id="msg-input" placeholder="Type a message…">
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // ── That's all you need to set up P2P ──
+        const p2p = new P2P();
+
+        p2p.onConnected((isHost) => {
+            console.log(isHost ? "im the host!" : "not the host...")
+            document.getElementById('chat').style.display = 'block';
+        });
+
+        p2p.onMessage((msg) => {
+            addMessage(msg, 'them');
+        });
+
+        p2p.onDisconnected(() => {
+            console.log('disconnected');
+        });
+
+        p2p.send(text);
+
+        // ── Rest is just your app ───────────────
+        document.getElementById('send-btn').addEventListener('click', sendMsg);
+        document.getElementById('msg-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMsg();
+        });
+
+        function sendMsg() {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if (!text) return;
+            p2p.send(text);
+            addMessage(text, 'me');
+            input.value = '';
+        }
+
+        function addMessage(text, who) {
+            const msgs = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = who === 'me' ? 'msg-me' : 'msg-them';
+            div.textContent = (who === 'me' ? 'me: ' : 'them: ') + text;
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+    </script>
+
+</body>
+
+</html>
