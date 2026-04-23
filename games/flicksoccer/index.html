@@ -293,6 +293,8 @@
     <div id="end-screen">
         <div class="end-winner" id="end-winner">BLUE WINS!</div>
         <div class="end-score" id="end-score">3 – 1</div>
+        <button class="lobby-btn" id="end-play-again" style="max-width:260px;margin-top:8px">Play Again</button>
+        <div class="waiting-msg" id="end-msg"></div>
     </div>
 
     <script>
@@ -406,6 +408,9 @@
                     }
                     savedPositionsB = players.filter(p => p.team === 'B').map(p => ({ x: p.x, y: p.y }));
                 }
+
+            } else if (msg.type === 'return_to_lobby') {
+                if (!isHost) returnToLobby();
             }
         }
 
@@ -448,10 +453,15 @@
                 p2p.send(JSON.stringify({ type: 'warmup_positions', positions: myPos }));
             }
 
-            // Goal flash
+            // Goal flash — show when goal scored
             if (prevState !== STATE.GOAL && gameState === STATE.GOAL) {
                 document.getElementById('goal-flash').classList.add('visible');
                 goalFlashTimer = 2400;
+            }
+            // Hide goal flash when host resets back to playing
+            if (prevState === STATE.GOAL && gameState === STATE.PLAYING) {
+                document.getElementById('goal-flash').classList.remove('visible');
+                goalFlashTimer = 0;
             }
 
             if (prevState !== STATE.ENDED && gameState === STATE.ENDED) {
@@ -542,6 +552,50 @@
             else { w.textContent = 'DRAW!'; w.style.color = '#ffe000'; }
             s.textContent = `${scoreA} – ${scoreB}`;
             document.getElementById('end-screen').classList.add('visible');
+
+            const btn = document.getElementById('end-play-again');
+            const msg = document.getElementById('end-msg');
+            if (isHost) {
+                btn.disabled = false;
+                btn.style.display = '';
+                msg.textContent = '';
+                btn.onclick = () => {
+                    p2p.send(JSON.stringify({ type: 'return_to_lobby' }));
+                    returnToLobby();
+                };
+            } else {
+                btn.style.display = 'none';
+                msg.textContent = 'Waiting for host to start a new game…';
+            }
+        }
+
+        function returnToLobby() {
+            // Reset all game state but keep the p2p connection alive
+            gameState = STATE.LOBBY;
+            scoreA = 0; scoreB = 0;
+            gameTimeLeft = 0; warmupLeft = 0;
+            currentTurn = 'A';
+            waitingForStop = false;
+            flickTarget = null; isDragging = false;
+            goalFlashTimer = 0;
+            players = [];
+            savedPositionsA = []; savedPositionsB = [];
+            ball = { x: 0, y: 0, vx: 0, vy: 0 };
+
+            // Hide all game screens
+            document.getElementById('end-screen').classList.remove('visible');
+            document.getElementById('hud').classList.remove('visible');
+            document.getElementById('goal-flash').classList.remove('visible');
+
+            // Show lobby — restore host controls if needed
+            document.getElementById('lobby').classList.add('visible');
+            if (isHost) {
+                document.querySelectorAll('#lobby input').forEach(i => i.disabled = false);
+                document.getElementById('lobby-start').disabled = false;
+                document.getElementById('lobby-msg').textContent = 'Opponent connected! Configure and start.';
+            } else {
+                document.getElementById('lobby-msg').textContent = 'Waiting for host to start…';
+            }
         }
 
         // ═══════════════════════════════════════════════════════
