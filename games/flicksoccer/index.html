@@ -272,6 +272,8 @@
             <div class="field-row"><label>Game length (min)</label><input type="number" id="cfg-game-length" min="1" max="20" value="5" /></div>
             <div class="field-row"><label>Goals to win</label><input type="number" id="cfg-goals-win" min="1" max="20" value="5" /></div>
             <div class="field-row"><label>Warmup time (sec)</label><input type="number" id="cfg-warmup" min="10" max="120" value="30" /></div>
+            <div class="field-row"><label>Field width (%)</label><input type="number" id="cfg-field-w" min="40" max="98" value="88" /></div>
+            <div class="field-row"><label>Field height (%)</label><input type="number" id="cfg-field-h" min="30" max="95" value="82" /></div>
             <button class="lobby-btn" id="lobby-start" disabled>Start Game</button>
             <div class="waiting-msg" id="lobby-msg">Waiting for opponent…</div>
         </div>
@@ -307,7 +309,7 @@
 
         let gameState = STATE.LOBBY;
         let isHost = false;
-        let cfg = { teamSize: 4, gameLength: 5, goalsWin: 5, warmup: 30 };
+        let cfg = { teamSize: 4, gameLength: 5, goalsWin: 5, warmup: 30, fieldW: 88, fieldH: 82 };
 
         let scoreA = 0, scoreB = 0;
         let gameTimeLeft = 0;
@@ -375,6 +377,8 @@
                 cfg.gameLength = parseInt(document.getElementById('cfg-game-length').value) || 5;
                 cfg.goalsWin = parseInt(document.getElementById('cfg-goals-win').value) || 5;
                 cfg.warmup = parseInt(document.getElementById('cfg-warmup').value) || 30;
+                cfg.fieldW = Math.min(98, Math.max(40, parseInt(document.getElementById('cfg-field-w').value) || 88));
+                cfg.fieldH = Math.min(95, Math.max(30, parseInt(document.getElementById('cfg-field-h').value) || 82));
                 p2p.send(JSON.stringify({ type: 'game_start', cfg }));
                 beginGame(cfg);
             });
@@ -479,8 +483,11 @@
         // ═══════════════════════════════════════════════════════
         //  GAME SETUP — global
         // ═══════════════════════════════════════════════════════
+        let needsBoardRecompute = false;
+
         function beginGame(config) {
             cfg = config;
+            needsBoardRecompute = true;
             gameState = STATE.WARMUP;
             scoreA = 0; scoreB = 0;
             gameTimeLeft = cfg.gameLength * 60;
@@ -670,7 +677,9 @@
 
             function computeBoard() {
                 const aspect = 1.6;
-                let w = sk.width * 0.88, h = sk.height * 0.82;
+                const fw = (cfg.fieldW || 88) / 100;
+                const fh = (cfg.fieldH || 82) / 100;
+                let w = sk.width * fw, h = sk.height * fh;
                 if (w / h > aspect) w = h * aspect; else h = w / aspect;
                 BW = w; BH = h;
                 OX = (sk.width - BW) / 2;
@@ -681,6 +690,7 @@
 
             sk.draw = () => {
                 sk.background(10, 16, 10);
+                if (needsBoardRecompute) { computeBoard(); needsBoardRecompute = false; }
                 if (gameState === STATE.LOBBY) return;
 
                 tickTime(); // global — works for both host and guest
