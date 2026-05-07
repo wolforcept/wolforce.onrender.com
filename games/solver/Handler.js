@@ -1,9 +1,9 @@
 var BoardConfig = [
-    "XXXXXXXXXXX",
-    "XXXXXXXXXXX",
-    "XXXXXXXXXXX",
-    "XXXXXXXXXXX",
-    "XXXXXXXXXXX",
+	"XXXXXXXXXXX",
+	"XXXXXXXXXXX",
+	"XXXXXXXXXXX",
+	"XXXXXXXXXXX",
+	"XXXXXXXXXXX",
 ];
 
 // Pre-placed pieces: define pieces already on the board before solving.
@@ -14,220 +14,226 @@ var BoardConfig = [
 //     { Name: "L", Cells: [[0,0],[0,1],[0,2],[0,3],[1,3]] },
 //     { Name: "V", Cells: [[1,0],[1,1],[1,2],[2,2],[3,2]] },
 // ];
-var PrePlaced = [
-    { Name: "P", Cells: [[2, 1], [2, 2], [2, 3], [3, 2], [3, 3]] },
-    { Name: "Y", Cells: [[4, 1], [5, 1], [5, 2], [6, 1], [7, 1]] },
-];
+var PrePlaced = [];
 
 var Pentominoes = [
-    {
-        Name: "L",
-        Layout: [
-            [1, 1],
-            [1, 2],
-            [1, 3],
-            [1, 4], [2, 4]
-        ]
-    },
-    {
-        Name: "l",
-        Layout: [
-            [1, 1],
-            [1, 2],
-            [1, 3], [2, 3]
-        ]
-    },
-    {
-        Name: "i",
-        Layout: [
-            [1, 1],
-            [1, 2], [2, 2]
-        ]
-    },
-    {
-        Name: "N",
-        Layout: [
-            [2, 1],
-            [2, 2],
-            [1, 3], [2, 3],
-            [1, 4]
-        ]
-    },
-    {
-        Name: "V",
-        Layout: [
-            [1, 1],
-            [1, 2],
-            [1, 3], [2, 3], [3, 3]
-        ]
-    },
-    {
-        Name: "P",
-        Layout: [
-            [1, 1], [2, 1],
-            [1, 2], [2, 2],
-            [1, 3]
-        ]
-    },
-    {
-        Name: "U",
-        Layout: [
-            [1, 1], [3, 1],
-            [1, 2], [2, 2], [3, 2]
-        ]
-    },
-    {
-        Name: "W",
-        Layout: [
-            [1, 1],
-            [1, 2], [2, 2],
-            [2, 3], [3, 3]
-        ]
-    },
-    {
-        Name: "Y",
-        Layout: [
-            [1, 1],
-            [1, 2],
-            [1, 3], [2, 3],
-            [1, 4]
-        ]
-    },
-    {
-        Name: "S",
-        Layout: [
-            [1, 1],
-            [1, 2], [2, 2],
-            [2, 3]
-        ]
-    },
-    {
-        Name: "T",
-        Layout: [
-            [1, 1],
-            [1, 2], [2, 2],
-            [1, 3]
-        ]
-    },
-    {
-        Name: "A",
-        Layout: [
-            [1, 1],
-            [1, 2], [2, 2], [3, 2]
-            , [2, 3]
-        ]
-    },
+{
+    Name: "L",
+    Layout: [
+    [1,1],
+    [1,2],
+    [1,3],
+    [1,4],[2,4]
+    ]},
+{
+    Name: "l",
+    Layout: [
+    [1,1],
+    [1,2],
+    [1,3],[2,3]
+    ]},
+{
+    Name: "i",
+    Layout: [
+    [1,1],
+    [1,2],[2,2]
+    ]},
+{
+    Name: "N",
+    Layout: [
+          [2,1],
+          [2,2],
+    [1,3],[2,3],
+    [1,4]
+    ]},
+{
+    Name: "V",
+    Layout: [
+    [1,1],
+    [1,2],
+    [1,3],[2,3],[3,3]
+    ]},
+{
+    Name: "P",
+    Layout: [
+    [1,1],[2,1],
+    [1,2],[2,2],
+    [1,3]
+    ]},
+{
+    Name: "U",
+    Layout: [
+    [1,1],      [3,1],
+    [1,2],[2,2],[3,2]
+    ]},
+{
+    Name: "W",
+    Layout: [
+    [1,1],
+    [1,2],[2,2],
+          [2,3],[3,3]
+    ]},
+{
+    Name: "Y",
+    Layout: [
+    [1,1],
+    [1,2],
+    [1,3],[2,3],
+    [1,4]
+    ]},
+{
+    Name: "S",
+    Layout: [
+    [1,1],
+    [1,2],[2,2],
+          [2,3]
+    ]},
+{
+    Name: "T",
+    Layout: [
+    [1,1],
+    [1,2],[2,2],
+    [1,3]
+    ]},
+{
+    Name: "A",
+    Layout: [
+    [1,1],
+    [1,2],[2,2],[3,2]
+         ,[2,3]
+    ]},
 ];
 
 var Shapes = [];
 
 var Board = {};
+var CleanBoard = {};  // snapshot of the empty board, used to reset before re-randomising
 
 var WebWorker = null;
 var Solutions = 0;
 var SolHash = {};
 
-Object.prototype.clone = function () {
-    var newObj = (this instanceof Array) ? [] : {};
-    for (i in this) {
-        if (i == 'clone') continue;
-        if (this[i] && typeof this[i] == "object") {
-            newObj[i] = this[i].clone();
-        } else newObj[i] = this[i]
-    } return newObj;
+Object.prototype.clone = function() {
+  var newObj = (this instanceof Array) ? [] : {};
+  for (i in this) {
+    if (i == 'clone') continue;
+    if (this[i] && typeof this[i] == "object") {
+      newObj[i] = this[i].clone();
+    } else newObj[i] = this[i]
+  } return newObj;
 };
 
-function StartWorker() {
-    Initialise();
+function StartWorker()
+{
+    if(typeof(Worker)!=="undefined"){
+        $("#randombtn").prop('disabled', true);
+        $("#solvebtn").prop('disabled', true);
+        $("#stopbtn").show();
+        $("#results").empty().hide();
+        $("#showbtn").hide();
+        Solutions = 0;
+        SolHash = {};
+        $("#solcnt").text(0);
 
-    if (typeof (Worker) !== "undefined") {
         WebWorker = new Worker('Kanoodle.js');
-
+    
         WebWorker.addEventListener('message', MessageCb, false);
-
-        WebWorker.postMessage({ 'MsgType': "start", 'Shapes': JSON.stringify(Shapes), 'Board': JSON.stringify(Board), 'PrePlacedIdx': JSON.stringify(GetPrePlacedIndices()) });
+    
+        WebWorker.postMessage({'MsgType': "start", 'Shapes': JSON.stringify(Shapes), 'Board': JSON.stringify(Board), 'PrePlacedIdx': JSON.stringify(GetPrePlacedIndices())});
     }
-    else {
+    else{
         WorkerStopped();
         alert("This browser does not support Web Workers! Try Chrome, Firefox, Opera or Safari");
     }
 }
 
-function StopWorker() {
+function StopWorker()
+{
     WebWorker.terminate();
     WorkerStopped();
 }
 
-function WorkerStopped() {
+function WorkerStopped()
+{
     WebWorker = null;
-    $("#stopbtn").remove();
+    $("#stopbtn").hide();
+    $("#randombtn").prop('disabled', false);
+    $("#solvebtn").prop('disabled', false);
 }
 
-function MessageCb(Event) {
+function MessageCb(Event)
+{
     var Data = Event.data;
     var Board;
+    var GlobalBoard = window.Board;
+    
+    switch(Data.MsgType){
+    case "debug":
+        Debug(Data.Msg);
+        break;
+        
+    case "solution":
+        Board = JSON.parse(Data.Board);
+        if(!DuplicateSolution(Board, Shapes)){
+            DumpBoard(Board, Shapes);
+        }
+        break;
+        
+    case "workupdate":
+        Board = JSON.parse(Data.Board);
+        UpdateWorkBoard(Board);
+        break;
 
-    switch (Data.MsgType) {
-        case "debug":
-            Debug(Data.Msg);
-            break;
-
-        case "solution":
-            Board = JSON.parse(Data.Board);
-            if (!DuplicateSolution(Board, Shapes)) {
-                DumpBoard(Board, Shapes);
-            }
-            break;
-
-        case "workupdate":
-            Board = JSON.parse(Data.Board);
-            UpdateWorkBoard(Board);
-            break;
-
-        case "finished":
-            StopWorker();
-            break;
-
+    case "finished":
+        StopWorker();
+        $("#showbtn").show();
+        $("#work").empty();
+        DrawWorkBoard(GlobalBoard);
+        UpdateWorkBoard(GlobalBoard);
+        break;
+        
     }
 }
 
-function DuplicateSolution(Board, Shapes) {
+function DuplicateSolution(Board, Shapes)
+{
     var Dupe = false;
     var String = "";
     var CurShape;
     var Row;
     var Col;
-
-    for (Row = 0; Row < Board.Height; Row++) {
-        for (Col = 0; Col < Board.Width; Col++) {
+    
+    for(Row=0; Row<Board.Height; Row++){
+        for(Col=0; Col<Board.Width; Col++){
             CurShape = Board.Layout[Col][Row];
-            if (CurShape >= 0) String += Shapes[CurShape].Name;
+            if(CurShape>=0) String += Shapes[CurShape].Name;
         }
     }
 
-    if (SolHash[String] === undefined) {
+    if(SolHash[String] === undefined){
         SolHash[String] = null;
     }
-    else {
+    else{
         Dupe = true;
     }
 
     return Dupe;
 }
 
-function Initialise() {
+function Initialise()
+{
     var CurShape;
-    var i, j, k;
-
-    //    Debug("Using " + Pentominoes.length + " pentominoes");
-    for (i = 0; i < Pentominoes.length; i++) {
+    var i,j,k;
+    
+//    Debug("Using " + Pentominoes.length + " pentominoes");
+    for(i=0; i<Pentominoes.length; i++){
         Shapes[i] = {}
         Shapes[i].Layout = [];
         Shapes[i].Name = Pentominoes[i].Name;
         Shapes[i].Colour = Pentominoes[i].Colour;
-        for (k = 0; k < 3; k++) {
+        for(k=0; k<3; k++){
             CurShape = Pentominoes[i].Layout;
-            switch (k) {
+            switch(k){
                 case 0:
                     CurShape = ShiftShape(CurShape);
                     CurShape.sort(LocCompare);
@@ -239,36 +245,39 @@ function Initialise() {
                     CurShape = FlipShapeY(CurShape);
                     break;
             }
-            for (j = 0; j < 4; j++) {
-                if (!DuplicateLayout(Shapes[i].Layout, CurShape)) {
+            for(j=0; j<4; j++){
+                if(!DuplicateLayout(Shapes[i].Layout, CurShape)){
                     AddLayout(i, CurShape);
                 }
                 CurShape = RotateShape(CurShape);
             }
         }
-        /*
-                Debug("Pentomino " + Pentominoes[i].Name + " has " + Shapes[i].Layout.length + " layouts");
-                for(var l=0; l<Shapes[i].Layout.length; l++){
-                    Debug(Shapes[i].Layout[l].toString())
-                }
-        */
+/*
+        Debug("Pentomino " + Pentominoes[i].Name + " has " + Shapes[i].Layout.length + " layouts");
+        for(var l=0; l<Shapes[i].Layout.length; l++){
+            Debug(Shapes[i].Layout[l].toString())
+        }
+*/
     }
-
+    
     Board.Width = 0;
     Board.Height = BoardConfig.length;
-    for (i = 0; i < BoardConfig.length; i++) {
+    for(i=0; i<BoardConfig.length; i++){
         Board.Width = Math.max(Board.Width, BoardConfig[i].length);
     }
 
     Board.Layout = [];
-    for (i = 0; i < Board.Width; i++) {
+    for(i=0; i<Board.Width; i++){
         var Col = new Array();
-        for (j = 0; j < Board.Height; j++) {
-            if (BoardConfig[j].substring(i, i + 1) == "X") Col.push(-1);
+        for(j=0; j<Board.Height; j++){
+            if(BoardConfig[j].substring(i,i+1) == "X") Col.push(-1);
             else Col.push(-2);
         }
         Board.Layout.push(Col);
     }
+    
+    // Save a clean copy of the board (no pieces placed) for use by RandomisePieces
+    CleanBoard = Board.clone();
 
     // Stamp pre-placed pieces onto the board so the solver treats them as already filled.
     // Their shape index is written into Board.Layout, and they will be excluded from ShapeList.
@@ -294,171 +303,248 @@ function Initialise() {
     DrawWorkBoard(Board);
 }
 
-function AddLayout(ShapeNo, Layout) {
+function AddLayout(ShapeNo, Layout)
+{
     Shapes[ShapeNo].Layout.push(Layout);
 }
 
-function DuplicateLayout(Layouts, Shape) {
-    for (var i = 0; i < Layouts.length; i++) {
-        if (CompareShape(Layouts[i], Shape)) return true;
+function DuplicateLayout(Layouts, Shape)
+{
+    for(var i=0; i<Layouts.length; i++){
+        if(CompareShape(Layouts[i], Shape)) return true;
     }
-
+    
     return false;
 }
 
-function CompareShape(Shape1, Shape2) {
-    if (Shape1.length != Shape2.length) return false;
-
-    for (var i = 0; i < Shape1.length; i++) {
-        if (Shape1[i][0] != Shape2[i][0]) return false;
-        if (Shape1[i][1] != Shape2[i][1]) return false;
+function CompareShape(Shape1, Shape2)
+{
+    if(Shape1.length != Shape2.length) return false;
+    
+    for(var i=0; i<Shape1.length; i++){
+        if(Shape1[i][0] != Shape2[i][0]) return false;
+        if(Shape1[i][1] != Shape2[i][1]) return false;
     }
-
+    
     return true;
 }
 
-function ShiftShape(Shape) {
+function ShiftShape(Shape)
+{
     var NewShape = Shape.clone();
     var MinX = NewShape[0][0];
     var MinY = NewShape[0][1];
     var i;
-
-    for (i = 0; i < NewShape.length; i++) {
+    
+    for(i=0; i<NewShape.length; i++){
         MinX = Math.min(MinX, NewShape[i][0]);
         MinY = Math.min(MinY, NewShape[i][1]);
     }
-
-    for (i = 0; i < NewShape.length; i++) {
+    
+    for(i=0; i<NewShape.length; i++){
         NewShape[i][0] -= MinX;
         NewShape[i][1] -= MinY;
-    }
-
+    }    
+    
     return NewShape;
 }
 
-function RotateShape(Shape) {
+function RotateShape(Shape)
+{
     var NewShape = Shape.clone();
-
-    for (var i = 0; i < NewShape.length; i++) {
+    
+    for(var i=0; i<NewShape.length; i++){
         var x = NewShape[i][0];
         var y = NewShape[i][1];
-        NewShape[i][0] = 6 - y;
+        NewShape[i][0] = 6-y;
         NewShape[i][1] = x;
     }
     NewShape.sort(LocCompare);
-
+    
     return ShiftShape(NewShape);
 }
 
-function FlipShapeX(Shape) {
+function FlipShapeX(Shape)
+{
     var NewShape = Shape.clone();
-
-    for (var i = 0; i < NewShape.length; i++) {
+    
+    for(var i=0; i<NewShape.length; i++){
         NewShape[i][0] = 6 - NewShape[i][0];
     }
     NewShape.sort(LocCompare);
-
-    return ShiftShape(NewShape);
+    
+    return ShiftShape(NewShape);    
 }
 
-function FlipShapeY(Shape) {
+function FlipShapeY(Shape)
+{
     var NewShape = Shape.clone();
-
-    for (var i = 0; i < NewShape.length; i++) {
+    
+    for(var i=0; i<NewShape.length; i++){
         NewShape[i][1] = 6 - NewShape[i][1];
     }
     NewShape.sort(LocCompare);
 
-    return ShiftShape(NewShape);
+    return ShiftShape(NewShape);        
 }
 
-function LocCompare(Loc1, Loc2) {
-    if (Loc1[0] < Loc2[0]) return -1;
-    if (Loc1[0] > Loc2[0]) return 1;
-    if (Loc1[1] < Loc2[1]) return -1;
-    if (Loc1[1] > Loc2[1]) return 1;
+function LocCompare(Loc1, Loc2)
+{
+    if(Loc1[0] < Loc2[0]) return -1;
+    if(Loc1[0] > Loc2[0]) return 1;
+    if(Loc1[1] < Loc2[1]) return -1;
+    if(Loc1[1] > Loc2[1]) return 1;
     return 0;
 }
 
-function DumpBoard(Board, Shapes) {
+function DumpBoard(Board, Shapes)
+{
     var Row;
     var Col;
     var Table;
-
+    
     Table = '<table class="st">';
-    for (Row = 0; Row < Board.Height; Row++) {
+    for(Row=0; Row<Board.Height; Row++){
         Table += '<tr class="sr">';
-        for (Col = 0; Col < Board.Width; Col++) {
+        for(Col=0; Col<Board.Width; Col++){
             Table += '<td class="sc ' + CellClass(Board, Col, Row) + '"/>';
         }
         Table += "</tr>"
-    }
+    }    
     Table += "</table>";
-
-    $("#results").append(Table);
-
+    
+    $("#results").append(Table);    
+    
     $("#solcnt").text(++Solutions);
 }
 
-function DrawWorkBoard(Board) {
+function DrawWorkBoard(Board)
+{
     var Row;
     var Col;
     var Table;
-
+    
     Table = '<table id="worktable" class="wt">';
-    for (Row = 0; Row < Board.Height; Row++) {
+    for(Row=0; Row<Board.Height; Row++){
         Table += '<tr class="wr">';
-        for (Col = 0; Col < Board.Width; Col++) {
+        for(Col=0; Col<Board.Width; Col++){
             Table += '<td id="workcell' + Col + "x" + Row + '" class="wc"/>';
         }
         Table += "</tr>"
-    }
+    }    
     Table += "</table>";
-
-    $("#work").append(Table);
+    
+    $("#work").append(Table);    
 }
 
-function UpdateWorkBoard(Board) {
+function UpdateWorkBoard(Board)
+{
     var Row;
     var Col;
     var Class;
-
-    for (Row = 0; Row < Board.Height; Row++) {
-        for (Col = 0; Col < Board.Width; Col++) {
+    
+    for(Row=0; Row<Board.Height; Row++){
+        for(Col=0; Col<Board.Width; Col++){
             Class = CellClass(Board, Col, Row);
             $("#workcell" + Col + "x" + Row).attr('class', "wc " + Class);
         }
-    }
+    }    
 }
 
-function CellClass(Board, Col, Row) {
+function CellClass(Board, Col, Row)
+{
     var CurShape;
     var Class;
-
+    
     CurShape = Board.Layout[Col][Row];
 
-    if (CurShape == -2 && (Row == 0 || Board.Layout[Col][Row - 1] == -2)) Class = " btn";
-    else if (Row > 0 && Board.Layout[Col][Row - 1] == CurShape) Class = " btd";
+    if(CurShape == -2 && (Row == 0 || Board.Layout[Col][Row-1] == -2)) Class = " btn";
+    else if(Row>0 && Board.Layout[Col][Row-1] == CurShape) Class = " btd";
     else Class = " bts";
 
-    if (CurShape == -2 && (Row == Board.Height - 1 || Board.Layout[Col][Row + 1] == -2)) Class += " bbn";
-    else if (Row < Board.Height - 1 && Board.Layout[Col][Row + 1] == CurShape) Class += " bbd";
+    if(CurShape == -2 && (Row == Board.Height-1 || Board.Layout[Col][Row+1] == -2)) Class += " bbn";
+    else if(Row<Board.Height-1 && Board.Layout[Col][Row+1] == CurShape) Class += " bbd";
     else Class += " bbs";
 
-    if (CurShape == -2 && (Col == 0 || Board.Layout[Col - 1][Row] == -2)) Class += " bln";
-    else if (Col > 0 && Board.Layout[Col - 1][Row] == CurShape) Class += " bld";
+    if(CurShape == -2 && (Col == 0 || Board.Layout[Col-1][Row] == -2)) Class += " bln";
+    else if(Col>0 && Board.Layout[Col-1][Row] == CurShape) Class += " bld";
     else Class += " bls";
 
-    if (CurShape == -2 && (Col == Board.Width - 1 || Board.Layout[Col + 1][Row] == -2)) Class += " brn";
-    else if (Col < Board.Width - 1 && Board.Layout[Col + 1][Row] == CurShape) Class += " brd";
+    if(CurShape == -2 && (Col == Board.Width-1 || Board.Layout[Col+1][Row] == -2)) Class += " brn";
+    else if(Col<Board.Width-1 && Board.Layout[Col+1][Row] == CurShape) Class += " brd";
     else Class += " brs";
 
-    if (CurShape >= 0) Class += " c" + Shapes[CurShape].Name;
+    if(CurShape>=0) Class += " c" + Shapes[CurShape].Name;
 
     return Class;
 }
 
-function GetPrePlacedIndices() {
+function RandomisePieces()
+{
+    // Reset board to clean state
+    Board = CleanBoard.clone();
+    PrePlaced = [];
+
+    // Pick 2 distinct random shape indices
+    var allIdx = [];
+    for (var i = 0; i < Shapes.length; i++) allIdx.push(i);
+    // Shuffle and take first 2
+    for (var i = allIdx.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = allIdx[i]; allIdx[i] = allIdx[j]; allIdx[j] = tmp;
+    }
+    var chosen = [allIdx[0], allIdx[1]];
+
+    for (var p = 0; p < chosen.length; p++) {
+        var shapeIdx = chosen[p];
+        var layouts = Shapes[shapeIdx].Layout;
+
+        // Try random placements until one fits
+        var placed = false;
+        var attempts = 0;
+        while (!placed && attempts < 1000) {
+            attempts++;
+            // Pick a random layout variant
+            var layoutIdx = Math.floor(Math.random() * layouts.length);
+            var layout = layouts[layoutIdx];
+
+            // Pick a random offset so the shape lands somewhere on the board
+            var offX = Math.floor(Math.random() * Board.Width);
+            var offY = Math.floor(Math.random() * Board.Height);
+
+            // Check all cells of this layout at this offset
+            var fits = true;
+            for (var c = 0; c < layout.length; c++) {
+                var px = offX + layout[c][0];
+                var py = offY + layout[c][1];
+                if (px < 0 || px >= Board.Width || py < 0 || py >= Board.Height) { fits = false; break; }
+                if (Board.Layout[px][py] !== -1) { fits = false; break; }
+            }
+
+            if (fits) {
+                // Stamp the shape onto the board
+                var cells = [];
+                for (var c = 0; c < layout.length; c++) {
+                    var px = offX + layout[c][0];
+                    var py = offY + layout[c][1];
+                    Board.Layout[px][py] = shapeIdx;
+                    cells.push([px, py]);
+                }
+                PrePlaced.push({ Name: Shapes[shapeIdx].Name, Cells: cells });
+                placed = true;
+            }
+        }
+
+        if (!placed) {
+            Debug("RandomisePieces: could not place piece " + Shapes[shapeIdx].Name + " after 1000 attempts");
+        }
+    }
+
+    UpdateWorkBoard(Board);
+}
+
+function GetPrePlacedIndices()
+{
     var indices = [];
     for (var i = 0; i < PrePlaced.length; i++) {
         for (var j = 0; j < Shapes.length; j++) {
@@ -471,6 +557,7 @@ function GetPrePlacedIndices() {
     return indices;
 }
 
-function Debug(Msg) {
-    $("#debug").append('<p class="debug">' + Msg + "</p>");
+function Debug(Msg)
+{
+    $("#debug").append('<p class="debug">' + Msg + "</p>");    
 }
