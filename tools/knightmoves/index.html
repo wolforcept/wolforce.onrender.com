@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spiral Canvas</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #111113;
+            --panel: #18181b;
+            --border: #2c2c32;
+            --border2: #3a3a42;
+            --accent: #7ee8a2;
+            --accent2: #38bdf8;
+            --danger: #f87171;
+            --text: #d4d4d8;
+            --muted: #52525b;
+            --muted2: #71717a;
+            --font-mono: 'IBM Plex Mono', monospace;
+            --font-sans: 'IBM Plex Sans', sans-serif;
+            --panel-w: 340px;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            font-size: 13px;
+        }
+
+        #app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* ── PANEL ── */
+        #panel {
+            width: var(--panel-w);
+            min-width: 200px;
+            max-width: 600px;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        #panel-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border2) transparent;
+        }
+
+        /* ── RESIZE HANDLE ── */
+        #resize-handle {
+            position: absolute;
+            top: 0;
+            right: -4px;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #resize-handle::after {
+            content: '';
+            width: 2px;
+            height: 40px;
+            border-radius: 2px;
+            background: var(--border2);
+            transition: background 0.15s, height 0.15s;
+        }
+
+        #resize-handle:hover::after,
+        #resize-handle.dragging::after {
+            background: var(--accent);
+            height: 60px;
+        }
+
+        .section-title {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            color: var(--muted2);
+            margin-bottom: 10px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .field label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--muted2);
+            letter-spacing: .06em;
+        }
+
+        .field input[type=number] {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            color: var(--text);
+            padding: 7px 10px;
+            outline: none;
+            width: 100%;
+            transition: border-color .15s;
+        }
+
+        .field input:focus {
+            border-color: var(--accent);
+        }
+
+        .row2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        #cursor-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 120px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border2) transparent;
+        }
+
+        .cursor-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--muted2);
+        }
+
+        .cursor-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .cursor-stat {
+            margin-left: auto;
+            color: var(--muted);
+        }
+
+        .editor-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .editor-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted2);
+            margin-bottom: 6px;
+        }
+
+        .monaco-container {
+            border: 1px solid var(--border2);
+            /* FIX: overflow visible so Monaco can measure correctly */
+            overflow: visible;
+            transition: border-color .15s;
+            position: relative;
+        }
+
+        .monaco-container:focus-within {
+            border-color: var(--accent);
+        }
+
+        /* Monaco inner scroll area must be clipped, not the outer wrapper */
+        .monaco-container .overflow-guard {
+            overflow: hidden !important;
+        }
+
+        #panel-footer {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            border: 1px solid transparent;
+            background: transparent;
+            cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s;
+            flex: 1;
+        }
+
+        #btn-run {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        #btn-run:hover {
+            background: var(--accent);
+            color: #000;
+        }
+
+        #btn-stop {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        #btn-stop:hover {
+            background: var(--danger);
+            color: #000;
+        }
+
+        #btn-clear {
+            border-color: var(--border2);
+            color: var(--muted2);
+        }
+
+        #btn-clear:hover {
+            border-color: var(--text);
+            color: var(--text);
+        }
+
+        #btn-apply {
+            border-color: var(--accent2);
+            color: var(--accent2);
+        }
+
+        #btn-apply:hover {
+            background: var(--accent2);
+            color: #000;
+        }
+
+        button:disabled {
+            opacity: .3;
+            cursor: not-allowed;
+        }
+
+        button:disabled:hover {
+            background: transparent !important;
+        }
+
+        #speed-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--muted2);
+        }
+
+        #speed-row input[type=range] {
+            flex: 1;
+            accent-color: var(--accent);
+        }
+
+        /* ── CANVAS AREA ── */
+        #canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            background: var(--bg);
+            min-width: 0;
+        }
+
+        #canvas-viewport {
+            position: relative;
+            transform-origin: center center;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        #canvas-border {
+            position: absolute;
+            inset: 0;
+            border: 1px solid var(--border2);
+            pointer-events: none;
+        }
+
+        /* ── HUD ── */
+        #hud {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--muted);
+            text-align: right;
+            line-height: 1.9;
+            pointer-events: none;
+        }
+
+        #zoom-controls {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .zoom-btn {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--border2);
+            background: var(--panel);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+            padding: 0;
+            transition: border-color .15s;
+        }
+
+        .zoom-btn:hover {
+            border-color: var(--accent);
+        }
+
+        #zoom-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--muted);
+            padding: 0 4px;
+            min-width: 42px;
+            text-align: center;
+        }
+
+        #fit-btn {
+            font-size: 10px;
+            letter-spacing: .05em;
+            width: auto;
+            padding: 0 8px;
+        }
+
+        #error-toast {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #3b0000;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 8px 16px;
+            max-width: 600px;
+            display: none;
+            z-index: 100;
+            pointer-events: auto;
+            user-select: text;
+            cursor: text;
+        }
+
+        /* Prevent text selection while resizing */
+        body.resizing * {
+            user-select: none !important;
+            cursor: col-resize !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+
+        <!-- LEFT PANEL -->
+        <div id="panel">
+            <div id="panel-scroll">
+
+                <div>
+                    <div class="section-title">Canvas</div>
+                    <div class="row2">
+                        <div class="field"><label>Width (px)</label><input type="number" id="cfg-w" value="1000" min="10" max="4000"></div>
+                        <div class="field"><label>Height (px)</label><input type="number" id="cfg-h" value="1000" min="10" max="4000"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="section-title">Cursors</div>
+                    <div class="field"><label>Number of cursors</label><input type="number" id="cfg-n" value="2" min="1" max="64"></div>
+                    <div style="height:10px"></div>
+                    <div id="cursor-legend"></div>
+                </div>
+
+                <div class="editor-wrap">
+                    <div class="editor-label">Position function</div>
+                    <div class="monaco-container" id="editor-pos-wrap" style="height:120px"></div>
+                </div>
+
+                <div class="editor-wrap">
+                    <div class="editor-label">Color function</div>
+                    <div class="monaco-container" id="editor-col-wrap" style="height:310px"></div>
+                </div>
+
+            </div>
+
+            <div id="panel-footer">
+                <div class="btn-row">
+                    <button id="btn-apply">↺ Apply</button>
+                    <button id="btn-clear">✕ Clear</button>
+                </div>
+                <div class="btn-row">
+                    <button id="btn-run">▶ Run</button>
+                    <button id="btn-stop" disabled>■ Stop</button>
+                </div>
+                <div id="speed-row">
+                    Speed <input type="range" id="speed" min="1" max="5000" value="500">
+                    <span id="speed-val">500</span>
+                </div>
+            </div>
+
+            <!-- Resize handle -->
+            <div id="resize-handle"></div>
+        </div>
+
+        <!-- CANVAS AREA -->
+        <div id="canvas-area">
+            <div id="canvas-viewport">
+                <canvas id="c"></canvas>
+                <div id="canvas-border"></div>
+            </div>
+
+            <div id="zoom-controls">
+                <button class="zoom-btn" id="btn-zoom-out">−</button>
+                <span id="zoom-label">100%</span>
+                <button class="zoom-btn" id="btn-zoom-in">+</button>
+                <button class="zoom-btn fit-btn" id="btn-zoom-fit">FIT</button>
+            </div>
+
+            <div id="hud">
+                <div id="hud-progress">—</div>
+                <div id="hud-counts"></div>
+            </div>
+
+            <div id="error-toast"></div>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <script>
+        // ─────────────────────────────────────────────
+        // DEFAULT EDITOR CONTENT
+        // ─────────────────────────────────────────────
+        const DEFAULT_POS_FN =
+`({ step, W, H, cursorIndex, totalCursors, getPixel, spiralPos, cursorColors }) => {
+  // Return the next {x, y} for this cursor, or null to skip.
+  // spiralPos(step) gives the square-spiral coordinate for any step index.
+  return spiralPos(step);
+}`;
+
+        const DEFAULT_COL_FN =
+`({ x, y, step, W, H, cursorIndex, totalCursors, getPixel, spiralPos, cursorColors }) => {
+  // cursorColors[cursorIndex] = this cursor's {r,g,b}.
+  // Return {r,g,b} to paint, or null to leave the pixel black forever.
+
+  // Skip if already painted by anyone
+  const here = getPixel(x, y);
+  if (here && here.a > 0) return null;
+
+  const myColor = cursorColors[cursorIndex];
+  const MOVES = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+
+  for (const [dx, dy] of MOVES) {
+    const p = getPixel(x + dx, y + dy);
+    if (!p || p.a === 0) continue;
+    // If any knight-neighbour belongs to a different cursor, skip
+    for (let ci = 0; ci < totalCursors; ci++) {
+      if (ci === cursorIndex) continue;
+      const oc = cursorColors[ci];
+      if (p.r === oc.r && p.g === oc.g && p.b === oc.b) return null;
+    }
+  }
+  return myColor;
+}`;
+
+        // ─────────────────────────────────────────────
+        // MONACO
+        // ─────────────────────────────────────────────
+        let editorPos, editorCol;
+
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+        require(['vs/editor/editor.main'], () => {
+            monaco.editor.defineTheme('sp', {
+                base: 'vs-dark', inherit: true, rules: [],
+                colors: {
+                    'editor.background': '#111113',
+                    'editor.lineHighlightBackground': '#1c1c20',
+                    'editorLineNumber.foreground': '#3a3a42',
+                    'editorCursor.foreground': '#7ee8a2',
+                }
+            });
+
+            const opts = (el, val) => monaco.editor.create(el, {
+                value: val, language: 'javascript', theme: 'sp',
+                fontSize: 12, fontFamily: "'IBM Plex Mono', monospace",
+                lineNumbers: 'off', minimap: { enabled: false },
+                scrollBeyondLastLine: false, wordWrap: 'on',
+                automaticLayout: true, tabSize: 2,
+                renderLineHighlight: 'none', overviewRulerLanes: 0,
+                scrollbar: { verticalScrollbarSize: 4, horizontalScrollbarSize: 4 },
+                padding: { top: 8, bottom: 8 },
+                fixedOverflowWidgets: true,  // FIX: prevents overflow widgets from being clipped
+            });
+
+            editorPos = opts(document.getElementById('editor-pos-wrap'), DEFAULT_POS_FN);
+            editorCol = opts(document.getElementById('editor-col-wrap'), DEFAULT_COL_FN);
+
+            // FIX: Re-layout editors when panel is scrolled so Monaco
+            // recalculates its bounding rect for hit-testing
+            document.getElementById('panel-scroll').addEventListener('scroll', () => {
+                editorPos && editorPos.layout();
+                editorCol && editorCol.layout();
+            }, { passive: true });
+        });
+
+        // ─────────────────────────────────────────────
+        // CANVAS / BUFFER
+        // ─────────────────────────────────────────────
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+        let W, H, imageData, buf;
+
+        function initCanvas(w, h) {
+            W = w; H = h;
+            canvas.width = W; canvas.height = H;
+            imageData = ctx.createImageData(W, H);
+            buf = imageData.data;
+        }
+
+        function getPixel(x, y) {
+            if (x < 0 || y < 0 || x >= W || y >= H) return null;
+            const i = (y * W + x) * 4;
+            return { r: buf[i], g: buf[i + 1], b: buf[i + 2], a: buf[i + 3] };
+        }
+
+        function setPixel(x, y, r, g, b, a = 255) {
+            if (x < 0 || y < 0 || x >= W || y >= H) return;
+            const i = (y * W + x) * 4;
+            buf[i] = r; buf[i + 1] = g; buf[i + 2] = b; buf[i + 3] = a;
+        }
+
+        function flushCanvas() { ctx.putImageData(imageData, 0, 0); }
+
+        // ─────────────────────────────────────────────
+        // SPIRAL TABLE
+        // ─────────────────────────────────────────────
+        let spiralTable = [];
+
+        function buildSpiral(w, h) {
+            const CX = Math.floor(w / 2), CY = Math.floor(h / 2);
+            const total = w * h;
+            const t = new Array(total);
+            let x = 0, y = 0, dx = 1, dy = 0, segLen = 1, segStep = 0, segCount = 0;
+            for (let s = 0; s < total; s++) {
+                const px = CX + x, py = CY + y;
+                t[s] = (px >= 0 && py >= 0 && px < w && py < h) ? { x: px, y: py } : null;
+                x += dx; y += dy; segStep++;
+                if (segStep === segLen) {
+                    [dx, dy] = [dy, -dx]; segStep = 0;
+                    if (++segCount === 2) { segLen++; segCount = 0; }
+                }
+            }
+            return t;
+        }
+
+        function spiralPos(step) {
+            return step < spiralTable.length ? spiralTable[step] : null;
+        }
+
+        // ─────────────────────────────────────────────
+        // CURSOR COLORS
+        // ─────────────────────────────────────────────
+        let cursorColors = [];
+
+        function hslToRgb(h, s, l) {
+            s /= 100; l /= 100;
+            const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+            const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+            return { r: Math.round(f(0) * 255), g: Math.round(f(8) * 255), b: Math.round(f(4) * 255) };
+        }
+
+        function buildColors(n) {
+            return Array.from({ length: n }, (_, i) => hslToRgb((i / n) * 360, 85, 60));
+        }
+
+        function toHex({ r, g, b }) {
+            return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+        }
+
+        // ─────────────────────────────────────────────
+        // CURSOR LEGEND
+        // ─────────────────────────────────────────────
+        function buildLegend(n, colors) {
+            const el = document.getElementById('cursor-legend');
+            el.innerHTML = '';
+            for (let i = 0; i < n; i++) {
+                const row = document.createElement('div');
+                row.className = 'cursor-row';
+                row.innerHTML = `
+      <div class="cursor-swatch" style="background:${toHex(colors[i])}"></div>
+      <span>cursor ${i}</span>
+      <span class="cursor-stat" id="stat-${i}">0</span>`;
+                el.appendChild(row);
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // FUNCTION COMPILATION
+        // ─────────────────────────────────────────────
+        let compiledPosFn = null;
+        let compiledColFn = null;
+
+        function showError(msg) {
+            const t = document.getElementById('error-toast');
+            t.textContent = msg; t.style.display = 'block';
+            clearTimeout(showError._t);
+            showError._t = setTimeout(() => t.style.display = 'none', 6000);
+        }
+
+        // Compile the editor text (a full arrow/function expression) into a callable.
+        // We wrap it in a new Function so it executes in a clean scope with no
+        // dependency on outer let-bindings, then immediately invoke it to get
+        // the inner function back.
+        function evalFn(src, label) {
+            try {
+                const fn = (new Function('return (' + src + ')'))();
+                if (typeof fn !== 'function') throw new Error('Expression did not evaluate to a function');
+                return fn;
+            } catch (e) {
+                showError(`${label}: ${e.message}`);
+                return null;
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // APPLY CONFIG
+        // ─────────────────────────────────────────────
+        function applyConfig() {
+            const w = Math.max(10, Math.min(4000, +document.getElementById('cfg-w').value || 1000));
+            const h = Math.max(10, Math.min(4000, +document.getElementById('cfg-h').value || 1000));
+            const n = Math.max(1, Math.min(64, +document.getElementById('cfg-n').value || 2));
+
+            const posSrc = editorPos ? editorPos.getValue() : DEFAULT_POS_FN;
+            const colSrc = editorCol ? editorCol.getValue() : DEFAULT_COL_FN;
+
+            const posFn = evalFn(posSrc, 'Position function');
+            const colFn = evalFn(colSrc, 'Color function');
+
+            if (!posFn || !colFn) return false;
+
+            compiledPosFn = posFn;
+            compiledColFn = colFn;
+
+            stopPainting();
+            const dimsChanged = (w !== W || h !== H);
+            initCanvas(w, h);
+            spiralTable = buildSpiral(w, h);
+            cursorColors = buildColors(n);
+            buildLegend(n, cursorColors);
+            resetState(n);
+            flushCanvas();
+            if (dimsChanged) fitZoom();
+            return true;
+        }
+
+        // ─────────────────────────────────────────────
+        // SIMULATION STATE
+        // ─────────────────────────────────────────────
+        let cursors = [];
+        let totalCursors = 0;
+
+        function resetState(n) {
+            totalCursors = n;
+            cursors = Array.from({ length: n }, () => ({ pos: 0, painted: 0 }));
+            buf.fill(0);
+        }
+
+        function stepCursor(ci) {
+            const cur = cursors[ci];
+            const total = W * H;
+
+            while (cur.pos < total) {
+                const step = cur.pos++;
+
+                let pos;
+                try {
+                    pos = compiledPosFn({ step, W, H, cursorIndex: ci, totalCursors, getPixel, spiralPos, cursorColors });
+                } catch (e) { showError(`positionFn[${ci}]: ${e.message}`); return false; }
+
+                if (pos === null) continue;
+
+                let color;
+                try {
+                    color = compiledColFn({ x: pos.x, y: pos.y, step, W, H, cursorIndex: ci, totalCursors, getPixel, spiralPos, cursorColors });
+                } catch (e) { showError(`colorFn[${ci}]: ${e.message}`); return false; }
+
+                if (color === null) continue;
+
+                setPixel(pos.x, pos.y, color.r, color.g, color.b, color.a ?? 255);
+                cur.painted++;
+                return true;
+            }
+            return false;
+        }
+
+        // ─────────────────────────────────────────────
+        // RUNNER
+        // ─────────────────────────────────────────────
+        let running = false;
+        let animId = null;
+
+        function tick() {
+            if (!running) return;
+            const batchSize = +document.getElementById('speed').value;
+
+            let anyAlive = false;
+            for (let i = 0; i < batchSize; i++) {
+                let roundAlive = false;
+                for (let ci = 0; ci < totalCursors; ci++) {
+                    if (stepCursor(ci)) roundAlive = true;
+                }
+                if (roundAlive) anyAlive = true;
+                else break;
+            }
+
+            flushCanvas();
+            updateHUD();
+
+            if (anyAlive) animId = requestAnimationFrame(tick);
+            else finish();
+        }
+
+        function updateHUD() {
+            const maxPos = Math.max(...cursors.map(c => c.pos));
+            const pct = Math.min(100, (maxPos / (W * H)) * 100).toFixed(1);
+            document.getElementById('hud-progress').textContent = pct + '%';
+
+            document.getElementById('hud-counts').innerHTML =
+                cursors.map((c, i) => `<span style="color:${toHex(cursorColors[i])}">${c.painted.toLocaleString()}</span>`).join(' / ');
+
+            cursors.forEach((c, i) => {
+                const el = document.getElementById(`stat-${i}`);
+                if (el) el.textContent = c.painted.toLocaleString();
+            });
+        }
+
+        function finish() {
+            running = false;
+            document.getElementById('btn-run').disabled = false;
+            document.getElementById('btn-stop').disabled = true;
+            document.getElementById('hud-progress').textContent = '100% — done ✓';
+            updateHUD();
+        }
+
+        function startPainting() {
+            if (running) return;
+            if (!compiledPosFn || !compiledColFn) { if (!applyConfig()) return; }
+            running = true;
+            document.getElementById('btn-run').disabled = true;
+            document.getElementById('btn-stop').disabled = false;
+            animId = requestAnimationFrame(tick);
+        }
+
+        function stopPainting() {
+            running = false;
+            if (animId) cancelAnimationFrame(animId);
+            document.getElementById('btn-run').disabled = false;
+            document.getElementById('btn-stop').disabled = true;
+        }
+
+        function clearCanvas() {
+            stopPainting();
+            const n = cursors.length || +document.getElementById('cfg-n').value || 2;
+            resetState(n);
+            flushCanvas();
+            document.getElementById('hud-progress').textContent = '—';
+            document.getElementById('hud-counts').innerHTML = '';
+            for (let i = 0; i < n; i++) {
+                const el = document.getElementById(`stat-${i}`);
+                if (el) el.textContent = '0';
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // ZOOM
+        // ─────────────────────────────────────────────
+        let zoom = 1;
+
+        function setZoom(z) {
+            zoom = Math.max(0.02, Math.min(10, z));
+            document.getElementById('canvas-viewport').style.transform = `scale(${zoom})`;
+            document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+        }
+
+        function fitZoom() {
+            const area = document.getElementById('canvas-area');
+            const zw = (area.clientWidth - 40) / W;
+            const zh = (area.clientHeight - 40) / H;
+            setZoom(Math.min(zw, zh, 1));
+        }
+
+        document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(zoom * 1.25));
+        document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(zoom / 1.25));
+        document.getElementById('btn-zoom-fit').addEventListener('click', fitZoom);
+        document.getElementById('canvas-area').addEventListener('wheel', e => {
+            e.preventDefault();
+            setZoom(zoom * (e.deltaY < 0 ? 1.1 : 0.9));
+        }, { passive: false });
+
+        // ─────────────────────────────────────────────
+        // PANEL RESIZE
+        // ─────────────────────────────────────────────
+        (function initResize() {
+            const handle = document.getElementById('resize-handle');
+            const panel = document.getElementById('panel');
+            let startX = 0;
+            let startW = 0;
+
+            handle.addEventListener('mousedown', e => {
+                e.preventDefault();
+                startX = e.clientX;
+                startW = panel.offsetWidth;
+                handle.classList.add('dragging');
+                document.body.classList.add('resizing');
+
+                function onMove(e) {
+                    const dx = e.clientX - startX;
+                    const newW = Math.max(200, Math.min(600, startW + dx));
+                    panel.style.width = newW + 'px';
+                    // Re-layout Monaco editors so their internal measurements stay correct
+                    editorPos && editorPos.layout();
+                    editorCol && editorCol.layout();
+                }
+
+                function onUp() {
+                    handle.classList.remove('dragging');
+                    document.body.classList.remove('resizing');
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    // Final layout pass after resize ends
+                    editorPos && editorPos.layout();
+                    editorCol && editorCol.layout();
+                }
+
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+        })();
+
+        // ─────────────────────────────────────────────
+        // WIRING
+        // ─────────────────────────────────────────────
+        document.getElementById('btn-run').addEventListener('click', startPainting);
+        document.getElementById('btn-stop').addEventListener('click', stopPainting);
+        document.getElementById('btn-clear').addEventListener('click', clearCanvas);
+        document.getElementById('btn-apply').addEventListener('click', () => { stopPainting(); applyConfig(); });
+        document.getElementById('speed').addEventListener('input', function () {
+            document.getElementById('speed-val').textContent = this.value;
+        });
+
+        // ─────────────────────────────────────────────
+        // INIT
+        // ─────────────────────────────────────────────
+        initCanvas(1000, 1000);
+        spiralTable = buildSpiral(1000, 1000);
+        cursorColors = buildColors(2);
+        buildLegend(2, cursorColors);
+        resetState(2);
+        flushCanvas();
+        requestAnimationFrame(() => requestAnimationFrame(fitZoom));
+    </script>
+</body>
+
+</html>
