@@ -1,0 +1,14 @@
+name=The First Steps
+description=A short trek into the wilderness to test your gear. A gentle introduction to the world of Expeditions.
+difficulty=Easy
+actions=8
+author=Expeditions Team
+
+----
+
+name=Act 1: Setting Out {f}
+flavor=The wind howls as you leave camp. Your pack feels heavy, but your spirits are higher than the ridge ahead.
+
+* Gather your supplies — {b: {1:3} {2:5} {3:7}} {z}
+* Climb the first ridge {v}
+* Light the signal fire when you reach the top {ok: this counts as a free action}

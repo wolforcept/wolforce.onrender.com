@@ -1,0 +1,24 @@
+name=The Rival Camp
+description=Smoke rises from beyond the trees. Another expedition has set up nearby — and they don't seem friendly.
+difficulty=Medium
+actions=12
+author=Expeditions Team
+
+----
+
+name=Act 1: Reconnaissance
+flavor=Move quietly. Listen.
+rules=You may not roll {h} during this act.
+
+* Scout the perimeter — succeed on {1:1} {2:2} {3:3} {d} checks
+* Identify the {warn: enemy commander} {mask}
+* Return to your hidden vantage point {v}
+
+----
+
+name=Act 2: The Confrontation
+flavor=Steel meets steel under an iron sky.
+
+* Defeat the guards: {b: {1: 2 swords} {2: 3 swords} {3: 4 swords}} {w}
+* Disarm the {warn: commander} {mask}
+* {ok: Loot the camp} — gain {gold}

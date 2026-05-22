@@ -1,0 +1,34 @@
+name=The Summit
+description=The peak has never been reached. The wind, the cold, and the things that hunt above the clouds will all do their best to keep it that way.
+difficulty=Hard
+actions=15
+author=Expeditions Team
+
+----
+
+name=Act 1: The Foothills
+flavor=A long path winds upward through the pines.
+
+* Cross the river — defend with {h}
+* Track the {warn: beasts} through the brush {d}
+* Set camp before nightfall {time}
+
+----
+
+name=Act 2: The Pass
+flavor=The trees thin. The snow begins.
+rules=Once per round you may spend {z} to reroll one die.
+
+* Brave the storm: spend {1:2} {2:3} {3:4} {time}
+* Cross the rope bridge — {b: do not roll {1}}
+* Drive off the {warn: wolves} — {w} {w}
+
+----
+
+name=Act 3: The Summit
+flavor=The world falls away. Only the wind, the cold, and you.
+rules=All checks require {b: two} successes instead of one.
+
+* Climb the final pitch {v} {v}
+* Survive the {warn: thin air} {h}
+* {ok: Plant the flag} — {big: {z}}
