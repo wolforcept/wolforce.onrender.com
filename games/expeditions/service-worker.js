@@ -5,7 +5,7 @@
    on a deploy invalidates the old cache so users pick up new files.
    ===================================================================== */
 
-var CACHE_VERSION = 'expeditions-v2';
+var CACHE_VERSION = 'expeditions-v3';
 
 var SHELL = [
   './',

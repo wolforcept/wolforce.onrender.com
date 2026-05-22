@@ -19,7 +19,7 @@
 (function (global) {
   'use strict';
 
-  var FORMAT_KEYS = ['b', 'i', 'u', 's', 'big', 'small', 'warn', 'ok', 'dim'];
+  var FORMAT_KEYS = ['b', 'i', 'u', 's', 'big', 'small', 'warn', 'ok', 'dim', 'l'];
 
   function escapeHtml(s) {
     return String(s == null ? '' : s)

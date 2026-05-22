@@ -64,14 +64,14 @@
       $count.text('0');
     } else {
       $chip.removeClass('defeated');
-      $label.text('Actions');
+      $label.text('');
       $count.text(String(state.actionsRemaining));
     }
   }
 
   function renderActHeader() {
     var act = mission.parsed.acts[state.currentAct] || {};
-    $('#act-name').html(TextRender.render(act.name || ('Act ' + (state.currentAct + 1)), state.players));
+    $('#top-act-name').html(TextRender.render(act.name || ('Act ' + (state.currentAct + 1)), state.players));
     $('#act-flavor').html(TextRender.render(act.flavor || '', state.players));
     $('#act-rules').html(TextRender.render(act.rules || '', state.players));
   }
@@ -109,7 +109,6 @@
   }
 
   function renderAll() {
-    $('#game-mission-title').html(TextRender.render(mission.parsed.name || 'Mission', state.players));
     renderActionCounter();
     renderActHeader();
     renderObjectives();

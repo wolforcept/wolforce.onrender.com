@@ -31,6 +31,11 @@
     $('#settings-btn').toggleClass('hidden', name !== 'missions');
     // Players-cycle button only makes sense on the missions list
     $('#players-btn').toggleClass('hidden', name !== 'missions');
+    // On the game view we hide the logo and show the current act name
+    // in the top bar instead. Other views show the logo as usual.
+    var inGame = name === 'game';
+    $('#logo, #logo-text').toggleClass('hidden', inGame);
+    $('#top-act-name').toggleClass('hidden', !inGame);
 
     // Notify view modules
     $(document).trigger('view:show', [name]);

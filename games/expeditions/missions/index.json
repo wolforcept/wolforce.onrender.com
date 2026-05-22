@@ -4,7 +4,7 @@
     {
       "id":      "first-steps",
       "url":     "missions/01-first-steps.txt",
-      "version": 1
+      "version": 5
     },
     {
       "id":      "rival-camp",
@@ -13,7 +13,7 @@
     },
     {
       "id":      "summit",
-      "url":     "missions/03-summit.txt",
+      "url":     "missions/04-summit.txt",
       "version": 1
     }
   ]

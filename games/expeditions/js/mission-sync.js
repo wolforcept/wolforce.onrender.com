@@ -134,6 +134,16 @@
 
   function syncedMissionsAsArray() {
     var map = Storage.getSyncedMissions();
+    var idx = Storage.getSyncedIndex();
+    // Order by position in the cached index.json so the list matches
+    // what the catalog publishes, regardless of fetch-resolution order.
+    if (idx && Array.isArray(idx.missions)) {
+      return idx.missions
+        .map(function (meta) { return map['synced:' + meta.id]; })
+        .filter(Boolean);
+    }
+    // No index cached yet (first ever launch, mid-sync) — fall back to
+    // whatever insertion order localStorage has.
     return Object.keys(map).map(function (k) { return map[k]; });
   }
 

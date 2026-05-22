@@ -43,7 +43,7 @@
   }
 
   // ----- Settings -----
-  var DEFAULT_SETTINGS = { theme: 'dark', players: 1 };
+  var DEFAULT_SETTINGS = { theme: 'dark', players: 3 };
 
   function getSettings() {
     var s = get(KEYS.settings, {}) || {};

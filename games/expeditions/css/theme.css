@@ -146,6 +146,28 @@ ul { list-style: none; margin: 0; padding: 0; }
   white-space: nowrap;
 }
 
+.app-bar .top-act-name {
+  position: absolute;
+  left: 50%;
+  top: calc(env(safe-area-inset-top) + 0px);
+  transform: translateX(-50%);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 60px;
+  max-width: 100%;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
 .icon-btn {
   width: 44px;
   height: 44px;
@@ -493,6 +515,7 @@ ul { list-style: none; margin: 0; padding: 0; }
   color: var(--text-mute);
   font-weight: 600;
 }
+.action-label:empty { display: none; }
 .action-count {
   font-size: 36px;
   font-weight: 700;
@@ -556,7 +579,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .act-rules {
   margin: 6px 0 0;
   padding: 8px 10px;
-  font-size: 13px;
+  font-size: 20px;
   color: var(--text);
   background: var(--surface-2);
   border-left: 3px solid var(--accent);
@@ -589,9 +612,9 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 .objective-text {
   flex: 1;
-  font-size: 15px;
+  font-size: 20px;
   color: var(--text);
-  line-height: 1.45;
+  line-height: 1.3;
 }
 
 .objective-check {
@@ -613,7 +636,12 @@ ul { list-style: none; margin: 0; padding: 0; }
 }
 .objective-check .material-icons { font-size: 18px; }
 
-/* Objective text rendered tokens */
+/* Rendered tokens.
+   Default sizing is proportional to the surrounding text so icons look
+   right wherever titles/descriptions get rendered (top bar act name,
+   continue banner, mission list, stats, end screen, etc.).
+   The objective list overrides this with a much larger fixed size
+   below — see `.objective-text .obj-icon`. */
 .obj-icon {
   height: 1.2em;
   width: auto;
@@ -621,6 +649,14 @@ ul { list-style: none; margin: 0; padding: 0; }
   margin: 0 1px;
 }
 .obj-icon.small { height: 0.9em; }
+
+/* Inside a `{l: …}` wrapper, both text and any icons render large.
+   Icons outside `{l: …}` keep the proportional default above. */
+.fmt-l .obj-icon {
+  height: 64px;
+  vertical-align: middle;
+  margin: 0 2px;
+}
 
 /* Formatting wrappers */
 .fmt-b     { font-weight: 700; }
@@ -632,6 +668,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .fmt-warn  { color: var(--danger); font-weight: 600; }
 .fmt-ok    { color: var(--accent); font-weight: 600; }
 .fmt-dim   { color: var(--text-dim); }
+.fmt-l     { font-size: 60px; line-height: 1; vertical-align: middle; }
 
 /* Act strip (bottom progress) */
 .act-strip {
