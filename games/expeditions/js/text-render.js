@@ -19,7 +19,7 @@
 (function (global) {
   'use strict';
 
-  var FORMAT_KEYS = ['b', 'i', 'u', 's', 'big', 'small', 'warn', 'ok', 'dim', 'l'];
+  var FORMAT_KEYS = ['b', 'i', 'u', 's', 'big', 'small', 'warn', 'ok', 'dim', 'l', '|'];
 
   function escapeHtml(s) {
     return String(s == null ? '' : s)
@@ -27,7 +27,8 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/'/g, '&#39;')
+      .replace(/\|/g, '<div class="break"></div>');
   }
 
   function defaultPlayers() {
@@ -80,7 +81,7 @@
           return parseInt(key, 10) === active ? content : '';
         }
         if (FORMAT_KEYS.indexOf(key) !== -1) {
-          return '<span class="fmt-' + key + '">' + content + '</span>';
+          return '<div class="fmt fmt-' + key + '">' + content + '</div>';
         }
         return match;
       });

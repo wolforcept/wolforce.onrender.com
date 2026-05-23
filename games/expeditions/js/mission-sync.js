@@ -25,6 +25,8 @@
    the SW serves the most recent successful fetch from its own cache.
    ===================================================================== */
 
+const DEV_TEST = true;
+
 (function (global) {
   'use strict';
 
@@ -99,7 +101,7 @@
       var jobs = remoteMissions.map(function (meta) {
         var key = 'synced:' + meta.id;
         var cached = cache[key];
-        if (cached && cached.version === meta.version) {
+        if (cached && cached.version === meta.version && !DEV_TEST) {
           return Promise.resolve();
         }
         return fetchText(meta.url)

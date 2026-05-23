@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
+
 <head>
-  <meta charset="utf-8">
-  <script>
+    <meta charset="utf-8">
+    <!-- <script>
     /* The app may be hosted in a subdirectory (not the site root). All
        internal paths are relative, so they only resolve correctly when
        the document URL ends with a trailing slash. If we landed on a
@@ -16,175 +17,177 @@
       if (tail.indexOf('.') !== -1) return; // looks like a real file, leave it
       location.replace(p + '/' + location.search + location.hash);
     })();
-  </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1a1d1f">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Expeditions Companion</title>
+  </script> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1d1f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Expeditions Companion</title>
 
-  <base href="./">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/pwa-192.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="assets/pwa-192.png">
+    <base href="./">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/pwa-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="assets/pwa-192.png">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="css/theme.css">
 </head>
+
 <body>
 
-  <!-- ===================== TOP BAR ===================== -->
-  <header id="top-bar" class="app-bar">
-    <button id="settings-btn" class="icon-btn" aria-label="Settings" data-show="settings">
-      <i class="material-icons">settings</i>
-    </button>
-    <img id="logo" src="assets/logo.png" alt="Expeditions" onerror="this.replaceWith(Object.assign(document.createElement('span'),{id:'logo-text',textContent:'EXPEDITIONS'}))">
-    <h1 id="top-act-name" class="top-act-name hidden"></h1>
-    <button id="back-btn" class="icon-btn hidden" aria-label="Back" data-show="missions">
-      <i class="material-icons">arrow_back</i>
-    </button>
-    <button id="players-btn" class="players-btn" aria-label="Cycle number of players">3</button>
-  </header>
-
-  <main id="views">
-
-    <!-- ===================== MISSIONS VIEW ===================== -->
-    <section id="view-missions" class="view">
-      <div id="continue-banner" class="continue-banner hidden">
-        <button id="continue-btn" class="continue-btn">
-          <span class="continue-label">Continue Previous Mission</span>
-          <span class="continue-detail"></span>
+    <!-- ===================== TOP BAR ===================== -->
+    <header id="top-bar" class="app-bar">
+        <button id="settings-btn" class="icon-btn" aria-label="Settings" data-show="settings">
+            <i class="material-icons">settings</i>
         </button>
-      </div>
-      <ul id="mission-list" class="mission-list"></ul>
-      <p id="missions-empty" class="empty-state hidden">No missions found. Upload one from Settings.</p>
-    </section>
+        <img id="logo" src="assets/logo.png" alt="Expeditions" onerror="this.replaceWith(Object.assign(document.createElement('span'),{id:'logo-text',textContent:'EXPEDITIONS'}))">
+        <h1 id="top-act-name" class="top-act-name hidden"></h1>
+        <button id="back-btn" class="icon-btn hidden" aria-label="Back" data-show="missions">
+            <i class="material-icons">arrow_back</i>
+        </button>
+        <button id="players-btn" class="players-btn" aria-label="Cycle number of players">3</button>
+        <button id="fullscreen-btn" class="fullscreen-btn" aria-label="Go fullscreen">⛶</button>
+    </header>
 
-    <!-- ===================== SETTINGS VIEW ===================== -->
-    <section id="view-settings" class="view hidden">
-      <h2 class="view-title">Settings</h2>
+    <main id="views">
 
-      <div class="settings-group">
-        <label class="settings-label">Theme</label>
-        <div id="theme-picker" class="segmented">
-          <button class="seg-btn" data-theme="dark">Dark</button>
-          <button class="seg-btn" data-theme="light">Light</button>
+        <!-- ===================== MISSIONS VIEW ===================== -->
+        <section id="view-missions" class="view">
+            <div id="continue-banner" class="continue-banner hidden">
+                <button id="continue-btn" class="continue-btn">
+                    <span class="continue-label">Continue Previous Mission</span>
+                    <span class="continue-detail"></span>
+                </button>
+            </div>
+            <ul id="mission-list" class="mission-list"></ul>
+            <p id="missions-empty" class="empty-state hidden">No missions found. Upload one from Settings.</p>
+        </section>
+
+        <!-- ===================== SETTINGS VIEW ===================== -->
+        <section id="view-settings" class="view hidden">
+            <h2 class="view-title">Settings</h2>
+
+            <div class="settings-group">
+                <label class="settings-label">Theme</label>
+                <div id="theme-picker" class="segmented">
+                    <button class="seg-btn" data-theme="dark">Dark</button>
+                    <button class="seg-btn" data-theme="light">Light</button>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label" for="players-input">Number of Players</label>
+                <div class="stepper">
+                    <button id="players-minus" class="stepper-btn" aria-label="Decrease">&minus;</button>
+                    <input id="players-input" type="number" min="1" max="6" value="3">
+                    <button id="players-plus" class="stepper-btn" aria-label="Increase">+</button>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Missions</label>
+                <button id="upload-btn" class="full-btn">
+                    <i class="material-icons">file_upload</i>
+                    <span>Upload Mission</span>
+                </button>
+                <input id="upload-input" type="file" accept=".txt,text/plain" multiple class="hidden">
+                <button class="full-btn" data-show="stats">
+                    <i class="material-icons">bar_chart</i>
+                    <span>Statistics</span>
+                </button>
+            </div>
+
+            <div id="install-group" class="settings-group hidden">
+                <label class="settings-label">App</label>
+                <button id="install-btn" class="full-btn">
+                    <i class="material-icons">download</i>
+                    <span>Install as app</span>
+                </button>
+            </div>
+
+            <div class="settings-group danger-zone">
+                <label class="settings-label">Danger Zone</label>
+                <button class="full-btn danger" data-erase="plays">Erase recorded plays</button>
+                <button class="full-btn danger" data-erase="uploaded">Erase uploaded missions</button>
+                <button class="full-btn danger" data-erase="current">Erase current game</button>
+                <button class="full-btn danger" data-erase="settings">Reset settings</button>
+                <button class="full-btn danger" data-erase="all">Erase everything</button>
+            </div>
+        </section>
+
+        <!-- ===================== STATISTICS VIEW ===================== -->
+        <section id="view-stats" class="view hidden">
+            <h2 class="view-title">Statistics</h2>
+            <div id="stats-summary" class="stats-summary"></div>
+            <ul id="stats-list" class="stats-list"></ul>
+            <p id="stats-empty" class="empty-state hidden">No plays recorded yet.</p>
+        </section>
+
+        <!-- ===================== GAME VIEW ===================== -->
+        <section id="view-game" class="view hidden">
+            <div class="action-bar">
+                <button id="action-minus" class="action-step" aria-label="Remove action">&minus;</button>
+                <button id="action-chip" class="action-chip" aria-label="Spend action">
+                    <span class="action-label"></span>
+                    <span id="action-count" class="action-count">0</span>
+                </button>
+                <button id="action-plus" class="action-step" aria-label="Add action">+</button>
+            </div>
+
+            <p id="act-rules" class="act-rules"></p>
+
+            <ul id="objective-list" class="objective-list"></ul>
+            <p id="act-flavor" class="act-flavor"></p>
+
+            <div id="act-strip" class="act-strip"></div>
+        </section>
+
+        <!-- ===================== MODAL ===================== -->
+        <div id="modal-backdrop" class="modal-backdrop hidden" aria-hidden="true">
+            <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+                <h3 id="modal-title" class="modal-title"></h3>
+                <p id="modal-message" class="modal-message"></p>
+                <div class="modal-actions">
+                    <button id="modal-cancel" class="full-btn modal-btn">Cancel</button>
+                    <button id="modal-confirm" class="full-btn modal-btn">OK</button>
+                </div>
+            </div>
         </div>
-      </div>
 
-      <div class="settings-group">
-        <label class="settings-label" for="players-input">Number of Players</label>
-        <div class="stepper">
-          <button id="players-minus" class="stepper-btn" aria-label="Decrease">&minus;</button>
-          <input id="players-input" type="number" min="1" max="6" value="3">
-          <button id="players-plus" class="stepper-btn" aria-label="Increase">+</button>
-        </div>
-      </div>
+        <!-- ===================== END VIEW ===================== -->
+        <section id="view-end" class="view hidden">
+            <div id="end-banner" class="end-banner">
+                <span id="end-title" class="end-title"></span>
+            </div>
+            <div id="end-stats" class="end-stats"></div>
+            <div class="end-actions">
+                <button class="full-btn" data-show="missions">
+                    <i class="material-icons">list</i>
+                    <span>Back to missions</span>
+                </button>
+            </div>
+        </section>
 
-      <div class="settings-group">
-        <label class="settings-label">Missions</label>
-        <button id="upload-btn" class="full-btn">
-          <i class="material-icons">file_upload</i>
-          <span>Upload Mission</span>
-        </button>
-        <input id="upload-input" type="file" accept=".txt,text/plain" multiple class="hidden">
-        <button class="full-btn" data-show="stats">
-          <i class="material-icons">bar_chart</i>
-          <span>Statistics</span>
-        </button>
-      </div>
+    </main>
 
-      <div id="install-group" class="settings-group hidden">
-        <label class="settings-label">App</label>
-        <button id="install-btn" class="full-btn">
-          <i class="material-icons">download</i>
-          <span>Install as app</span>
-        </button>
-      </div>
-
-      <div class="settings-group danger-zone">
-        <label class="settings-label">Danger Zone</label>
-        <button class="full-btn danger" data-erase="plays">Erase recorded plays</button>
-        <button class="full-btn danger" data-erase="uploaded">Erase uploaded missions</button>
-        <button class="full-btn danger" data-erase="current">Erase current game</button>
-        <button class="full-btn danger" data-erase="settings">Reset settings</button>
-        <button class="full-btn danger" data-erase="all">Erase everything</button>
-      </div>
-    </section>
-
-    <!-- ===================== STATISTICS VIEW ===================== -->
-    <section id="view-stats" class="view hidden">
-      <h2 class="view-title">Statistics</h2>
-      <div id="stats-summary" class="stats-summary"></div>
-      <ul id="stats-list" class="stats-list"></ul>
-      <p id="stats-empty" class="empty-state hidden">No plays recorded yet.</p>
-    </section>
-
-    <!-- ===================== GAME VIEW ===================== -->
-    <section id="view-game" class="view hidden">
-      <div class="action-bar">
-        <button id="action-minus" class="action-step" aria-label="Remove action">&minus;</button>
-        <button id="action-chip" class="action-chip" aria-label="Spend action">
-          <span class="action-label"></span>
-          <span id="action-count" class="action-count">0</span>
-        </button>
-        <button id="action-plus" class="action-step" aria-label="Add action">+</button>
-      </div>
-
-      <div id="act-header" class="act-header">
-        <p id="act-flavor" class="act-flavor"></p>
-        <p id="act-rules" class="act-rules"></p>
-      </div>
-
-      <ul id="objective-list" class="objective-list"></ul>
-
-      <div id="act-strip" class="act-strip"></div>
-    </section>
-
-    <!-- ===================== MODAL ===================== -->
-    <div id="modal-backdrop" class="modal-backdrop hidden" aria-hidden="true">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <h3 id="modal-title" class="modal-title"></h3>
-        <p id="modal-message" class="modal-message"></p>
-        <div class="modal-actions">
-          <button id="modal-cancel" class="full-btn modal-btn">Cancel</button>
-          <button id="modal-confirm" class="full-btn modal-btn">OK</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===================== END VIEW ===================== -->
-    <section id="view-end" class="view hidden">
-      <div id="end-banner" class="end-banner">
-        <span id="end-title" class="end-title"></span>
-      </div>
-      <div id="end-stats" class="end-stats"></div>
-      <div class="end-actions">
-        <button class="full-btn" data-show="missions">
-          <i class="material-icons">list</i>
-          <span>Back to missions</span>
-        </button>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- jQuery + Materialize + app scripts -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/theme.js"></script>
-  <script src="js/icon-map.js"></script>
-  <script src="js/text-render.js"></script>
-  <script src="js/modal.js"></script>
-  <script src="js/mission-parser.js"></script>
-  <script src="js/mission-sync.js"></script>
-  <script src="js/missions-view.js"></script>
-  <script src="js/settings-view.js"></script>
-  <script src="js/stats-view.js"></script>
-  <script src="js/game-view.js"></script>
-  <script src="js/end-view.js"></script>
-  <script src="js/app.js"></script>
+    <!-- jQuery + Materialize + app scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/icon-map.js"></script>
+    <script src="js/text-render.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/mission-parser.js"></script>
+    <script src="js/mission-sync.js"></script>
+    <script src="js/missions-view.js"></script>
+    <script src="js/settings-view.js"></script>
+    <script src="js/stats-view.js"></script>
+    <script src="js/game-view.js"></script>
+    <script src="js/end-view.js"></script>
+    <script src="js/app.js"></script>
 </body>
+
 </html>

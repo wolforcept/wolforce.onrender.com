@@ -2,18 +2,8 @@
   "version": 1,
   "missions": [
     {
-      "id":      "first-steps",
-      "url":     "missions/01-first-steps.txt",
-      "version": 5
-    },
-    {
-      "id":      "rival-camp",
-      "url":     "missions/02-the-rival-camp.txt",
-      "version": 1
-    },
-    {
-      "id":      "summit",
-      "url":     "missions/04-summit.txt",
+      "id":      "the-caravan",
+      "url":     "missions/01-the-caravan.txt",
       "version": 1
     }
   ]

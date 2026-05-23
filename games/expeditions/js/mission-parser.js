@@ -63,9 +63,6 @@
     var actSections  = sections.slice(1);
 
     var mission = parseSection(missionLines, KNOWN_MISSION);
-    // Normalize numeric field
-    var actionsNum = parseInt(mission.actions, 10);
-    mission.actions = isNaN(actionsNum) ? 0 : actionsNum;
 
     mission.acts = actSections.map(function (lines) {
       var act = parseSection(lines, KNOWN_ACT);

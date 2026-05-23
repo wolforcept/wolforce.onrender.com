@@ -1,0 +1,55 @@
+name=The Caravan
+description=Mercenaries deliver life-saving thermolyte through the collapsing frozen wastelands.
+difficulty=Easy
+actions=70,65,60,56,53,50
+author=Wolforce
+
+----
+
+name=Crossing the Plateaus
+flavor=A small mercenary escort is hired to protect a convoy carrying thermolyte to a settlement whose heating systems are failing. They start by crossing the wastelands filled with dust storms strong enough to bury tracks and crack the cargo containers.
+* {i: Thermolyte maintenance}|{l: 5 {c} / {u} }
+* {i: Storm navigation}|{l: 5 {v} / {d} }
+* {i: Dust shelter}|{l: 5 {h} / {l} }
+    
+----
+
+name=Collapsed Bridge
+flavor=The caravan reaches a massive industrial bridge over a geothermal fissure, only to find part of it collapsed. With no alternate route, the mercenaries must secure the unstable parts of the bridge and improvise hauling mechanisms to move the cargo across.
+rules={b:Extra Rules:}|These objectives must be done in order.
+* {i: Structural reinforcement}|{l: 12 {l} / {w} }
+* {i: Improvise hauling}|{l: 16 {a} / {z} }
+* {i: Traverse the bridge}|{l: 9 {v} / {u} }
+
+----
+
+name=Negotiating Passage
+flavor=As the caravan reaches the highest plateaus, visibility collapses under constant snowfall. A Fur hunting clan surrounds the convoy, demanding supplies and thermolyte in exchange for safe passage through their territory.
+* {i: Heat preservation}|{l: 5 {z} / {h} }
+* {i: Negotiate with the Furs}|{l: 18 {a} / {d}} | -1 for each {fur} card used when rolling. | or | {i: Defensive Formation }|{l: 20 {m} / {r} / {g} } 
+
+----
+
+name=The Frozen Trade Station
+flavor=The convoy arrives at an old trade outpost that is abandoned. Underground creatures probably dwell nearby, revealed by the tunnels left all around. Even though danger lurks beneath, everyone is thankful for the easy rest location, and scavenge for any available resources they can find.
+rules={b:Extra Rules:}|All these objectives are optional. They do not require action points to roll for. For each objective completed, gain back 2 action points.
+* {i: Explore the tunnels} | {l: 10 {r} / {m} }
+* {i: Gather supplies} | {l: 16 {w} }
+* {i: Refurbish old station tech} | {l: 18 {c} }
+
+----
+
+name=The Frozen Lake
+flavor=The final stretch of the journey is to cross a large semi-frozen lake, which would be difficult, but might avoid any local warring Fur clans that might live in the shores.
+rules={b:Extra Rules:}|Only one of these objectives needs to be completed.
+* {i: Cross the lake} | {l: 18 {v} / {d} } | -1 for each {sqd} card when rolling.
+* {i: Circumvent the lake} | {l: 22 {z} / {m} / {r} } | -1 for each {fur} card used when rolling.
+
+----
+
+name=The Southern Gate
+flavor=The convoy finally reaches the settlement, only to find it being raided by an ecletic group of thieves with eyes on its heat reserves.
+* {i: Fight the raiders} | {l: 22 {m} / {r} / {g} }
+* {i: Rescue the people} | {l: 22 {u} / {z} / {h} }
+* {i: Protect the town } | {l: 30 {h} / {d} }
+* {i: Deliver the supplies } | {l: 10 {l} / {w} }
