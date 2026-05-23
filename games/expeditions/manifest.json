@@ -2,12 +2,29 @@
     "name": "Expeditions Companion",
     "short_name": "Expeditions",
     "description": "Companion app for the Expeditions board game.",
+    "id": "/games/expeditions/",
     "start_url": "/games/expeditions/",
     "scope": "/games/expeditions/",
     "display": "standalone",
     "orientation": "portrait",
     "background_color": "#1a1d1f",
     "theme_color": "#1a1d1f",
+    "screenshots": [
+        {
+            "src": "/games/expeditions/assets/screenshot-mobile.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Expeditions Companion"
+        },
+        {
+            "src": "/games/expeditions/assets/screenshot-desktop.png",
+            "sizes": "1280x800",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Expeditions Companion"
+        }
+    ],
     "icons": [
         {
             "src": "/games/expeditions/assets/pwa-192.png",
