@@ -3,21 +3,21 @@
 
 <head>
     <meta charset="utf-8">
-    <!-- <script>
-    /* The app may be hosted in a subdirectory (not the site root). All
-       internal paths are relative, so they only resolve correctly when
-       the document URL ends with a trailing slash. If we landed on a
-       directory URL without the slash (e.g. /games/expeditions), redirect
-       to add it so subsequent css/js/asset requests resolve correctly. */
-    (function () {
-      var p = location.pathname;
-      if (p.charAt(p.length - 1) === '/') return;
-      var lastSlash = p.lastIndexOf('/');
-      var tail = lastSlash >= 0 ? p.slice(lastSlash + 1) : p;
-      if (tail.indexOf('.') !== -1) return; // looks like a real file, leave it
-      location.replace(p + '/' + location.search + location.hash);
-    })();
-  </script> -->
+    <script>
+        /* The app may be hosted in a subdirectory (not the site root). All
+           internal paths are relative, so they only resolve correctly when
+           the document URL ends with a trailing slash. If we landed on a
+           directory URL without the slash (e.g. /games/expeditions), redirect
+           to add it so subsequent css/js/asset requests resolve correctly. */
+        (function () {
+            var p = location.pathname;
+            if (p.charAt(p.length - 1) === '/') return;
+            var lastSlash = p.lastIndexOf('/');
+            var tail = lastSlash >= 0 ? p.slice(lastSlash + 1) : p;
+            if (tail.indexOf('.') !== -1) return; // looks like a real file, leave it
+            location.replace(p + '/' + location.search + location.hash);
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#1a1d1f">
     <meta name="mobile-web-app-capable" content="yes">
