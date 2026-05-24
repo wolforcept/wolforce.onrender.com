@@ -5,6 +5,11 @@
       "id":      "the-caravan",
       "url":     "missions/01-the-caravan.txt",
       "version": 1
+    },
+    {
+      "id":      "the-hollow-fortress",
+      "url":     "missions/02-the-hollow-fortress.txt",
+      "version": 1
     }
   ]
 }

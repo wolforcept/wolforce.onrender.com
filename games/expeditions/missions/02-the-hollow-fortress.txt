@@ -1,0 +1,55 @@
+name=The Hollow Fortress
+description=A remote plateau fortress suddenly collapses into a massive underground void, cutting off an important trade route and trapping hundreds below the surface. A mixed expedition descends into the newly exposed depths to rescue survivors, recover critical resources, and uncover what caused the ancient ground beneath the fortress to fail.
+difficulty=Easy
+actions=70,65,60,56,53,50
+author=Wolforce
+
+----
+
+name=Surveying the Fractured Plateau Above Endless Darkness
+flavor=The expedition arrives to find the fortress shattered across unstable stone shelves hanging above a colossal underground abyss. Constant tremors threaten further collapse while survivors remain stranded on isolated sections of the ruins.
+* Collapse Surveying | {d} {a}
+* Rope Deployment | {w} {u}
+* Survivor Signaling | {d} {z}
+* Gap Traversal | {v} {h}
+* Falling Debris Avoidance | {v} {d}
+
+----
+
+name=Descending Through Ancient Ventilation Shafts Into Buried Structures
+flavor=Unable to safely cross the surface ruins, the expedition enters forgotten shafts beneath the plateau. The tunnels descend into ancient support systems and buried chambers older than the fortress itself, filled with unstable machinery and dangerous geothermal vents.
+* Shaft Climbing | {v} {w}
+* Vent Stabilization | {c} {u}
+* Tunnel Mapping | {d} {a}
+* Support Repairs | {l} {w}
+* Steam Avoidance | {v} {h}
+
+----
+
+name=Fighting Through Scavengers Looting the Buried Fortress Stores
+flavor=Bands of scavengers and deserters have entered the collapse zone through hidden tunnels, raiding trapped supply caches while survivors starve deeper below. The expedition must push through hostile groups occupying defensible choke points inside the ruins.
+* Barricade Breaching | {m} {w}
+* Crossbow Defense | {r} {h}
+* Supply Recovery | {u} {z}
+* Tunnel Ambushing | {a} {d}
+* Close Quarters Fighting | {m} {h}
+
+----
+
+name=Reaching the Sunken Fortress Core Beside an Underground Thermal Lake
+flavor=At the deepest point of the collapse lies the fortress core, partially submerged beside a massive underground lake heated by geothermal activity. Strange ancient structures beneath the water suggest the plateau was hollow long before the fortress was built.
+* Lake Navigation | {v} {u}
+* Ancient Analysis | {a} {c}
+* Thermal Regulation | {c} {u}
+* Hidden Passage Detection | {d} {a}
+* Submerged Exploration | {v} {z}
+
+----
+
+name=Preventing the Entire Plateau From Collapsing Into the Abyss
+flavor=The expedition discovers that damaged geothermal pressure systems beneath the plateau are triggering chain collapses across the entire region. With tremors spreading outward, the group must reactivate ancient stabilizing machinery while defending the remaining survivors from panic and incoming scavenger attacks.
+* Machine Reactivation | {c} {l}
+* Pressure Balancing | {a} {c}
+* Defensive Holdout | {h} {r}
+* Evacuation Coordination | {z} {u}
+* Final Stabilization | {l} {g}
