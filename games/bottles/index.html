@@ -538,17 +538,71 @@ let moveCount = 0;
 let history   = [];
 
 // ─── Palette ─────────────────────────────────────────────────────
+// 20 colours across 4 tiers of 5.
+// Tier 0 (0-4):  plain
+// Tier 1 (5-9):  diagonal stripes
+// Tier 2 (10-14): dots / circles
+// Tier 3 (15-19): crosshatch
 const PALETTE = [
-  { name:'Ruby',   hue:'#e85d7a', dark:'#c02850', light:'rgba(255,180,180,0.35)' },
-  { name:'Cobalt', hue:'#4e8ef7', dark:'#2056c0', light:'rgba(160,200,255,0.35)' },
-  { name:'Amber',  hue:'#f5a623', dark:'#c07800', light:'rgba(255,220,100,0.35)' },
-  { name:'Jade',   hue:'#3ecf74', dark:'#1a8a4a', light:'rgba(100,255,160,0.35)' },
-  { name:'Violet', hue:'#a259f7', dark:'#6520c0', light:'rgba(200,160,255,0.35)' },
-  { name:'Coral',  hue:'#ff6b4a', dark:'#c03020', light:'rgba(255,180,140,0.35)' },
-  { name:'Teal',   hue:'#26c6da', dark:'#007a90', light:'rgba(100,230,240,0.35)' },
-  { name:'Rose',   hue:'#f472b6', dark:'#b01070', light:'rgba(255,160,200,0.35)' },
+  // tier 0 — plain
+  { name:'Ruby',    hue:'#e85d7a', dark:'#c02850', light:'rgba(255,180,180,0.35)' },
+  { name:'Cobalt',  hue:'#4e8ef7', dark:'#2056c0', light:'rgba(160,200,255,0.35)' },
+  { name:'Amber',   hue:'#f5a623', dark:'#c07800', light:'rgba(255,220,100,0.35)' },
+  { name:'Jade',    hue:'#3ecf74', dark:'#1a8a4a', light:'rgba(100,255,160,0.35)' },
+  { name:'Violet',  hue:'#a259f7', dark:'#6520c0', light:'rgba(200,160,255,0.35)' },
+  // tier 1 — diagonal stripes
+  { name:'Coral',   hue:'#ff6b4a', dark:'#c03020', light:'rgba(255,180,140,0.35)' },
+  { name:'Teal',    hue:'#26c6da', dark:'#007a90', light:'rgba(100,230,240,0.35)' },
+  { name:'Rose',    hue:'#f472b6', dark:'#b01070', light:'rgba(255,160,200,0.35)' },
+  { name:'Lime',    hue:'#a3e635', dark:'#5a8a00', light:'rgba(190,255,100,0.35)' },
+  { name:'Gold',    hue:'#fbbf24', dark:'#92600a', light:'rgba(255,230,130,0.35)' },
+  // tier 2 — dots
+  { name:'Sky',     hue:'#38bdf8', dark:'#0369a1', light:'rgba(140,220,255,0.35)' },
+  { name:'Salmon',  hue:'#fb7185', dark:'#9f1239', light:'rgba(255,180,190,0.35)' },
+  { name:'Mint',    hue:'#34d399', dark:'#065f46', light:'rgba(120,255,200,0.35)' },
+  { name:'Plum',    hue:'#c084fc', dark:'#6b21a8', light:'rgba(210,170,255,0.35)' },
+  { name:'Sand',    hue:'#fcd34d', dark:'#92400e', light:'rgba(255,235,150,0.35)' },
+  // tier 3 — crosshatch
+  { name:'Crimson', hue:'#ef4444', dark:'#991b1b', light:'rgba(255,160,160,0.35)' },
+  { name:'Azure',   hue:'#60a5fa', dark:'#1e3a8a', light:'rgba(160,200,255,0.35)' },
+  { name:'Fern',    hue:'#4ade80', dark:'#14532d', light:'rgba(130,255,170,0.35)' },
+  { name:'Peach',   hue:'#fb923c', dark:'#7c2d12', light:'rgba(255,200,150,0.35)' },
+  { name:'Lilac',   hue:'#e879f9', dark:'#701a75', light:'rgba(240,170,255,0.35)' },
 ];
 function getColor(id) { return PALETTE[id % PALETTE.length]; }
+
+// Returns a CSS background value (layered on top of base colour) for a given colour id.
+// Uses semi-transparent lines/dots so the base hue shows through.
+function getTexture(id, hue) {
+  const tier = Math.floor((id % PALETTE.length) / 5);
+  const s = 'rgba(0,0,0,0.18)';   // shadow stripe
+  const h = 'rgba(255,255,255,0.22)'; // highlight stripe
+  switch (tier) {
+    case 0: return null; // plain — no overlay
+    case 1: // diagonal stripes ~45°
+      return `repeating-linear-gradient(
+        45deg,
+        transparent 0px, transparent 4px,
+        ${s} 4px, ${s} 6px,
+        transparent 6px, transparent 10px,
+        ${h} 10px, ${h} 11px
+      )`;
+    case 2: // dots — radial-gradient tiled via background-size
+      return `radial-gradient(circle, ${h} 1.5px, transparent 1.5px)`;
+    case 3: // crosshatch
+      return `repeating-linear-gradient(
+          0deg,
+          transparent 0px, transparent 5px,
+          ${s} 5px, ${s} 6px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0px, transparent 5px,
+          ${s} 5px, ${s} 6px
+        )`;
+    default: return null;
+  }
+}
 
 // ─── Top-run helpers ─────────────────────────────────────────────
 function topRun(bottle) {
@@ -775,7 +829,14 @@ function render() {
       const nf = document.createElement('div');
       nf.className = 'neck-fill';
       nf.style.height     = '100%';
-      nf.style.background = getColor(topColor).hue + 'cc';
+      const nfTex = getTexture(topColor, getColor(topColor).hue);
+      if (nfTex) {
+        const isDots = Math.floor((topColor % PALETTE.length) / 5) === 2;
+        nf.style.background = `${nfTex}, ${getColor(topColor).hue}cc`;
+        if (isDots) nf.style.backgroundSize = '8px 8px, 100% 100%';
+      } else {
+        nf.style.background = getColor(topColor).hue + 'cc';
+      }
       neck.appendChild(nf);
     }
 
@@ -787,7 +848,15 @@ function render() {
       layer.className = 'liquid-layer' + (isSelected && li < topCount ? ' top-run' : '');
       layer.style.height = layerH + '%';
       const c = getColor(colorId);
-      layer.style.background = `linear-gradient(to bottom, ${c.light}, ${c.hue}cc)`;
+      const tex = getTexture(colorId, c.hue);
+      if (tex) {
+        // For dots tier we need background-size for the tile repeat
+        const isDots = Math.floor((colorId % PALETTE.length) / 5) === 2;
+        layer.style.background = `${tex}, linear-gradient(to bottom, ${c.light}, ${c.hue}cc)`;
+        if (isDots) layer.style.backgroundSize = '8px 8px, 100% 100%';
+      } else {
+        layer.style.background = `linear-gradient(to bottom, ${c.light}, ${c.hue}cc)`;
+      }
       layer.style.setProperty('--bubble-delay', (li * 0.7 + (li * 0.13)) + 's');
       body.appendChild(layer);
     });
