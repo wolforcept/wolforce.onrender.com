@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,8 +22,6 @@
     --neck-h: 28px;
     --cap-h: 12px;
   }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     background: var(--bg);
@@ -74,7 +71,6 @@
     text-transform: uppercase;
   }
 
-  /* ── Top bar ── */
   .topbar {
     position: relative;
     z-index: 1;
@@ -98,10 +94,7 @@
     transition: all 0.15s;
   }
 
-  .btn-primary {
-    background: var(--accent);
-    color: #fff;
-  }
+  .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: #9585fa; transform: translateY(-1px); }
 
   .btn-secondary {
@@ -122,7 +115,6 @@
   }
   .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ── Status ── */
   .status-bar {
     position: relative;
     z-index: 1;
@@ -137,7 +129,6 @@
   .status-bar.win  { color: #6ef5a0; font-size: 0.9rem; }
   .status-bar.hint { color: var(--accent2); }
 
-  /* ── Game area ── */
   #game {
     position: relative;
     z-index: 1;
@@ -151,7 +142,6 @@
     width: 100%;
   }
 
-  /* ── Bottle ── */
   .bottle-wrap {
     display: flex;
     flex-direction: column;
@@ -246,7 +236,6 @@
     height: 2px;
     background: rgba(255,255,255,0.18);
   }
-  /* highlight top run on selected bottle */
   .bottle-wrap.selected .liquid-layer.top-run {
     filter: brightness(1.25);
     outline: 1px solid rgba(255,255,255,0.3);
@@ -265,11 +254,8 @@
     letter-spacing: 0.04em;
   }
 
-  .neck-fill {
-    width: 100%;
-  }
+  .neck-fill { width: 100%; }
 
-  /* ── Pour particle ── */
   .pour-arc {
     position: fixed;
     pointer-events: none;
@@ -284,7 +270,6 @@
     100% { transform: scale(0) translateY(56px); opacity:0; }
   }
 
-  /* ── Settings modal ── */
   .modal-backdrop {
     display: none;
     position: fixed;
@@ -314,111 +299,65 @@
     to   { transform: scale(1);    opacity:1; }
   }
 
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .modal-header h2 {
-    font-size: 1.1rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-  }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h2 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em; }
   .modal-close {
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 1.4rem;
-    cursor: pointer;
-    padding: 0.1rem 0.4rem;
-    border-radius: 6px;
-    line-height: 1;
-    transition: color 0.15s, background 0.15s;
+    background: none; border: none; color: var(--muted);
+    font-size: 1.4rem; cursor: pointer; padding: 0.1rem 0.4rem;
+    border-radius: 6px; line-height: 1; transition: color 0.15s, background 0.15s;
   }
   .modal-close:hover { color: var(--text); background: var(--surface2); }
 
-  .setting-row {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  .setting-row-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-  }
+  .setting-row { display: flex; flex-direction: column; gap: 0.5rem; }
+  .setting-row-top { display: flex; justify-content: space-between; align-items: baseline; }
   .setting-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em;
   }
   .setting-val {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.85rem;
-    color: var(--accent);
-    font-weight: 400;
-    min-width: 3ch;
-    text-align: right;
+    font-family: 'DM Mono', monospace; font-size: 0.85rem;
+    color: var(--accent); font-weight: 400; min-width: 3ch; text-align: right;
   }
 
   input[type=range] {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    outline: none;
-    cursor: pointer;
+    -webkit-appearance: none; width: 100%; height: 4px;
+    background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
   }
   input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px; height: 16px;
-    background: var(--accent);
-    border-radius: 50%;
-    cursor: pointer;
+    -webkit-appearance: none; width: 16px; height: 16px;
+    background: var(--accent); border-radius: 50%; cursor: pointer;
     transition: transform 0.15s, box-shadow 0.15s;
   }
   input[type=range]::-webkit-slider-thumb:hover {
-    transform: scale(1.3);
-    box-shadow: 0 0 0 4px rgba(124,106,247,0.25);
+    transform: scale(1.3); box-shadow: 0 0 0 4px rgba(124,106,247,0.25);
   }
 
-  .difficulty-desc {
+  input.num-input {
     font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
-    color: var(--muted);
-    margin-top: -0.2rem;
+    font-size: 1rem;
+    color: var(--accent);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
   }
+  input.num-input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
 
-  .modal-actions {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: flex-end;
-  }
-
-  /* ── Win overlay ── */
   #win-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-    background: rgba(13,13,15,0.85);
-    backdrop-filter: blur(8px);
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    gap: 1.5rem;
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(13,13,15,0.85); backdrop-filter: blur(8px);
+    justify-content: center; align-items: center;
+    flex-direction: column; gap: 1.5rem;
   }
   #win-overlay.show { display: flex; }
   #win-overlay h2 {
-    font-size: clamp(2rem, 6vw, 4rem);
-    font-weight: 800;
+    font-size: clamp(2rem, 6vw, 4rem); font-weight: 800;
     background: linear-gradient(135deg, #6ef5a0, var(--accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
   }
   #win-overlay p { font-family:'DM Mono',monospace; color:var(--muted); font-size:.85rem; }
@@ -465,38 +404,29 @@
     <div class="setting-row">
       <div class="setting-row-top">
         <span class="setting-label">Colors</span>
-        <span class="setting-val" id="colorsVal">4</span>
       </div>
-      <input type="range" id="numColors" min="2" max="8" value="4"
-             oninput="document.getElementById('colorsVal').textContent=this.value">
+      <input type="number" id="numColors" min="1" value="4" class="num-input">
     </div>
 
     <div class="setting-row">
       <div class="setting-row-top">
         <span class="setting-label">Bottle Capacity</span>
-        <span class="setting-val" id="capacityVal">4</span>
       </div>
-      <input type="range" id="capacity" min="3" max="6" value="4"
-             oninput="document.getElementById('capacityVal').textContent=this.value">
+      <input type="number" id="capacity" min="2" value="4" class="num-input">
     </div>
 
     <div class="setting-row">
       <div class="setting-row-top">
         <span class="setting-label">Empty Bottles</span>
-        <span class="setting-val" id="extraVal">2</span>
       </div>
-      <input type="range" id="extraBottles" min="1" max="3" value="2"
-             oninput="document.getElementById('extraVal').textContent=this.value">
+      <input type="number" id="extraBottles" min="1" value="2" class="num-input">
     </div>
 
     <div class="setting-row">
       <div class="setting-row-top">
-        <span class="setting-label">Difficulty (scramble steps)</span>
-        <span class="setting-val" id="diffVal">Medium</span>
+        <span class="setting-label">Scramble Steps</span>
       </div>
-      <input type="range" id="difficulty" min="1" max="5" value="3"
-             oninput="updateDiffLabel(this.value)">
-      <span class="difficulty-desc" id="diffDesc">~balanced scramble</span>
+      <input type="number" id="difficulty" min="1" value="50" class="num-input">
     </div>
 
     <div class="modal-actions">
@@ -514,17 +444,17 @@
 </div>
 
 <script>
-// ─── Config ──────────────────────────────────────────────────────
+// ─── Config ───────────────────────────────────────────────────────
 let NUM_COLORS    = 4;
 let CAPACITY      = 4;
 let EXTRA_BOTTLES = 2;
-let DIFFICULTY    = 3;   // 1–5
+let DIFFICULTY    = 3;
 
 // ─── State ───────────────────────────────────────────────────────
-let bottles  = [];
-let selected = null;
+let bottles   = [];
+let selected  = null;
 let moveCount = 0;
-let history  = [];
+let history   = [];
 
 // ─── Palette ─────────────────────────────────────────────────────
 const PALETTE = [
@@ -539,22 +469,7 @@ const PALETTE = [
 ];
 function getColor(id) { return PALETTE[id % PALETTE.length]; }
 
-// ─── Difficulty labels ────────────────────────────────────────────
-const DIFF_LABELS = ['Trivial','Easy','Medium','Hard','Brutal'];
-const DIFF_DESCS  = [
-  '~very few scramble moves',
-  '~light scramble',
-  '~balanced scramble',
-  '~heavy scramble',
-  '~maximum chaos',
-];
-function updateDiffLabel(v) {
-  document.getElementById('diffVal').textContent  = DIFF_LABELS[v-1];
-  document.getElementById('diffDesc').textContent = DIFF_DESCS[v-1];
-}
-
 // ─── Top-run helpers ─────────────────────────────────────────────
-// Returns the color of the top run and its count
 function topRun(bottle) {
   if (bottle.length === 0) return { color: null, count: 0 };
   const color = bottle[bottle.length - 1];
@@ -563,46 +478,49 @@ function topRun(bottle) {
   return { color, count };
 }
 
-// ─── Level generation ────────────────────────────────────────────
-// Strategy: start solved, apply random VALID reverse pours.
-// A reverse pour moves the full top run from dst→src
-// (which in forward play means src→dst pours the whole run).
+// ─── Level generation ─────────────────────────────────────────────
+// Scrambles by moving one layer at a time (ignoring the gameplay run rule)
+// so colors genuinely mix. Retries iteratively if result ends up solved.
 function generateLevel() {
-  // Solved state
-  bottles = [];
-  for (let i = 0; i < NUM_COLORS; i++)      bottles.push(Array(CAPACITY).fill(i));
-  for (let i = 0; i < EXTRA_BOTTLES; i++)   bottles.push([]);
+  const scrambleTarget = Math.max(1, DIFFICULTY);
 
-  // Scramble count scales with difficulty and puzzle size
-  const base = NUM_COLORS * CAPACITY;
-  const multipliers = [0.5, 1.0, 2.0, 3.5, 6.0];
-  const scrambleCount = Math.max(5, Math.floor(base * multipliers[DIFFICULTY - 1]));
+  for (let attempt = 0; attempt < 100; attempt++) {
+    // Reset to solved state
+    bottles = [];
+    for (let i = 0; i < NUM_COLORS; i++)    bottles.push(Array(CAPACITY).fill(i));
+    for (let i = 0; i < EXTRA_BOTTLES; i++) bottles.push([]);
 
-  for (let s = 0; s < scrambleCount; s++) {
-    // Pick a random non-empty source
-    const sources = bottles.map((_,i)=>i).filter(i => bottles[i].length > 0);
-    shuffle(sources);
-    for (const src of sources) {
-      const { color, count } = topRun(bottles[src]);
-      // Valid targets for a reverse move: not full enough, and top matches or empty
-      const targets = bottles.map((_,i)=>i).filter(i => {
-        if (i === src) return false;
-        const dst = bottles[i];
-        const space = CAPACITY - dst.length;
-        if (space < count) return false;           // not enough room for the whole run
-        if (dst.length === 0) return true;         // empty: always ok
-        return dst[dst.length - 1] === color;      // top must match
-      });
-      if (targets.length > 0) {
-        const dst = targets[Math.floor(Math.random() * targets.length)];
-        // Move the whole run
-        for (let k = 0; k < count; k++) bottles[dst].push(bottles[src].pop());
-        break;
+    let scrambleMoves = 0;
+    let lastSrc = -1, lastDst = -1;  // track last move to avoid immediate reversal
+    let stuckStreak = 0;
+    const MAX_STUCK = 50;
+
+    while (scrambleMoves < scrambleTarget && stuckStreak < MAX_STUCK) {
+      // Collect all valid single-layer moves, excluding the immediate undo
+      const moves = [];
+      for (let src = 0; src < bottles.length; src++) {
+        if (bottles[src].length === 0) continue;
+        for (let dst = 0; dst < bottles.length; dst++) {
+          if (dst === src) continue;
+          if (bottles[dst].length >= CAPACITY) continue;
+          // Exclude the exact reversal of the previous move
+          if (src === lastDst && dst === lastSrc) continue;
+          moves.push([src, dst]);
+        }
       }
-    }
-  }
 
-  if (isSolved()) return generateLevel(); // rare edge-case, try again
+      if (moves.length === 0) { stuckStreak++; continue; }
+
+      const [src, dst] = moves[Math.floor(Math.random() * moves.length)];
+      bottles[dst].push(bottles[src].pop());
+      lastSrc = src;
+      lastDst = dst;
+      scrambleMoves++;
+      stuckStreak = 0;
+    }
+
+    if (!isSolved()) return;
+  }
 }
 
 function shuffle(arr) {
@@ -613,7 +531,6 @@ function shuffle(arr) {
 }
 
 // ─── Pouring logic ────────────────────────────────────────────────
-// canPour: can we move src's full top run into dst?
 function canPour(src, dst) {
   if (src === dst) return false;
   const srcB = bottles[src], dstB = bottles[dst];
@@ -640,7 +557,8 @@ function undo() {
   selected = null;
   moveCount = Math.max(0, moveCount - 1);
   render();
-  setStatus('Undone.');
+  setStatus('');
+  saveGame();
   document.getElementById('undoBtn').disabled = history.length === 0;
 }
 
@@ -658,12 +576,11 @@ function clickBottle(idx) {
     if (bottles[idx].length === 0) return;
     selected = idx;
     render();
-    const { color, count } = topRun(bottles[idx]);
-    setStatus(`Selected — ${count}× ${getColor(color).name} on top.`);
+
   } else if (selected === idx) {
     selected = null;
     render();
-    setStatus('Deselected.');
+    setStatus('');
   } else {
     if (canPour(selected, idx)) {
       const srcEl = document.querySelector(`[data-idx="${selected}"]`);
@@ -672,19 +589,14 @@ function clickBottle(idx) {
       selected = null;
       render();
       document.getElementById('undoBtn').disabled = false;
+      saveGame();
       if (isSolved()) { setTimeout(showWin, 400); }
-      else            { setStatus(`Move ${moveCount} — keep going!`); }
+      else            { setStatus(''); }
     } else {
-      if (bottles[idx].length > 0) {
-        selected = idx;
-        render();
-        const { color, count } = topRun(bottles[idx]);
-        setStatus(`Switched — ${count}× ${getColor(color).name} on top.`);
-      } else {
-        setStatus("Can't pour there!", 'hint');
-        const el = document.querySelector(`[data-idx="${selected}"]`);
-        el && shake(el);
-      }
+      const el = document.querySelector(`[data-idx="${selected}"]`);
+      el && shake(el);
+      selected = null;
+      render();
     }
   }
 }
@@ -705,7 +617,6 @@ function render() {
   bottles.forEach((bottle, idx) => {
     const isSelected = selected === idx;
     const { color: topColor, count: topCount } = topRun(bottle);
-    // Which layers are part of the top run (for highlighting)
     const topRunStart = bottle.length - topCount;
 
     const wrap = document.createElement('div');
@@ -713,15 +624,13 @@ function render() {
     wrap.dataset.idx = idx;
     wrap.onclick = () => clickBottle(idx);
 
-    // Cap
     const cap = document.createElement('div');
     cap.className = 'bottle-cap';
     if (isSelected && bottle.length > 0) {
-      cap.style.background   = getColor(topColor).hue;
-      cap.style.borderColor  = getColor(topColor).dark;
+      cap.style.background  = getColor(topColor).hue;
+      cap.style.borderColor = getColor(topColor).dark;
     }
 
-    // Neck
     const neck = document.createElement('div');
     neck.className = 'bottle-neck';
     if (isSelected && bottle.length > 0) {
@@ -732,13 +641,12 @@ function render() {
       neck.appendChild(nf);
     }
 
-    // Body
     const body = document.createElement('div');
     body.className = 'bottle-body';
 
-    bottle.forEach((colorId, li) => {
+    [...bottle].reverse().forEach((colorId, li) => {
       const layer = document.createElement('div');
-      layer.className = 'liquid-layer' + (isSelected && li >= topRunStart ? ' top-run' : '');
+      layer.className = 'liquid-layer' + (isSelected && li < topCount ? ' top-run' : '');
       layer.style.height = layerH + '%';
       const c = getColor(colorId);
       layer.style.background = `linear-gradient(to bottom, ${c.light}, ${c.hue}cc)`;
@@ -746,21 +654,9 @@ function render() {
       body.appendChild(layer);
     });
 
-    // Label: show run info when selected
-    const label = document.createElement('div');
-    label.className = 'bottle-label';
-    if (bottle.length === 0) {
-      label.textContent = 'empty';
-    } else if (isSelected && topCount > 1) {
-      label.textContent = `pour ×${topCount}`;
-    } else {
-      label.textContent = `${bottle.length}/${CAPACITY}`;
-    }
-
     wrap.appendChild(cap);
     wrap.appendChild(neck);
     wrap.appendChild(body);
-    wrap.appendChild(label);
     game.appendChild(wrap);
   });
 }
@@ -773,7 +669,7 @@ function spawnPourParticle(srcEl, colorId) {
   for (let i = 0; i < 4; i++) {
     const dot = document.createElement('div');
     dot.className = 'pour-arc';
-    dot.style.background   = c.hue;
+    dot.style.background = c.hue;
     dot.style.left = (sr.left + sr.width/2 - 5 + (i-1.5)*7) + 'px';
     dot.style.top  = (sr.top + 12) + 'px';
     dot.style.animationDelay = (i * 55) + 'ms';
@@ -802,35 +698,74 @@ function showHint() {
       }
     }
   }
-  setStatus('No moves available — try undo!', 'hint');
+  setStatus('');
 }
 
 // ─── Win ──────────────────────────────────────────────────────────
 function showWin() {
   document.getElementById('win-moves').textContent = `Solved in ${moveCount} move${moveCount===1?'':'s'}`;
   document.getElementById('win-overlay').classList.add('show');
-  setStatus('Puzzle solved! 🎉', 'win');
+  setStatus('');
 }
 
 // ─── Settings modal ───────────────────────────────────────────────
-function openSettings() {
-  document.getElementById('settingsModal').classList.add('show');
-}
-function closeSettings() {
-  document.getElementById('settingsModal').classList.remove('show');
-}
+function openSettings()  { document.getElementById('settingsModal').classList.add('show'); }
+function closeSettings() { document.getElementById('settingsModal').classList.remove('show'); }
 function applySettings() {
-  NUM_COLORS    = parseInt(document.getElementById('numColors').value);
-  CAPACITY      = parseInt(document.getElementById('capacity').value);
-  EXTRA_BOTTLES = parseInt(document.getElementById('extraBottles').value);
-  DIFFICULTY    = parseInt(document.getElementById('difficulty').value);
+  NUM_COLORS    = Math.max(1, parseInt(document.getElementById('numColors').value)    || 4);
+  CAPACITY      = Math.max(2, parseInt(document.getElementById('capacity').value)     || 4);
+  EXTRA_BOTTLES = Math.max(1, parseInt(document.getElementById('extraBottles').value) || 2);
+  DIFFICULTY    = Math.max(1, parseInt(document.getElementById('difficulty').value)   || 50);
+  saveSettings();
   closeSettings();
   newGame();
 }
-// Close on backdrop click
 document.getElementById('settingsModal').addEventListener('click', function(e) {
   if (e.target === this) closeSettings();
 });
+
+// ─── localStorage ─────────────────────────────────────────────────
+function saveSettings() {
+  localStorage.setItem('ls_settings', JSON.stringify({
+    NUM_COLORS, CAPACITY, EXTRA_BOTTLES, DIFFICULTY
+  }));
+}
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('ls_settings'));
+    if (!s) return;
+    NUM_COLORS    = Math.max(1, s.NUM_COLORS    || 4);
+    CAPACITY      = Math.max(2, s.CAPACITY      || 4);
+    EXTRA_BOTTLES = Math.max(1, s.EXTRA_BOTTLES || 2);
+    DIFFICULTY    = Math.max(1, s.DIFFICULTY    || 50);
+    // Sync inputs
+    document.getElementById('numColors').value    = NUM_COLORS;
+    document.getElementById('capacity').value     = CAPACITY;
+    document.getElementById('extraBottles').value = EXTRA_BOTTLES;
+    document.getElementById('difficulty').value   = DIFFICULTY;
+  } catch(e) {}
+}
+
+function saveGame() {
+  localStorage.setItem('ls_game', JSON.stringify({
+    bottles, moveCount,
+    history: history.slice(-50)  // cap history to avoid quota issues
+  }));
+}
+
+function loadGame() {
+  try {
+    const g = JSON.parse(localStorage.getItem('ls_game'));
+    if (!g || !g.bottles) return false;
+    // Validate the saved game matches current settings
+    if (g.bottles.length !== NUM_COLORS + EXTRA_BOTTLES) return false;
+    bottles   = g.bottles;
+    moveCount = g.moveCount || 0;
+    history   = g.history   || [];
+    return true;
+  } catch(e) { return false; }
+}
 
 // ─── New game ─────────────────────────────────────────────────────
 function newGame() {
@@ -840,13 +775,27 @@ function newGame() {
   history   = [];
   generateLevel();
   render();
-  setStatus('Select a bottle to begin.');
+  setStatus('');
   document.getElementById('undoBtn').disabled = true;
+  saveGame();
 }
 
-// Init
-updateDiffLabel(3);
-newGame();
+// ─── Click outside to deselect ────────────────────────────────────
+document.getElementById('game').addEventListener('click', function(e) {
+  if (selected !== null && !e.target.closest('.bottle-wrap')) {
+    selected = null;
+    render();
+  }
+});
+
+// ─── Init ─────────────────────────────────────────────────────────
+loadSettings();
+if (!loadGame()) {
+  generateLevel();
+}
+render();
+setStatus('');
+document.getElementById('undoBtn').disabled = history.length === 0;
 </script>
 </body>
 </html>
