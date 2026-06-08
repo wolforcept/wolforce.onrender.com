@@ -1,0 +1,852 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liquid Sort Puzzle</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: #2a2a35;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --accent: #7c6af7;
+    --accent2: #f76ab0;
+    --bottle-w: 64px;
+    --bottle-h: 180px;
+    --neck-h: 28px;
+    --cap-h: 12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(124,106,247,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 50% at 80% 80%, rgba(247,106,176,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 2rem 1rem 0.5rem;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    padding: 0.5rem 1.1rem;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #9585fa; transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  .btn-icon {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.7rem;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Status ── */
+  .status-bar {
+    position: relative;
+    z-index: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    padding: 0.2rem 1rem;
+    text-align: center;
+    min-height: 1.4rem;
+    transition: color 0.3s;
+  }
+  .status-bar.win  { color: #6ef5a0; font-size: 0.9rem; }
+  .status-bar.hint { color: var(--accent2); }
+
+  /* ── Game area ── */
+  #game {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 20px;
+    padding: 1.5rem 1.5rem 4rem;
+    max-width: 1100px;
+    width: 100%;
+  }
+
+  /* ── Bottle ── */
+  .bottle-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s;
+    --lift: 0px;
+    transform: translateY(var(--lift));
+  }
+  .bottle-wrap:hover   { --lift: -6px; }
+  .bottle-wrap.selected { --lift: -18px; }
+  .bottle-wrap.selected .bottle-body {
+    box-shadow: 0 0 0 2px var(--accent), 0 8px 32px rgba(124,106,247,0.35);
+  }
+
+  .bottle-cap {
+    width: 28px;
+    height: var(--cap-h);
+    border-radius: 4px 4px 0 0;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-bottom: none;
+    transition: background 0.2s;
+  }
+
+  .bottle-neck {
+    width: 28px;
+    height: var(--neck-h);
+    background: rgba(255,255,255,0.03);
+    border-left: 1.5px solid var(--border);
+    border-right: 1.5px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .bottle-neck::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1.5px;
+    background: var(--border);
+  }
+
+  .bottle-body {
+    width: var(--bottle-w);
+    height: var(--bottle-h);
+    border: 1.5px solid var(--border);
+    border-radius: 6px 6px 14px 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background: rgba(255,255,255,0.02);
+    backdrop-filter: blur(4px);
+    transition: box-shadow 0.25s;
+    position: relative;
+  }
+  .bottle-body::after {
+    content: '';
+    position: absolute;
+    top: 6px; left: 6px;
+    width: 10px;
+    bottom: 10px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.09), transparent);
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  .liquid-layer {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    transition: height 0.3s ease;
+  }
+  .liquid-layer::before {
+    content: '';
+    position: absolute;
+    top: 2px; left: 20%;
+    width: 4px; height: 4px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 50%;
+    animation: bubble 3s ease-in-out infinite;
+    animation-delay: var(--bubble-delay, 0s);
+  }
+  .liquid-layer::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.18);
+  }
+  /* highlight top run on selected bottle */
+  .bottle-wrap.selected .liquid-layer.top-run {
+    filter: brightness(1.25);
+    outline: 1px solid rgba(255,255,255,0.3);
+  }
+
+  @keyframes bubble {
+    0%,100% { transform: translateY(0) scale(1); opacity:.6; }
+    50%      { transform: translateY(-4px) scale(1.1); opacity:.9; }
+  }
+
+  .bottle-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+  }
+
+  .neck-fill {
+    width: 100%;
+  }
+
+  /* ── Pour particle ── */
+  .pour-arc {
+    position: fixed;
+    pointer-events: none;
+    z-index: 100;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    animation: pour-drop 0.4s ease-in forwards;
+  }
+  @keyframes pour-drop {
+    0%   { transform: scale(1); opacity:1; }
+    70%  { transform: scale(0.7) translateY(28px); opacity:.8; }
+    100% { transform: scale(0) translateY(56px); opacity:0; }
+  }
+
+  /* ── Settings modal ── */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(13,13,15,0.82);
+    backdrop-filter: blur(8px);
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-backdrop.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem;
+    width: min(420px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.88); opacity:0; }
+    to   { transform: scale(1);    opacity:1; }
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s;
+  }
+  .modal-close:hover { color: var(--text); background: var(--surface2); }
+
+  .setting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .setting-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .setting-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+  .setting-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 400;
+    min-width: 3ch;
+    text-align: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+    box-shadow: 0 0 0 4px rgba(124,106,247,0.25);
+  }
+
+  .difficulty-desc {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: -0.2rem;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  /* ── Win overlay ── */
+  #win-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(13,13,15,0.85);
+    backdrop-filter: blur(8px);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  #win-overlay.show { display: flex; }
+  #win-overlay h2 {
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, #6ef5a0, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  #win-overlay p { font-family:'DM Mono',monospace; color:var(--muted); font-size:.85rem; }
+  @keyframes popIn {
+    from { transform: scale(0.6); opacity:0; }
+    to   { transform: scale(1);   opacity:1; }
+  }
+
+  @keyframes shakeX {
+    0%,100%{ transform:translateY(var(--lift)) }
+    20%{ transform:translateY(var(--lift)) translateX(-6px) }
+    40%{ transform:translateY(var(--lift)) translateX(6px) }
+    60%{ transform:translateY(var(--lift)) translateX(-4px) }
+    80%{ transform:translateY(var(--lift)) translateX(4px) }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>LIQUID SORT</h1>
+  <p class="subtitle">Pour · Sort · Solve</p>
+</header>
+
+<div class="topbar">
+  <button class="btn-primary"    onclick="newGame()">New Game</button>
+  <button class="btn-secondary"  id="undoBtn" onclick="undo()" disabled>Undo</button>
+  <button class="btn-secondary"  onclick="showHint()">Hint</button>
+  <button class="btn-icon"       onclick="openSettings()" title="Settings">⚙️</button>
+</div>
+
+<div class="status-bar" id="status">Select a bottle to begin.</div>
+
+<div id="game"></div>
+
+<!-- Settings Modal -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-row-top">
+        <span class="setting-label">Colors</span>
+        <span class="setting-val" id="colorsVal">4</span>
+      </div>
+      <input type="range" id="numColors" min="2" max="8" value="4"
+             oninput="document.getElementById('colorsVal').textContent=this.value">
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-row-top">
+        <span class="setting-label">Bottle Capacity</span>
+        <span class="setting-val" id="capacityVal">4</span>
+      </div>
+      <input type="range" id="capacity" min="3" max="6" value="4"
+             oninput="document.getElementById('capacityVal').textContent=this.value">
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-row-top">
+        <span class="setting-label">Empty Bottles</span>
+        <span class="setting-val" id="extraVal">2</span>
+      </div>
+      <input type="range" id="extraBottles" min="1" max="3" value="2"
+             oninput="document.getElementById('extraVal').textContent=this.value">
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-row-top">
+        <span class="setting-label">Difficulty (scramble steps)</span>
+        <span class="setting-val" id="diffVal">Medium</span>
+      </div>
+      <input type="range" id="difficulty" min="1" max="5" value="3"
+             oninput="updateDiffLabel(this.value)">
+      <span class="difficulty-desc" id="diffDesc">~balanced scramble</span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+      <button class="btn-primary"   onclick="applySettings()">Apply & New Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- Win overlay -->
+<div id="win-overlay">
+  <h2>SOLVED!</h2>
+  <p id="win-moves"></p>
+  <button class="btn-primary" onclick="newGame(); document.getElementById('win-overlay').classList.remove('show')">Play Again</button>
+</div>
+
+<script>
+// ─── Config ──────────────────────────────────────────────────────
+let NUM_COLORS    = 4;
+let CAPACITY      = 4;
+let EXTRA_BOTTLES = 2;
+let DIFFICULTY    = 3;   // 1–5
+
+// ─── State ───────────────────────────────────────────────────────
+let bottles  = [];
+let selected = null;
+let moveCount = 0;
+let history  = [];
+
+// ─── Palette ─────────────────────────────────────────────────────
+const PALETTE = [
+  { name:'Ruby',   hue:'#e85d7a', dark:'#c02850', light:'rgba(255,180,180,0.35)' },
+  { name:'Cobalt', hue:'#4e8ef7', dark:'#2056c0', light:'rgba(160,200,255,0.35)' },
+  { name:'Amber',  hue:'#f5a623', dark:'#c07800', light:'rgba(255,220,100,0.35)' },
+  { name:'Jade',   hue:'#3ecf74', dark:'#1a8a4a', light:'rgba(100,255,160,0.35)' },
+  { name:'Violet', hue:'#a259f7', dark:'#6520c0', light:'rgba(200,160,255,0.35)' },
+  { name:'Coral',  hue:'#ff6b4a', dark:'#c03020', light:'rgba(255,180,140,0.35)' },
+  { name:'Teal',   hue:'#26c6da', dark:'#007a90', light:'rgba(100,230,240,0.35)' },
+  { name:'Rose',   hue:'#f472b6', dark:'#b01070', light:'rgba(255,160,200,0.35)' },
+];
+function getColor(id) { return PALETTE[id % PALETTE.length]; }
+
+// ─── Difficulty labels ────────────────────────────────────────────
+const DIFF_LABELS = ['Trivial','Easy','Medium','Hard','Brutal'];
+const DIFF_DESCS  = [
+  '~very few scramble moves',
+  '~light scramble',
+  '~balanced scramble',
+  '~heavy scramble',
+  '~maximum chaos',
+];
+function updateDiffLabel(v) {
+  document.getElementById('diffVal').textContent  = DIFF_LABELS[v-1];
+  document.getElementById('diffDesc').textContent = DIFF_DESCS[v-1];
+}
+
+// ─── Top-run helpers ─────────────────────────────────────────────
+// Returns the color of the top run and its count
+function topRun(bottle) {
+  if (bottle.length === 0) return { color: null, count: 0 };
+  const color = bottle[bottle.length - 1];
+  let count = 0;
+  for (let i = bottle.length - 1; i >= 0 && bottle[i] === color; i--) count++;
+  return { color, count };
+}
+
+// ─── Level generation ────────────────────────────────────────────
+// Strategy: start solved, apply random VALID reverse pours.
+// A reverse pour moves the full top run from dst→src
+// (which in forward play means src→dst pours the whole run).
+function generateLevel() {
+  // Solved state
+  bottles = [];
+  for (let i = 0; i < NUM_COLORS; i++)      bottles.push(Array(CAPACITY).fill(i));
+  for (let i = 0; i < EXTRA_BOTTLES; i++)   bottles.push([]);
+
+  // Scramble count scales with difficulty and puzzle size
+  const base = NUM_COLORS * CAPACITY;
+  const multipliers = [0.5, 1.0, 2.0, 3.5, 6.0];
+  const scrambleCount = Math.max(5, Math.floor(base * multipliers[DIFFICULTY - 1]));
+
+  for (let s = 0; s < scrambleCount; s++) {
+    // Pick a random non-empty source
+    const sources = bottles.map((_,i)=>i).filter(i => bottles[i].length > 0);
+    shuffle(sources);
+    for (const src of sources) {
+      const { color, count } = topRun(bottles[src]);
+      // Valid targets for a reverse move: not full enough, and top matches or empty
+      const targets = bottles.map((_,i)=>i).filter(i => {
+        if (i === src) return false;
+        const dst = bottles[i];
+        const space = CAPACITY - dst.length;
+        if (space < count) return false;           // not enough room for the whole run
+        if (dst.length === 0) return true;         // empty: always ok
+        return dst[dst.length - 1] === color;      // top must match
+      });
+      if (targets.length > 0) {
+        const dst = targets[Math.floor(Math.random() * targets.length)];
+        // Move the whole run
+        for (let k = 0; k < count; k++) bottles[dst].push(bottles[src].pop());
+        break;
+      }
+    }
+  }
+
+  if (isSolved()) return generateLevel(); // rare edge-case, try again
+}
+
+function shuffle(arr) {
+  for (let i = arr.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+}
+
+// ─── Pouring logic ────────────────────────────────────────────────
+// canPour: can we move src's full top run into dst?
+function canPour(src, dst) {
+  if (src === dst) return false;
+  const srcB = bottles[src], dstB = bottles[dst];
+  if (srcB.length === 0) return false;
+  const { color, count } = topRun(srcB);
+  const space = CAPACITY - dstB.length;
+  if (space < count) return false;
+  if (dstB.length === 0) return true;
+  return dstB[dstB.length - 1] === color;
+}
+
+function pour(src, dst) {
+  if (!canPour(src, dst)) return false;
+  history.push(JSON.parse(JSON.stringify(bottles)));
+  const { count } = topRun(bottles[src]);
+  for (let k = 0; k < count; k++) bottles[dst].push(bottles[src].pop());
+  moveCount++;
+  return true;
+}
+
+function undo() {
+  if (history.length === 0) return;
+  bottles = history.pop();
+  selected = null;
+  moveCount = Math.max(0, moveCount - 1);
+  render();
+  setStatus('Undone.');
+  document.getElementById('undoBtn').disabled = history.length === 0;
+}
+
+function isSolved() {
+  return bottles.every(b =>
+    b.length === 0 || (b.length === CAPACITY && b.every(c => c === b[0]))
+  );
+}
+
+// ─── Click handler ────────────────────────────────────────────────
+function clickBottle(idx) {
+  if (isSolved()) return;
+
+  if (selected === null) {
+    if (bottles[idx].length === 0) return;
+    selected = idx;
+    render();
+    const { color, count } = topRun(bottles[idx]);
+    setStatus(`Selected — ${count}× ${getColor(color).name} on top.`);
+  } else if (selected === idx) {
+    selected = null;
+    render();
+    setStatus('Deselected.');
+  } else {
+    if (canPour(selected, idx)) {
+      const srcEl = document.querySelector(`[data-idx="${selected}"]`);
+      spawnPourParticle(srcEl, bottles[selected][bottles[selected].length-1]);
+      pour(selected, idx);
+      selected = null;
+      render();
+      document.getElementById('undoBtn').disabled = false;
+      if (isSolved()) { setTimeout(showWin, 400); }
+      else            { setStatus(`Move ${moveCount} — keep going!`); }
+    } else {
+      if (bottles[idx].length > 0) {
+        selected = idx;
+        render();
+        const { color, count } = topRun(bottles[idx]);
+        setStatus(`Switched — ${count}× ${getColor(color).name} on top.`);
+      } else {
+        setStatus("Can't pour there!", 'hint');
+        const el = document.querySelector(`[data-idx="${selected}"]`);
+        el && shake(el);
+      }
+    }
+  }
+}
+
+function shake(el) {
+  el.style.animation = 'none';
+  el.offsetHeight;
+  el.style.animation = 'shakeX 0.35s ease';
+  el.addEventListener('animationend', () => el.style.animation = '', { once:true });
+}
+
+// ─── Render ───────────────────────────────────────────────────────
+function render() {
+  const game = document.getElementById('game');
+  game.innerHTML = '';
+  const layerH = 100 / CAPACITY;
+
+  bottles.forEach((bottle, idx) => {
+    const isSelected = selected === idx;
+    const { color: topColor, count: topCount } = topRun(bottle);
+    // Which layers are part of the top run (for highlighting)
+    const topRunStart = bottle.length - topCount;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'bottle-wrap' + (isSelected ? ' selected' : '');
+    wrap.dataset.idx = idx;
+    wrap.onclick = () => clickBottle(idx);
+
+    // Cap
+    const cap = document.createElement('div');
+    cap.className = 'bottle-cap';
+    if (isSelected && bottle.length > 0) {
+      cap.style.background   = getColor(topColor).hue;
+      cap.style.borderColor  = getColor(topColor).dark;
+    }
+
+    // Neck
+    const neck = document.createElement('div');
+    neck.className = 'bottle-neck';
+    if (isSelected && bottle.length > 0) {
+      const nf = document.createElement('div');
+      nf.className = 'neck-fill';
+      nf.style.height     = '100%';
+      nf.style.background = getColor(topColor).hue + 'cc';
+      neck.appendChild(nf);
+    }
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'bottle-body';
+
+    bottle.forEach((colorId, li) => {
+      const layer = document.createElement('div');
+      layer.className = 'liquid-layer' + (isSelected && li >= topRunStart ? ' top-run' : '');
+      layer.style.height = layerH + '%';
+      const c = getColor(colorId);
+      layer.style.background = `linear-gradient(to bottom, ${c.light}, ${c.hue}cc)`;
+      layer.style.setProperty('--bubble-delay', (li * 0.7 + (li * 0.13)) + 's');
+      body.appendChild(layer);
+    });
+
+    // Label: show run info when selected
+    const label = document.createElement('div');
+    label.className = 'bottle-label';
+    if (bottle.length === 0) {
+      label.textContent = 'empty';
+    } else if (isSelected && topCount > 1) {
+      label.textContent = `pour ×${topCount}`;
+    } else {
+      label.textContent = `${bottle.length}/${CAPACITY}`;
+    }
+
+    wrap.appendChild(cap);
+    wrap.appendChild(neck);
+    wrap.appendChild(body);
+    wrap.appendChild(label);
+    game.appendChild(wrap);
+  });
+}
+
+// ─── Pour particles ───────────────────────────────────────────────
+function spawnPourParticle(srcEl, colorId) {
+  if (!srcEl) return;
+  const sr = srcEl.getBoundingClientRect();
+  const c  = getColor(colorId);
+  for (let i = 0; i < 4; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'pour-arc';
+    dot.style.background   = c.hue;
+    dot.style.left = (sr.left + sr.width/2 - 5 + (i-1.5)*7) + 'px';
+    dot.style.top  = (sr.top + 12) + 'px';
+    dot.style.animationDelay = (i * 55) + 'ms';
+    document.body.appendChild(dot);
+    dot.addEventListener('animationend', () => dot.remove());
+  }
+}
+
+// ─── Status ───────────────────────────────────────────────────────
+function setStatus(msg, cls='') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status-bar ' + cls;
+}
+
+// ─── Hint ─────────────────────────────────────────────────────────
+function showHint() {
+  for (let s = 0; s < bottles.length; s++) {
+    for (let d = 0; d < bottles.length; d++) {
+      if (canPour(s, d)) {
+        selected = s;
+        render();
+        const { color, count } = topRun(bottles[s]);
+        setStatus(`Hint: pour ${count}× ${getColor(color).name} from bottle ${s+1} → ${d+1}.`, 'hint');
+        return;
+      }
+    }
+  }
+  setStatus('No moves available — try undo!', 'hint');
+}
+
+// ─── Win ──────────────────────────────────────────────────────────
+function showWin() {
+  document.getElementById('win-moves').textContent = `Solved in ${moveCount} move${moveCount===1?'':'s'}`;
+  document.getElementById('win-overlay').classList.add('show');
+  setStatus('Puzzle solved! 🎉', 'win');
+}
+
+// ─── Settings modal ───────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('settingsModal').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+function applySettings() {
+  NUM_COLORS    = parseInt(document.getElementById('numColors').value);
+  CAPACITY      = parseInt(document.getElementById('capacity').value);
+  EXTRA_BOTTLES = parseInt(document.getElementById('extraBottles').value);
+  DIFFICULTY    = parseInt(document.getElementById('difficulty').value);
+  closeSettings();
+  newGame();
+}
+// Close on backdrop click
+document.getElementById('settingsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
+
+// ─── New game ─────────────────────────────────────────────────────
+function newGame() {
+  document.getElementById('win-overlay').classList.remove('show');
+  selected  = null;
+  moveCount = 0;
+  history   = [];
+  generateLevel();
+  render();
+  setStatus('Select a bottle to begin.');
+  document.getElementById('undoBtn').disabled = true;
+}
+
+// Init
+updateDiffLabel(3);
+newGame();
+</script>
+</body>
+</html>
