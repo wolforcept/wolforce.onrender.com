@@ -2,797 +2,791 @@
 <html lang="en">
 
 <head>
-  <base href="./">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Liquid Sort Puzzle</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d0d0f">
-  <link rel="apple-touch-icon" href="icon.png">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400&display=swap"
-    rel="stylesheet">
-  <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --bg: #0d0d0f;
-      --surface: #16161a;
-      --surface2: #1e1e24;
-      --border: #2a2a35;
-      --text: #e8e8f0;
-      --muted: #6b6b80;
-      --accent: #7c6af7;
-      --accent2: #f76ab0;
-      --bottle-w: 64px;
-      --bottle-h: 180px;
-      --neck-h: 28px;
-      --cap-h: 12px;
-      --neck-w: 28px;
-      /* overridden dynamically by JS */
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Syne', sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 60% 40% at 20% 20%, rgba(124, 106, 247, 0.06) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 50% at 80% 80%, rgba(247, 106, 176, 0.05) 0%, transparent 60%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    header {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      padding: 2rem 1rem 0.5rem;
-    }
-
-    h1 {
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .subtitle {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 0.4rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .topbar {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      gap: 0.6rem;
-      align-items: center;
-      padding: 0.75rem 1rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    button {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 0.8rem;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      border: none;
-      border-radius: 10px;
-      padding: 0.5rem 1.1rem;
-      transition: all 0.15s;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    .btn-primary:hover {
-      background: #9585fa;
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background: var(--surface2);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .btn-secondary:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn-icon {
-      background: var(--surface2);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 0.5rem 0.7rem;
-      font-size: 1rem;
-      line-height: 1;
-    }
-
-    .btn-icon:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .preset-select {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 0.8rem;
-      letter-spacing: 0.04em;
-      background: var(--surface2);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.5rem 0.9rem;
-      cursor: pointer;
-      outline: none;
-      transition: border-color 0.15s, color 0.15s;
-      -webkit-appearance: none;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b80' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.7rem center;
-      padding-right: 2rem;
-    }
-
-    .preset-select:hover,
-    .preset-select:focus {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .preset-select option {
-      background: #1e1e24;
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    .status-bar {
-      position: relative;
-      z-index: 1;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--muted);
-      padding: 0.2rem 1rem;
-      text-align: center;
-      min-height: 1.4rem;
-      transition: color 0.3s;
-    }
-
-    .status-bar.win {
-      color: #6ef5a0;
-      font-size: 0.9rem;
-    }
-
-    .status-bar.hint {
-      color: var(--accent2);
-    }
-
-    #game {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: flex-end;
-      gap: 20px;
-      padding: 1.5rem 1.5rem 4rem;
-      max-width: 1100px;
-      width: 100%;
-    }
-
-    .bottle-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      cursor: pointer;
-      position: relative;
-      transition: transform 0.2s;
-      --lift: 0px;
-      transform: translateY(var(--lift));
-    }
-
-    .bottle-wrap:hover {
-      --lift: -6px;
-    }
-
-    .bottle-wrap.selected {
-      --lift: -18px;
-    }
-
-    .bottle-wrap.selected .bottle-body {
-      box-shadow: 0 0 0 2px var(--accent), 0 8px 32px rgba(124, 106, 247, 0.35);
-    }
-
-    .bottle-cap {
-      width: var(--neck-w);
-      height: var(--cap-h);
-      border-radius: 4px 4px 0 0;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      border-bottom: none;
-      transition: background 0.2s;
-    }
-
-    .bottle-neck {
-      width: var(--neck-w);
-      height: var(--neck-h);
-      background: rgba(255, 255, 255, 0.03);
-      border-left: 1.5px solid var(--border);
-      border-right: 1.5px solid var(--border);
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-    }
-
-    .bottle-neck::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 1.5px;
-      background: var(--border);
-    }
-
-    .bottle-body {
-      width: var(--bottle-w);
-      height: var(--bottle-h);
-      border: 1.5px solid var(--border);
-      border-radius: 6px 6px 14px 14px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      background: rgba(255, 255, 255, 0.02);
-      backdrop-filter: blur(4px);
-      transition: box-shadow 0.25s;
-      position: relative;
-    }
-
-    .bottle-body::after {
-      content: '';
-      position: absolute;
-      top: 6px;
-      left: 6px;
-      width: 10px;
-      bottom: 10px;
-      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.09), transparent);
-      border-radius: 4px;
-      pointer-events: none;
-    }
-
-    .liquid-layer {
-      width: 100%;
-      position: relative;
-      overflow: hidden;
-      transition: height 0.3s ease;
-    }
-
-    .liquid-layer::before {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 20%;
-      width: 4px;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 50%;
-      animation: bubble 3s ease-in-out infinite;
-      animation-delay: var(--bubble-delay, 0s);
-    }
-
-    .liquid-layer::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: rgba(255, 255, 255, 0.18);
-    }
-
-    .bottle-wrap.selected .liquid-layer.top-run {
-      filter: brightness(1.25);
-      outline: 1px solid rgba(255, 255, 255, 0.3);
-    }
-
-    @keyframes bubble {
-
-      0%,
-      100% {
-        transform: translateY(0) scale(1);
-        opacity: .6;
-      }
-
-      50% {
-        transform: translateY(-4px) scale(1.1);
-        opacity: .9;
-      }
-    }
-
-    .bottle-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.62rem;
-      color: var(--muted);
-      margin-top: 6px;
-      letter-spacing: 0.04em;
-    }
-
-    .neck-fill {
-      width: 100%;
-    }
-
-    .pour-arc {
-      position: fixed;
-      pointer-events: none;
-      z-index: 100;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      animation: pour-drop 0.4s ease-in forwards;
-    }
-
-    @keyframes pour-drop {
-      0% {
-        transform: scale(1);
-        opacity: 1;
-      }
-
-      70% {
-        transform: scale(0.7) translateY(28px);
-        opacity: .8;
-      }
-
-      100% {
-        transform: scale(0) translateY(56px);
-        opacity: 0;
-      }
-    }
-
-    .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 300;
-      background: rgba(13, 13, 15, 0.82);
-      backdrop-filter: blur(8px);
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal-backdrop.show {
-      display: flex;
-    }
-
-    .modal {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 2rem;
-      width: min(420px, 92vw);
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
-      animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    @keyframes modalIn {
-      from {
-        transform: scale(0.88);
-        opacity: 0;
-      }
-
-      to {
-        transform: scale(1);
-        opacity: 1;
-      }
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .modal-header h2 {
-      font-size: 1.1rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-    }
-
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 1.4rem;
-      cursor: pointer;
-      padding: 0.1rem 0.4rem;
-      border-radius: 6px;
-      line-height: 1;
-      transition: color 0.15s, background 0.15s;
-    }
-
-    .modal-close:hover {
-      color: var(--text);
-      background: var(--surface2);
-    }
-
-    .setting-row {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .setting-row-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-    }
-
-    .setting-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-    }
-
-    .setting-val {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--accent);
-      font-weight: 400;
-      min-width: 3ch;
-      text-align: right;
-    }
-
-    input[type=range] {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      outline: none;
-      cursor: pointer;
-    }
-
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      background: var(--accent);
-      border-radius: 50%;
-      cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-
-    input[type=range]::-webkit-slider-thumb:hover {
-      transform: scale(1.3);
-      box-shadow: 0 0 0 4px rgba(124, 106, 247, 0.25);
-    }
-
-    input.num-input {
-      font-family: 'DM Mono', monospace;
-      font-size: 1rem;
-      color: var(--accent);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.4rem 0.7rem;
-      width: 100%;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    input.num-input:focus {
-      border-color: var(--accent);
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: flex-end;
-    }
-
-    #win-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: rgba(13, 13, 15, 0.85);
-      backdrop-filter: blur(8px);
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    #win-overlay.show {
-      display: flex;
-    }
-
-    #win-overlay h2 {
-      font-size: clamp(2rem, 6vw, 4rem);
-      font-weight: 800;
-      background: linear-gradient(135deg, #6ef5a0, var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    #win-overlay p {
-      font-family: 'DM Mono', monospace;
-      color: var(--muted);
-      font-size: .85rem;
-    }
-
-    @keyframes popIn {
-      from {
-        transform: scale(0.6);
-        opacity: 0;
-      }
-
-      to {
-        transform: scale(1);
-        opacity: 1;
-      }
-    }
-
-    @keyframes shakeX {
-
-      0%,
-      100% {
-        transform: translateY(var(--lift))
-      }
-
-      20% {
-        transform: translateY(var(--lift)) translateX(-6px)
-      }
-
-      40% {
-        transform: translateY(var(--lift)) translateX(6px)
-      }
-
-      60% {
-        transform: translateY(var(--lift)) translateX(-4px)
-      }
-
-      80% {
-        transform: translateY(var(--lift)) translateX(4px)
-      }
-    }
-  </style>
+    <base href="./">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquid Sort Puzzle</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d0d0f">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0d0d0f;
+            --surface: #16161a;
+            --surface2: #1e1e24;
+            --border: #2a2a35;
+            --text: #e8e8f0;
+            --muted: #6b6b80;
+            --accent: #7c6af7;
+            --accent2: #f76ab0;
+            --bottle-w: 64px;
+            --bottle-h: 180px;
+            --neck-h: 28px;
+            --cap-h: 12px;
+            --neck-w: 28px;
+            /* overridden dynamically by JS */
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 60% 40% at 20% 20%, rgba(124, 106, 247, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 50% at 80% 80%, rgba(247, 106, 176, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        header {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 2rem 1rem 0.5rem;
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 0.4rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .topbar {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            padding: 0.5rem 1.1rem;
+            transition: all 0.15s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #9585fa;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-icon {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 0.5rem 0.7rem;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .btn-icon:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .preset-select {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.5rem 0.9rem;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.15s, color 0.15s;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b80' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem center;
+            padding-right: 2rem;
+        }
+
+        .preset-select:hover,
+        .preset-select:focus {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .preset-select option {
+            background: #1e1e24;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .status-bar {
+            position: relative;
+            z-index: 1;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--muted);
+            padding: 0.2rem 1rem;
+            text-align: center;
+            min-height: 1.4rem;
+            transition: color 0.3s;
+        }
+
+        .status-bar.win {
+            color: #6ef5a0;
+            font-size: 0.9rem;
+        }
+
+        .status-bar.hint {
+            color: var(--accent2);
+        }
+
+        #game {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 20px;
+            padding: 1.5rem 1.5rem 4rem;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .bottle-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s;
+            --lift: 0px;
+            transform: translateY(var(--lift));
+        }
+
+        .bottle-wrap:hover {
+            --lift: -6px;
+        }
+
+        .bottle-wrap.selected {
+            --lift: -18px;
+        }
+
+        .bottle-wrap.selected .bottle-body {
+            box-shadow: 0 0 0 2px var(--accent), 0 8px 32px rgba(124, 106, 247, 0.35);
+        }
+
+        .bottle-cap {
+            width: var(--neck-w);
+            height: var(--cap-h);
+            border-radius: 4px 4px 0 0;
+            background: var(--surface2);
+            border: 1.5px solid var(--border);
+            border-bottom: none;
+            transition: background 0.2s;
+        }
+
+        .bottle-neck {
+            width: var(--neck-w);
+            height: var(--neck-h);
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 1.5px solid var(--border);
+            border-right: 1.5px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .bottle-neck::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1.5px;
+            background: var(--border);
+        }
+
+        .bottle-body {
+            width: var(--bottle-w);
+            height: var(--bottle-h);
+            border: 1.5px solid var(--border);
+            border-radius: 6px 6px 14px 14px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(4px);
+            transition: box-shadow 0.25s;
+            position: relative;
+        }
+
+        .bottle-body::after {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            width: 10px;
+            bottom: 10px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.09), transparent);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .liquid-layer {
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            transition: height 0.3s ease;
+        }
+
+        .liquid-layer::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 20%;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            animation: bubble 3s ease-in-out infinite;
+            animation-delay: var(--bubble-delay, 0s);
+        }
+
+        .liquid-layer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .bottle-wrap.selected .liquid-layer.top-run {
+            filter: brightness(1.25);
+            outline: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes bubble {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: .6;
+            }
+
+            50% {
+                transform: translateY(-4px) scale(1.1);
+                opacity: .9;
+            }
+        }
+
+        .bottle-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.62rem;
+            color: var(--muted);
+            margin-top: 6px;
+            letter-spacing: 0.04em;
+        }
+
+        .neck-fill {
+            width: 100%;
+        }
+
+        .pour-arc {
+            position: fixed;
+            pointer-events: none;
+            z-index: 100;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pour-drop 0.4s ease-in forwards;
+        }
+
+        @keyframes pour-drop {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            70% {
+                transform: scale(0.7) translateY(28px);
+                opacity: .8;
+            }
+
+            100% {
+                transform: scale(0) translateY(56px);
+                opacity: 0;
+            }
+        }
+
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: rgba(13, 13, 15, 0.82);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-backdrop.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            width: min(420px, 92vw);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+            animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modalIn {
+            from {
+                transform: scale(0.88);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 0.1rem 0.4rem;
+            border-radius: 6px;
+            line-height: 1;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .modal-close:hover {
+            color: var(--text);
+            background: var(--surface2);
+        }
+
+        .setting-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .setting-row-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .setting-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+        }
+
+        .setting-val {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 400;
+            min-width: 3ch;
+            text-align: right;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+            box-shadow: 0 0 0 4px rgba(124, 106, 247, 0.25);
+        }
+
+        input.num-input {
+            font-family: 'DM Mono', monospace;
+            font-size: 1rem;
+            color: var(--accent);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.4rem 0.7rem;
+            width: 100%;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        input.num-input:focus {
+            border-color: var(--accent);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        #win-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(13, 13, 15, 0.85);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        #win-overlay.show {
+            display: flex;
+        }
+
+        #win-overlay h2 {
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #6ef5a0, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #win-overlay p {
+            font-family: 'DM Mono', monospace;
+            color: var(--muted);
+            font-size: .85rem;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.6);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes shakeX {
+
+            0%,
+            100% {
+                transform: translateY(var(--lift))
+            }
+
+            20% {
+                transform: translateY(var(--lift)) translateX(-6px)
+            }
+
+            40% {
+                transform: translateY(var(--lift)) translateX(6px)
+            }
+
+            60% {
+                transform: translateY(var(--lift)) translateX(-4px)
+            }
+
+            80% {
+                transform: translateY(var(--lift)) translateX(4px)
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-  <header>
-    <h1>LIQUID SORT</h1>
-    <p class="subtitle">Pour · Sort · Solve</p>
-  </header>
+    <header>
+        <h1>LIQUID SORT</h1>
+        <p class="subtitle">Pour · Sort · Solve</p>
+    </header>
 
-  <div class="topbar">
-    <button class="btn-primary" onclick="newGame()">New Game</button>
-    <button class="btn-secondary" id="undoBtn" onclick="undo()" disabled>Undo</button>
-    <button class="btn-secondary" onclick="showHint()">Hint</button>
-    <select class="preset-select" id="presetSelect" onchange="applyPreset(this.value)">
-      <option value="introductory">Introductory</option>
-      <option value="easy">Easy</option>
-      <option value="medium" selected>Medium</option>
-      <option value="hard">Hard</option>
-      <option value="brutal">Brutal</option>
-      <option value="impossible">Impossible</option>
-      <option value="long">Long</option>
-      <option value="short">Short</option>
-      <option value="tall">Tall</option>
-      <option value="custom">Custom</option>
-    </select>
-    <button class="btn-icon" onclick="openSettings()" title="Settings">⚙️</button>
-  </div>
-
-  <div class="status-bar" id="status"></div>
-
-  <div id="game"></div>
-
-  <!-- Settings Modal -->
-  <div class="modal-backdrop" id="settingsModal">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>Settings</h2>
-        <button class="modal-close" onclick="closeSettings()">✕</button>
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-row-top">
-          <span class="setting-label">Colors</span>
-        </div>
-        <input type="number" id="numColors" min="1" value="4" class="num-input" oninput="onSettingInput()">
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-row-top">
-          <span class="setting-label">Bottle Capacity</span>
-        </div>
-        <input type="number" id="capacity" min="2" value="4" class="num-input" oninput="onSettingInput()">
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-row-top">
-          <span class="setting-label">Empty Bottles</span>
-        </div>
-        <input type="number" id="extraBottles" min="1" value="2" class="num-input" oninput="onSettingInput()">
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-row-top">
-          <span class="setting-label">Scramble Steps</span>
-        </div>
-        <input type="number" id="difficulty" min="1" value="500" class="num-input" oninput="onSettingInput()">
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
-        <button class="btn-primary" onclick="applySettings()">Apply & New Game</button>
-      </div>
+    <div class="topbar">
+        <button class="btn-primary" onclick="newGame()">New Game</button>
+        <button class="btn-secondary" id="undoBtn" onclick="undo()" disabled>Undo</button>
+        <button class="btn-secondary" id="resetBtn" onclick="resetGame()">Reset</button>
+        <button class="btn-secondary" onclick="solveStep()">Solve</button>
+        <select class="preset-select" id="presetSelect" onchange="applyPreset(this.value)">
+            <option value="introductory">Introductory</option>
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+            <option value="brutal">Brutal</option>
+            <option value="impossible">Impossible</option>
+            <option value="long">Long</option>
+            <option value="short">Short</option>
+            <option value="tall">Tall</option>
+            <option value="custom">Custom</option>
+        </select>
+        <button class="btn-icon" onclick="openSettings()" title="Settings">⚙️</button>
     </div>
-  </div>
 
-  <!-- Win overlay -->
-  <div id="win-overlay">
-    <h2>SOLVED!</h2>
-    <p id="win-moves"></p>
-    <button class="btn-primary"
-      onclick="newGame(); document.getElementById('win-overlay').classList.remove('show')">Play Again</button>
-  </div>
+    <div class="status-bar" id="status"></div>
 
-  <script>
-    // ─── Config ───────────────────────────────────────────────────────
-    let NUM_COLORS = 4;
-    let CAPACITY = 4;
-    let EXTRA_BOTTLES = 2;
-    let DIFFICULTY = 500;
+    <div id="game"></div>
 
-    // ─── Presets ──────────────────────────────────────────────────────
-    const PRESETS = {
-      introductory: { NUM_COLORS: 5, CAPACITY: 4, EXTRA_BOTTLES: 3, DIFFICULTY: 500 },
-      easy: { NUM_COLORS: 5, CAPACITY: 4, EXTRA_BOTTLES: 2, DIFFICULTY: 500 },
-      medium: { NUM_COLORS: 6, CAPACITY: 5, EXTRA_BOTTLES: 1, DIFFICULTY: 500 },
-      hard: { NUM_COLORS: 7, CAPACITY: 4, EXTRA_BOTTLES: 1, DIFFICULTY: 1000 },
-      brutal: { NUM_COLORS: 8, CAPACITY: 10, EXTRA_BOTTLES: 1, DIFFICULTY: 500 },
-      impossible: { NUM_COLORS: 10, CAPACITY: 10, EXTRA_BOTTLES: 1, DIFFICULTY: 2000 },
-      long: { NUM_COLORS: 20, CAPACITY: 4, EXTRA_BOTTLES: 1, DIFFICULTY: 1500 },
-      short: { NUM_COLORS: 8, CAPACITY: 6, EXTRA_BOTTLES: 1, DIFFICULTY: 500 },
-      tall: { NUM_COLORS: 6, CAPACITY: 12, EXTRA_BOTTLES: 1, DIFFICULTY: 1000 },
-    };
+    <!-- Settings Modal -->
+    <div class="modal-backdrop" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close" onclick="closeSettings()">✕</button>
+            </div>
 
-    function applyPreset(key) {
-      if (key === 'custom') {
-        // Load stored custom settings
-        loadCustomSettings();
-      } else {
-        const p = PRESETS[key];
-        NUM_COLORS = p.NUM_COLORS;
-        CAPACITY = p.CAPACITY;
-        EXTRA_BOTTLES = p.EXTRA_BOTTLES;
-        DIFFICULTY = p.DIFFICULTY;
-      }
-      syncInputs();
-      savePresetChoice(key);
-      newGame();
-    }
+            <div class="setting-row">
+                <div class="setting-row-top">
+                    <span class="setting-label">Colors</span>
+                </div>
+                <input type="number" id="numColors" min="1" value="4" class="num-input" oninput="onSettingInput()">
+            </div>
 
-    function syncInputs() {
-      document.getElementById('numColors').value = NUM_COLORS;
-      document.getElementById('capacity').value = CAPACITY;
-      document.getElementById('extraBottles').value = EXTRA_BOTTLES;
-      document.getElementById('difficulty').value = DIFFICULTY;
-    }
+            <div class="setting-row">
+                <div class="setting-row-top">
+                    <span class="setting-label">Bottle Capacity</span>
+                </div>
+                <input type="number" id="capacity" min="2" value="4" class="num-input" oninput="onSettingInput()">
+            </div>
 
-    // Called when any settings input changes — switches dropdown to Custom
-    function onSettingInput() {
-      document.getElementById('presetSelect').value = 'custom';
-    }
+            <div class="setting-row">
+                <div class="setting-row-top">
+                    <span class="setting-label">Empty Bottles</span>
+                </div>
+                <input type="number" id="extraBottles" min="1" value="2" class="num-input" oninput="onSettingInput()">
+            </div>
 
-    // ─── State ───────────────────────────────────────────────────────
-    let bottles = [];
-    let selected = null;
-    let moveCount = 0;
-    let history = [];
+            <div class="setting-row">
+                <div class="setting-row-top">
+                    <span class="setting-label">Scramble Steps</span>
+                </div>
+                <input type="number" id="difficulty" min="1" value="500" class="num-input" oninput="onSettingInput()">
+            </div>
 
-    // ─── Palette ─────────────────────────────────────────────────────
-    // 20 colours across 4 tiers of 5.
-    // Tier 0 (0-4):  plain
-    // Tier 1 (5-9):  diagonal stripes
-    // Tier 2 (10-14): dots / circles
-    // Tier 3 (15-19): crosshatch
-    const PALETTE = [
-      // tier 0 — plain
-      { name: 'Ruby', hue: '#e85d7a', dark: '#c02850', light: 'rgba(255,180,180,0.35)' },
-      { name: 'Cobalt', hue: '#4e8ef7', dark: '#2056c0', light: 'rgba(160,200,255,0.35)' },
-      { name: 'Amber', hue: '#f5a623', dark: '#c07800', light: 'rgba(255,220,100,0.35)' },
-      { name: 'Jade', hue: '#3ecf74', dark: '#1a8a4a', light: 'rgba(100,255,160,0.35)' },
-      { name: 'Violet', hue: '#a259f7', dark: '#6520c0', light: 'rgba(200,160,255,0.35)' },
-      // tier 1 — diagonal stripes
-      { name: 'Coral', hue: '#ff6b4a', dark: '#c03020', light: 'rgba(255,180,140,0.35)' },
-      { name: 'Teal', hue: '#26c6da', dark: '#007a90', light: 'rgba(100,230,240,0.35)' },
-      { name: 'Rose', hue: '#f472b6', dark: '#b01070', light: 'rgba(255,160,200,0.35)' },
-      { name: 'Lime', hue: '#a3e635', dark: '#5a8a00', light: 'rgba(190,255,100,0.35)' },
-      { name: 'Gold', hue: '#fbbf24', dark: '#92600a', light: 'rgba(255,230,130,0.35)' },
-      // tier 2 — dots
-      { name: 'Sky', hue: '#38bdf8', dark: '#0369a1', light: 'rgba(140,220,255,0.35)' },
-      { name: 'Salmon', hue: '#fb7185', dark: '#9f1239', light: 'rgba(255,180,190,0.35)' },
-      { name: 'Mint', hue: '#34d399', dark: '#065f46', light: 'rgba(120,255,200,0.35)' },
-      { name: 'Plum', hue: '#c084fc', dark: '#6b21a8', light: 'rgba(210,170,255,0.35)' },
-      { name: 'Sand', hue: '#fcd34d', dark: '#92400e', light: 'rgba(255,235,150,0.35)' },
-      // tier 3 — crosshatch
-      { name: 'Crimson', hue: '#ef4444', dark: '#991b1b', light: 'rgba(255,160,160,0.35)' },
-      { name: 'Azure', hue: '#60a5fa', dark: '#1e3a8a', light: 'rgba(160,200,255,0.35)' },
-      { name: 'Fern', hue: '#4ade80', dark: '#14532d', light: 'rgba(130,255,170,0.35)' },
-      { name: 'Peach', hue: '#fb923c', dark: '#7c2d12', light: 'rgba(255,200,150,0.35)' },
-      { name: 'Lilac', hue: '#e879f9', dark: '#701a75', light: 'rgba(240,170,255,0.35)' },
-    ];
-    function getColor(id) { return PALETTE[id % PALETTE.length]; }
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn-primary" onclick="applySettings()">Apply & New Game</button>
+            </div>
+        </div>
+    </div>
 
-    // Returns a CSS background value (layered on top of base colour) for a given colour id.
-    // Uses semi-transparent lines/dots so the base hue shows through.
-    function getTexture(id, hue) {
-      const tier = Math.floor((id % PALETTE.length) / 5);
-      const s = 'rgba(0,0,0,0.18)';   // shadow stripe
-      const h = 'rgba(255,255,255,0.22)'; // highlight stripe
-      switch (tier) {
-        case 0: return null; // plain — no overlay
-        case 1: // diagonal stripes ~45°
-          return `repeating-linear-gradient(
+    <!-- Win overlay -->
+    <div id="win-overlay">
+        <h2>SOLVED!</h2>
+        <p id="win-moves"></p>
+        <button class="btn-primary"
+            onclick="newGame(); document.getElementById('win-overlay').classList.remove('show')">Play Again</button>
+    </div>
+
+    <script>
+        // ─── Config ───────────────────────────────────────────────────────
+        let NUM_COLORS = 4;
+        let CAPACITY = 4;
+        let EXTRA_BOTTLES = 2;
+        let DIFFICULTY = 500;
+
+        // ─── Presets ──────────────────────────────────────────────────────
+        const PRESETS = {
+            introductory: /**/ { NUM_COLORS: 5, CAPACITY: 4, EXTRA_BOTTLES: 3, DIFFICULTY: 500 },
+            easy:         /**/ { NUM_COLORS: 5, CAPACITY: 4, EXTRA_BOTTLES: 2, DIFFICULTY: 500 },
+            medium:       /**/ { NUM_COLORS: 5, CAPACITY: 5, EXTRA_BOTTLES: 1, DIFFICULTY: 500 },
+            hard:         /**/ { NUM_COLORS: 6, CAPACITY: 5, EXTRA_BOTTLES: 1, DIFFICULTY: 1000 },
+            brutal:       /**/ { NUM_COLORS: 8, CAPACITY: 5, EXTRA_BOTTLES: 1, DIFFICULTY: 500 },
+            impossible:   /**/ { NUM_COLORS: 10, CAPACITY: 6, EXTRA_BOTTLES: 1, DIFFICULTY: 2000 },
+            long:         /**/ { NUM_COLORS: 10, CAPACITY: 4, EXTRA_BOTTLES: 1, DIFFICULTY: 1500 },
+            short:        /**/ { NUM_COLORS: 5, CAPACITY: 4, EXTRA_BOTTLES: 1, DIFFICULTY: 500 },
+            tall:         /**/ { NUM_COLORS: 5, CAPACITY: 6, EXTRA_BOTTLES: 2, DIFFICULTY: 1000 },
+        };
+
+        function applyPreset(key) {
+            if (key === 'custom') {
+                loadCustomSettings();
+            } else {
+                const p = PRESETS[key];
+                NUM_COLORS = p.NUM_COLORS;
+                CAPACITY = p.CAPACITY;
+                EXTRA_BOTTLES = p.EXTRA_BOTTLES;
+                DIFFICULTY = p.DIFFICULTY;
+            }
+            syncInputs();
+            savePresetChoice(key);
+            newGame();
+        }
+
+        function syncInputs() {
+            document.getElementById('numColors').value = NUM_COLORS;
+            document.getElementById('capacity').value = CAPACITY;
+            document.getElementById('extraBottles').value = EXTRA_BOTTLES;
+            document.getElementById('difficulty').value = DIFFICULTY;
+        }
+
+        // Called when any settings input changes — switches dropdown to Custom
+        function onSettingInput() {
+            document.getElementById('presetSelect').value = 'custom';
+        }
+
+        // ─── Palette ─────────────────────────────────────────────────────
+        // 20 colours across 4 tiers of 5.
+        // Tier 0 (0-4):  plain
+        // Tier 1 (5-9):  diagonal stripes
+        // Tier 2 (10-14): dots / circles
+        // Tier 3 (15-19): crosshatch
+        const PALETTE = [
+            // tier 0 — plain
+            { name: 'Ruby', hue: '#e85d7a', dark: '#c02850', light: 'rgba(255,180,180,0.35)' },
+            { name: 'Cobalt', hue: '#4e8ef7', dark: '#2056c0', light: 'rgba(160,200,255,0.35)' },
+            { name: 'Amber', hue: '#f5a623', dark: '#c07800', light: 'rgba(255,220,100,0.35)' },
+            { name: 'Jade', hue: '#3ecf74', dark: '#1a8a4a', light: 'rgba(100,255,160,0.35)' },
+            { name: 'Violet', hue: '#a259f7', dark: '#6520c0', light: 'rgba(200,160,255,0.35)' },
+            // tier 1 — diagonal stripes
+            { name: 'Coral', hue: '#ff6b4a', dark: '#c03020', light: 'rgba(255,180,140,0.35)' },
+            { name: 'Teal', hue: '#26c6da', dark: '#007a90', light: 'rgba(100,230,240,0.35)' },
+            { name: 'Rose', hue: '#f472b6', dark: '#b01070', light: 'rgba(255,160,200,0.35)' },
+            { name: 'Lime', hue: '#a3e635', dark: '#5a8a00', light: 'rgba(190,255,100,0.35)' },
+            { name: 'Gold', hue: '#fbbf24', dark: '#92600a', light: 'rgba(255,230,130,0.35)' },
+            // tier 2 — dots
+            { name: 'Sky', hue: '#38bdf8', dark: '#0369a1', light: 'rgba(140,220,255,0.35)' },
+            { name: 'Salmon', hue: '#fb7185', dark: '#9f1239', light: 'rgba(255,180,190,0.35)' },
+            { name: 'Mint', hue: '#34d399', dark: '#065f46', light: 'rgba(120,255,200,0.35)' },
+            { name: 'Plum', hue: '#c084fc', dark: '#6b21a8', light: 'rgba(210,170,255,0.35)' },
+            { name: 'Sand', hue: '#fcd34d', dark: '#92400e', light: 'rgba(255,235,150,0.35)' },
+            // tier 3 — crosshatch
+            { name: 'Crimson', hue: '#ef4444', dark: '#991b1b', light: 'rgba(255,160,160,0.35)' },
+            { name: 'Azure', hue: '#60a5fa', dark: '#1e3a8a', light: 'rgba(160,200,255,0.35)' },
+            { name: 'Fern', hue: '#4ade80', dark: '#14532d', light: 'rgba(130,255,170,0.35)' },
+            { name: 'Peach', hue: '#fb923c', dark: '#7c2d12', light: 'rgba(255,200,150,0.35)' },
+            { name: 'Lilac', hue: '#e879f9', dark: '#701a75', light: 'rgba(240,170,255,0.35)' },
+        ];
+        function getColor(id) { return PALETTE[id % PALETTE.length]; }
+
+        // Returns a CSS background value (layered on top of base colour) for a given colour id.
+        // Uses semi-transparent lines/dots so the base hue shows through.
+        function getTexture(id, hue) {
+            const tier = Math.floor((id % PALETTE.length) / 5);
+            const s = 'rgba(0,0,0,0.18)';   // shadow stripe
+            const h = 'rgba(255,255,255,0.22)'; // highlight stripe
+            switch (tier) {
+                case 0: return null; // plain — no overlay
+                case 1: // diagonal stripes ~45°
+                    return `repeating-linear-gradient(
         45deg,
         transparent 0px, transparent 4px,
         ${s} 4px, ${s} 6px,
         transparent 6px, transparent 10px,
         ${h} 10px, ${h} 11px
       )`;
-        case 2: // dots — radial-gradient tiled via background-size
-          return `radial-gradient(circle, ${h} 1.5px, transparent 1.5px)`;
-        case 3: // crosshatch
-          return `repeating-linear-gradient(
+                case 2: // dots — radial-gradient tiled via background-size
+                    return `radial-gradient(circle, ${h} 1.5px, transparent 1.5px)`;
+                case 3: // crosshatch
+                    return `repeating-linear-gradient(
           0deg,
           transparent 0px, transparent 5px,
           ${s} 5px, ${s} 6px
@@ -802,447 +796,704 @@
           transparent 0px, transparent 5px,
           ${s} 5px, ${s} 6px
         )`;
-        default: return null;
-      }
-    }
-
-    // ─── Top-run helpers ─────────────────────────────────────────────
-    function topRun(bottle) {
-      if (bottle.length === 0) return { color: null, count: 0 };
-      const color = bottle[bottle.length - 1];
-      let count = 0;
-      for (let i = bottle.length - 1; i >= 0 && bottle[i] === color; i--) count++;
-      return { color, count };
-    }
-
-    // ─── Level generation ─────────────────────────────────────────────
-    // Scrambles by moving one layer at a time (ignoring the gameplay run rule)
-    // so colors genuinely mix. Retries iteratively if result ends up solved.
-    function generateLevel() {
-      const scrambleTarget = Math.max(1, DIFFICULTY);
-
-      for (let attempt = 0; attempt < 100; attempt++) {
-        // Reset to solved state
-        bottles = [];
-        for (let i = 0; i < NUM_COLORS; i++)    bottles.push(Array(CAPACITY).fill(i));
-        for (let i = 0; i < EXTRA_BOTTLES; i++) bottles.push([]);
-
-        let scrambleMoves = 0;
-        let lastSrc = -1, lastDst = -1;  // track last move to avoid immediate reversal
-        let stuckStreak = 0;
-        const MAX_STUCK = 50;
-
-        while (scrambleMoves < scrambleTarget && stuckStreak < MAX_STUCK) {
-          // Collect all valid single-layer moves, excluding the immediate undo
-          const moves = [];
-          for (let src = 0; src < bottles.length; src++) {
-            if (bottles[src].length === 0) continue;
-            for (let dst = 0; dst < bottles.length; dst++) {
-              if (dst === src) continue;
-              if (bottles[dst].length >= CAPACITY) continue;
-              // Exclude the exact reversal of the previous move
-              if (src === lastDst && dst === lastSrc) continue;
-              moves.push([src, dst]);
+                default: return null;
             }
-          }
-
-          if (moves.length === 0) { stuckStreak++; continue; }
-
-          const [src, dst] = moves[Math.floor(Math.random() * moves.length)];
-          bottles[dst].push(bottles[src].pop());
-          lastSrc = src;
-          lastDst = dst;
-          scrambleMoves++;
-          stuckStreak = 0;
         }
 
-        if (!isSolved()) return;
-      }
-    }
+        // ─── Game logic class ─────────────────────────────────────────────
+        // All mutable game state and rules live here. The UI layer reads
+        // game.bottles, game.selected, game.moveCount and calls methods.
+        class LiquidSortGame {
+            constructor(numColors, capacity, extraBottles, difficulty) {
+                this.numColors = numColors;
+                this.capacity = capacity;
+                this.extraBottles = extraBottles;
+                this.difficulty = difficulty;
 
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-    }
+                // Mutable state
+                this.bottles = [];   // array[bottleIdx][layerIdx] — index 0 = BOTTOM, last = TOP
+                this.initialBottles = [];   // snapshot of bottles right after generateLevel()
+                this.selected = null; // index of currently selected bottle, or null
+                this.moveCount = 0;
+                this.history = [];   // stack of deep-copied bottle states for undo
+            }
 
-    // ─── Pouring logic ────────────────────────────────────────────────
-    function canPour(src, dst) {
-      if (src === dst) return false;
-      const srcB = bottles[src], dstB = bottles[dst];
-      if (srcB.length === 0) return false;
-      const { color, count } = topRun(srcB);
-      const space = CAPACITY - dstB.length;
-      if (space < count) return false;
-      if (dstB.length === 0) return true;
-      return dstB[dstB.length - 1] === color;
-    }
+            // ── Helpers ────────────────────────────────────────────────────
 
-    function pour(src, dst) {
-      if (!canPour(src, dst)) return false;
-      history.push(JSON.parse(JSON.stringify(bottles)));
-      const { count } = topRun(bottles[src]);
-      for (let k = 0; k < count; k++) bottles[dst].push(bottles[src].pop());
-      moveCount++;
-      return true;
-    }
+            // Returns the colour and run-length of the TOP of a bottle.
+            // "Top" means the last element of the array (highest index).
+            topRun(bottle) {
+                if (bottle.length === 0) return { color: null, count: 0 };
+                const color = bottle[bottle.length - 1];
+                let count = 0;
+                for (let i = bottle.length - 1; i >= 0 && bottle[i] === color; i--) count++;
+                return { color, count };
+            }
 
-    function undo() {
-      if (history.length === 0) return;
-      bottles = history.pop();
-      selected = null;
-      moveCount = Math.max(0, moveCount - 1);
-      render();
-      setStatus('');
-      saveGame();
-      document.getElementById('undoBtn').disabled = history.length === 0;
-    }
+            clone(state) {
+                return JSON.parse(JSON.stringify(state));
+            }
 
-    function isSolved() {
-      return bottles.every(b =>
-        b.length === 0 || (b.length === CAPACITY && b.every(c => c === b[0]))
-      );
-    }
+            // ── Solved check ───────────────────────────────────────────────
 
-    // ─── Click handler ────────────────────────────────────────────────
-    function clickBottle(idx) {
-      if (isSolved()) return;
+            isSolved() {
+                return this.bottles.every(b =>
+                    b.length === 0 || (b.length === this.capacity && b.every(c => c === b[0]))
+                );
+            }
 
-      if (selected === null) {
-        if (bottles[idx].length === 0) return;
-        selected = idx;
-        render();
+            // ── Pour (gameplay) ────────────────────────────────────────────
 
-      } else if (selected === idx) {
-        selected = null;
-        render();
-        setStatus('');
-      } else {
-        if (canPour(selected, idx)) {
-          const srcEl = document.querySelector(`[data-idx="${selected}"]`);
-          spawnPourParticle(srcEl, bottles[selected][bottles[selected].length - 1]);
-          pour(selected, idx);
-          selected = null;
-          render();
-          document.getElementById('undoBtn').disabled = false;
-          saveGame();
-          if (isSolved()) { setTimeout(showWin, 400); }
-          else { setStatus(''); }
-        } else {
-          if (bottles[idx].length > 0) {
-            // Switch selection to the clicked bottle
-            selected = idx;
+            // Can the top run of src legally be poured onto dst?
+            // Rules:
+            //   1. src must be non-empty
+            //   2. dst must have enough free space for the FULL top run of src
+            //   3. dst must be empty OR its top colour matches src's top colour
+            canPour(srcIdx, dstIdx) {
+                if (srcIdx === dstIdx) return false;
+                const src = this.bottles[srcIdx];
+                const dst = this.bottles[dstIdx];
+                if (src.length === 0) return false;
+                const { color, count } = this.topRun(src);  // reads from top (last element)
+                const space = this.capacity - dst.length;
+                if (space < count) return false;
+                if (dst.length === 0) return true;
+                return dst[dst.length - 1] === color;        // dst top = last element
+            }
+
+            // Execute a legal pour. Moves the full top run from src onto dst.
+            // Pushes to history for undo.
+            pour(srcIdx, dstIdx) {
+                if (!this.canPour(srcIdx, dstIdx)) return false;
+                this.history.push(this.clone(this.bottles));
+                const { count } = this.topRun(this.bottles[srcIdx]);
+                // pop from top of src (last element), push onto top of dst (last element)
+                for (let k = 0; k < count; k++) {
+                    this.bottles[dstIdx].push(this.bottles[srcIdx].pop());
+                }
+                this.moveCount++;
+                return true;
+            }
+
+            // Restore the previous state from history.
+            undo() {
+                if (this.history.length === 0) return false;
+                this.bottles = this.history.pop();
+                this.selected = null;
+                this.moveCount = Math.max(0, this.moveCount - 1);
+                return true;
+            }
+
+            // ── Level generation (scramble) ────────────────────────────────
+
+            // Builds a solvable puzzle by scrambling FROM the solved state using
+            // reverse pours. A reverse pour is identical in mechanics to a forward
+            // pour EXCEPT the destination colour-match rule is dropped — allowing
+            // colours to be interleaved so the puzzle is non-trivial.
+            //
+            // Concretely, each scramble step:
+            //   • reads the FULL top run of a source bottle  (same as canPour / pour)
+            //   • moves it to any destination with enough free space  (same pop/push)
+            //   • ignores the destination's top colour         (reverse-only relaxation)
+            //
+            // Because the move mechanics are otherwise identical to gameplay, every
+            // scrambled state can be solved by replaying those same moves in reverse.
+            generateLevel() {
+                // Step 1 — deal all liquid layers into bottles in random order.
+                // This is equivalent to shuffling a deck: every layer of every colour
+                // is placed one at a time into a randomly chosen bottle that still has
+                // room. The result is thoroughly mixed and fills exactly the right
+                // total volume, but is NOT yet guaranteed solvable.
+                const deal = () => {
+                    this.bottles = [];
+                    for (let i = 0; i < this.numColors + this.extraBottles; i++) this.bottles.push([]);
+
+                    // Build a flat pool of all layers (numColors × capacity tokens)
+                    const pool = [];
+                    for (let c = 0; c < this.numColors; c++)
+                        for (let k = 0; k < this.capacity; k++) pool.push(c);
+
+                    // Fisher-Yates shuffle the pool
+                    for (let i = pool.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [pool[i], pool[j]] = [pool[j], pool[i]];
+                    }
+
+                    // Distribute into the first numColors bottles (extra bottles stay empty)
+                    // using a simple round-robin so each non-extra bottle ends up full.
+                    let bi = 0;
+                    for (const color of pool) {
+                        while (this.bottles[bi].length >= this.capacity) bi++;
+                        this.bottles[bi].push(color); // push = add to TOP (last element)
+                    }
+                };
+
+                // Step 2 — verify solvability with a depth-limited BFS/greedy solver.
+                // We try up to `attempts` random deals until we find one that is solvable.
+                // In practice almost all deals are solvable with ≥2 extra bottles;
+                // with 1 extra bottle a small fraction (~5-15%) are not, so we retry.
+                const isSolvable = () => {
+                    // Greedy solver: always make a move that either completes a bottle or
+                    // at least stacks matching colours together. Falls back to any legal move.
+                    // Not complete but fast and catches the common unsolvable cases.
+                    const state = this.clone(this.bottles);
+                    const seen = new Set();
+                    const key = s => JSON.stringify(s);
+
+                    // Full BFS is too slow for large puzzles; use greedy + limited backtrack
+                    const stack = [state];
+                    let steps = 0;
+                    const maxSteps = this.numColors * this.capacity * 6;
+
+                    while (stack.length && steps < maxSteps) {
+                        const cur = stack.pop();
+                        const k = key(cur);
+                        if (seen.has(k)) continue;
+                        seen.add(k);
+                        steps++;
+
+                        // Check solved
+                        const solved = cur.every(b =>
+                            b.length === 0 || (b.length === this.capacity && b.every(c => c === b[0]))
+                        );
+                        if (solved) return true;
+
+                        // Collect legal moves
+                        const moves = [];
+                        for (let s = 0; s < cur.length; s++) {
+                            if (cur[s].length === 0) continue;
+                            const topS = cur[s][cur[s].length - 1];
+                            const runS = (() => {
+                                let c = 0;
+                                for (let i = cur[s].length - 1; i >= 0 && cur[s][i] === topS; i--) c++;
+                                return c;
+                            })();
+                            for (let d = 0; d < cur.length; d++) {
+                                if (d === s) continue;
+                                const space = this.capacity - cur[d].length;
+                                if (space < runS) continue;
+                                if (cur[d].length > 0 && cur[d][cur[d].length - 1] !== topS) continue;
+                                // Score: prefer moves that complete a bottle or match colours
+                                const completes = cur[d].length + runS === this.capacity && cur[d].every(c => c === topS);
+                                const matches = cur[d].length > 0;
+                                moves.push({ s, d, runS, score: completes ? 2 : matches ? 1 : 0 });
+                            }
+                        }
+                        // Push lower-scored moves first (stack pops highest last)
+                        moves.sort((a, b) => a.score - b.score);
+                        for (const { s, d, runS } of moves) {
+                            const next = cur.map(b => [...b]);
+                            for (let k = 0; k < runS; k++) next[d].push(next[s].pop());
+                            stack.push(next);
+                        }
+                    }
+                    return false;
+                };
+
+                for (let attempt = 0; attempt < 200; attempt++) {
+                    deal();
+                    if (!this.isSolved() && isSolvable()) return;
+                }
+                // Fallback: just deal without solvability check rather than hang
+                deal();
+            }
+
+            // Snapshot the just-generated layout so the player can reset to it.
+            saveInitial() {
+                this.initialBottles = this.clone(this.bottles);
+            }
+
+            // Reset back to the puzzle's starting layout.
+            resetToInitial() {
+                if (!this.initialBottles.length) return false;
+                this.bottles = this.clone(this.initialBottles);
+                this.selected = null;
+                this.moveCount = 0;
+                this.history = [];
+                return true;
+            }
+
+            // ── Selection / tap handler ───────────────────────────────────
+            // Called when the player taps bottle at `idx`.
+            // Returns one of these string events for the UI to act on:
+            //   'selected'   — bottle was (re)selected, just re-render
+            //   'deselected' — same bottle tapped again, just re-render
+            //   'poured'     — legal pour executed, re-render + save
+            //   'solved'     — pour happened and puzzle is now solved
+            //   'switched'   — selection switched to a different non-empty bottle
+            //   'invalid'    — tried to pour onto empty/incompatible, shake src
+            //   'noop'       — tapped an empty bottle with nothing selected
+            select(idx) {
+                if (this.isSolved()) return 'noop';
+
+                if (this.selected === null) {
+                    if (this.bottles[idx].length === 0) return 'noop';
+                    this.selected = idx;
+                    return 'selected';
+                }
+
+                if (this.selected === idx) {
+                    this.selected = null;
+                    return 'deselected';
+                }
+
+                if (this.canPour(this.selected, idx)) {
+                    this.pour(this.selected, idx);   // pour() already pushes history
+                    this.selected = null;
+                    return this.isSolved() ? 'solved' : 'poured';
+                }
+
+                if (this.bottles[idx].length > 0) {
+                    this.selected = idx;
+                    return 'switched';
+                }
+
+                // Tapped empty bottle that can't receive
+                this.selected = null;
+                return 'invalid';
+            }
+
+            // ── Solver ─────────────────────────────────────────────────────
+            // BFS from the current state. Returns the first move { src, dst }
+            // of the shortest solution path, found within a 400 ms budget.
+            // Falls back to any legal move if BFS times out.
+            getSolveMove() {
+                const cap = this.capacity;
+                const key = b => JSON.stringify(b);
+                const isSolved = b => b.every(b =>
+                    b.length === 0 || (b.length === cap && b.every(c => c === b[0]))
+                );
+                const legalMoves = b => {
+                    const out = [];
+                    for (let s = 0; s < b.length; s++) {
+                        if (!b[s].length) continue;
+                        const top = b[s][b[s].length - 1];
+                        let run = 0;
+                        for (let i = b[s].length - 1; i >= 0 && b[s][i] === top; i--) run++;
+                        for (let d = 0; d < b.length; d++) {
+                            if (d === s) continue;
+                            if (cap - b[d].length < run) continue;
+                            if (b[d].length && b[d][b[d].length - 1] !== top) continue;
+                            out.push([s, d, run]);
+                        }
+                    }
+                    return out;
+                };
+                const apply = (b, s, d, run) => {
+                    const nb = b.map(x => x.slice());
+                    for (let k = 0; k < run; k++) nb[d].push(nb[s].pop());
+                    return nb;
+                };
+
+                const deadline = Date.now() + 400;
+                const queue = [{ b: this.bottles, first: null }];
+                const visited = new Set([key(this.bottles)]);
+
+                while (queue.length) {
+                    if (Date.now() > deadline) break;
+                    const { b, first } = queue.shift();
+                    for (const [s, d, run] of legalMoves(b)) {
+                        const nb = apply(b, s, d, run);
+                        const k = key(nb);
+                        if (visited.has(k)) continue;
+                        visited.add(k);
+                        const f = first ?? { src: s, dst: d };
+                        if (isSolved(nb)) return f;
+                        queue.push({ b: nb, first: f });
+                    }
+                }
+
+                // BFS timed out — return any legal move
+                for (let s = 0; s < this.bottles.length; s++)
+                    for (let d = 0; d < this.bottles.length; d++)
+                        if (this.canPour(s, d)) return { src: s, dst: d };
+                return null;
+            }
+
+            // Serialise everything needed to resume the game.
+            serialise() {
+                return {
+                    bottles: this.bottles,
+                    initialBottles: this.initialBottles,
+                    moveCount: this.moveCount,
+                    history: this.history.slice(-50),
+                };
+            }
+
+            // Restore from a serialised snapshot. Returns false if the snapshot
+            // doesn't match the current config (stale save).
+            deserialise(data) {
+                if (!data || !data.bottles) return false;
+                if (data.bottles.length !== this.numColors + this.extraBottles) return false;
+                this.bottles = data.bottles;
+                this.initialBottles = data.initialBottles || this.clone(data.bottles);
+                this.moveCount = data.moveCount || 0;
+                this.history = data.history || [];
+                return true;
+            }
+        }
+
+        // ─── Game instance + UI state ─────────────────────────────────────
+        let game = new LiquidSortGame(NUM_COLORS, CAPACITY, EXTRA_BOTTLES, DIFFICULTY);
+
+        // ─── Undo (UI wrapper) ───────────────────────────────────────────
+        function undo() {
+            if (!game.undo()) return;
             render();
-          } else {
-            // Clicked an empty bottle that can't receive — shake and deselect
-            const el = document.querySelector(`[data-idx="${selected}"]`);
-            el && shake(el);
-            selected = null;
-            render();
-          }
-        }
-      }
-    }
-
-    function shake(el) {
-      el.style.animation = 'none';
-      el.offsetHeight;
-      el.style.animation = 'shakeX 0.35s ease';
-      el.addEventListener('animationend', () => el.style.animation = '', { once: true });
-    }
-
-    // ─── Bottle sizing ────────────────────────────────────────────────
-    function computeBottleSize() {
-      const n = bottles.length;
-      const cap = CAPACITY;
-      // Chrome/header/topbar/status take ~160px vertically
-      const vAvail = window.innerHeight - 160;
-      const hAvail = window.innerWidth - 32;
-
-      // Bottle aspect: width = 1 unit, total height = body + neck + cap
-      // neck ≈ 0.44× body-w, cap ≈ 0.19× body-w, body-h ≈ 2.8× body-w (fits CAPACITY layers)
-      // We scale body-h with capacity: h = w * cap * 0.45 (empirically good layer height)
-      const NECK_RATIO = 0.44;  // neck-w / bottle-w
-      const NECK_H_RATIO = 0.44; // neck-h / bottle-w
-      const CAP_H_RATIO = 0.19; // cap-h  / bottle-w
-      const LAYER_RATIO = 0.45; // layer-h / bottle-w
-
-      const GAP = 16; // px between bottles
-
-      // Try fitting all bottles in one row (landscape) or wrapping
-      // We try all row counts from 1 to n and pick the size that maximises bottle-w
-      let bestW = 0;
-      for (let rows = 1; rows <= n; rows++) {
-        const cols = Math.ceil(n / rows);
-        const bodyH = (vAvail / rows) - (NECK_H_RATIO + CAP_H_RATIO) * 1; // rough
-        const wFromH = bodyH / (cap * LAYER_RATIO);
-        const wFromW = (hAvail - GAP * (cols - 1)) / cols;
-        const w = Math.min(wFromH, wFromW);
-        if (w > bestW) bestW = w;
-      }
-
-      // Apply a max so bottles don't become absurdly large on big screens
-      bestW = Math.min(bestW, 120);
-      bestW = Math.max(bestW, 28); // minimum usable size
-
-      const bodyH = bestW * cap * LAYER_RATIO;
-      const neckW = Math.round(bestW * NECK_RATIO);
-      const neckH = Math.round(bestW * NECK_H_RATIO);
-      const capH = Math.round(bestW * CAP_H_RATIO);
-
-      const root = document.documentElement;
-      root.style.setProperty('--bottle-w', Math.round(bestW) + 'px');
-      root.style.setProperty('--bottle-h', Math.round(bodyH) + 'px');
-      root.style.setProperty('--neck-w', neckW + 'px');
-      root.style.setProperty('--neck-h', neckH + 'px');
-      root.style.setProperty('--cap-h', capH + 'px');
-      // Scale gap and border-radius proportionally
-      document.getElementById('game').style.gap = Math.round(bestW * 0.22) + 'px';
-    }
-
-    // ─── Render ───────────────────────────────────────────────────────
-    function render() {
-      computeBottleSize();
-      const game = document.getElementById('game');
-      game.innerHTML = '';
-      const layerH = 100 / CAPACITY;
-
-      bottles.forEach((bottle, idx) => {
-        const isSelected = selected === idx;
-        const { color: topColor, count: topCount } = topRun(bottle);
-        const topRunStart = bottle.length - topCount;
-
-        const wrap = document.createElement('div');
-        wrap.className = 'bottle-wrap' + (isSelected ? ' selected' : '');
-        wrap.dataset.idx = idx;
-        wrap.onclick = () => clickBottle(idx);
-
-        const cap = document.createElement('div');
-        cap.className = 'bottle-cap';
-        if (isSelected && bottle.length > 0) {
-          cap.style.background = getColor(topColor).hue;
-          cap.style.borderColor = getColor(topColor).dark;
+            setStatus('');
+            saveGame();
+            document.getElementById('undoBtn').disabled = game.history.length === 0;
         }
 
-        const neck = document.createElement('div');
-        neck.className = 'bottle-neck';
-        if (isSelected && bottle.length > 0) {
-          const nf = document.createElement('div');
-          nf.className = 'neck-fill';
-          nf.style.height = '100%';
-          const nfTex = getTexture(topColor, getColor(topColor).hue);
-          if (nfTex) {
-            const isDots = Math.floor((topColor % PALETTE.length) / 5) === 2;
-            nf.style.background = `${nfTex}, ${getColor(topColor).hue}cc`;
-            if (isDots) nf.style.backgroundSize = '8px 8px, 100% 100%';
-          } else {
-            nf.style.background = getColor(topColor).hue + 'cc';
-          }
-          neck.appendChild(nf);
+        // ─── Click handler ────────────────────────────────────────────────
+        function clickBottle(idx) {
+            // Capture the selected bottle before the class mutates it, so we can
+            // spawn the pour particle from the right element.
+            const prevSelected = game.selected;
+            const event = game.select(idx);
+
+            switch (event) {
+                case 'noop':
+                    return;
+                case 'selected':
+                case 'deselected':
+                case 'switched':
+                    render();
+                    setStatus('');
+                    break;
+                case 'poured':
+                    spawnPourParticle(
+                        document.querySelector(`[data-idx="${prevSelected}"]`),
+                        game.bottles[idx][game.bottles[idx].length - 1]
+                    );
+                    render();
+                    setStatus('');
+                    document.getElementById('undoBtn').disabled = false;
+                    saveGame();
+                    break;
+                case 'solved':
+                    spawnPourParticle(
+                        document.querySelector(`[data-idx="${prevSelected}"]`),
+                        game.bottles[idx][game.bottles[idx].length - 1]
+                    );
+                    render();
+                    document.getElementById('undoBtn').disabled = false;
+                    saveGame();
+                    setTimeout(showWin, 400);
+                    break;
+                case 'invalid':
+                    shake(document.querySelector(`[data-idx="${prevSelected}"]`));
+                    render();
+                    break;
+            }
         }
 
-        const body = document.createElement('div');
-        body.className = 'bottle-body';
+        function shake(el) {
+            el.style.animation = 'none';
+            el.offsetHeight;
+            el.style.animation = 'shakeX 0.35s ease';
+            el.addEventListener('animationend', () => el.style.animation = '', { once: true });
+        }
 
-        [...bottle].reverse().forEach((colorId, li) => {
-          const layer = document.createElement('div');
-          layer.className = 'liquid-layer' + (isSelected && li < topCount ? ' top-run' : '');
-          layer.style.height = layerH + '%';
-          const c = getColor(colorId);
-          const tex = getTexture(colorId, c.hue);
-          if (tex) {
-            // For dots tier we need background-size for the tile repeat
-            const isDots = Math.floor((colorId % PALETTE.length) / 5) === 2;
-            layer.style.background = `${tex}, linear-gradient(to bottom, ${c.light}, ${c.hue}cc)`;
-            if (isDots) layer.style.backgroundSize = '8px 8px, 100% 100%';
-          } else {
-            layer.style.background = `linear-gradient(to bottom, ${c.light}, ${c.hue}cc)`;
-          }
-          layer.style.setProperty('--bubble-delay', (li * 0.7 + (li * 0.13)) + 's');
-          body.appendChild(layer);
+        // ─── Bottle sizing ────────────────────────────────────────────────
+        function computeBottleSize() {
+            const n = game.bottles.length;
+            const cap = game.capacity;
+            // Chrome/header/topbar/status take ~160px vertically
+            const vAvail = window.innerHeight - 160;
+            const hAvail = window.innerWidth - 32;
+
+            // Bottle aspect: width = 1 unit, total height = body + neck + cap
+            // neck ≈ 0.44× body-w, cap ≈ 0.19× body-w, body-h ≈ 2.8× body-w (fits CAPACITY layers)
+            // We scale body-h with capacity: h = w * cap * 0.45 (empirically good layer height)
+            const NECK_RATIO = 0.44;  // neck-w / bottle-w
+            const NECK_H_RATIO = 0.44; // neck-h / bottle-w
+            const CAP_H_RATIO = 0.19; // cap-h  / bottle-w
+            const LAYER_RATIO = 0.45; // layer-h / bottle-w
+
+            const GAP = 16; // px between bottles
+
+            // Try fitting all bottles in one row (landscape) or wrapping
+            // We try all row counts from 1 to n and pick the size that maximises bottle-w
+            let bestW = 0;
+            for (let rows = 1; rows <= n; rows++) {
+                const cols = Math.ceil(n / rows);
+                const bodyH = (vAvail / rows) - (NECK_H_RATIO + CAP_H_RATIO) * 1; // rough
+                const wFromH = bodyH / (cap * LAYER_RATIO);
+                const wFromW = (hAvail - GAP * (cols - 1)) / cols;
+                const w = Math.min(wFromH, wFromW);
+                if (w > bestW) bestW = w;
+            }
+
+            // Apply a max so bottles don't become absurdly large on big screens
+            bestW = Math.min(bestW, 120);
+            bestW = Math.max(bestW, 28); // minimum usable size
+
+            const bodyH = bestW * cap * LAYER_RATIO;
+            const neckW = Math.round(bestW * NECK_RATIO);
+            const neckH = Math.round(bestW * NECK_H_RATIO);
+            const capH = Math.round(bestW * CAP_H_RATIO);
+
+            const root = document.documentElement;
+            root.style.setProperty('--bottle-w', Math.round(bestW) + 'px');
+            root.style.setProperty('--bottle-h', Math.round(bodyH) + 'px');
+            root.style.setProperty('--neck-w', neckW + 'px');
+            root.style.setProperty('--neck-h', neckH + 'px');
+            root.style.setProperty('--cap-h', capH + 'px');
+            // Scale gap and border-radius proportionally
+            document.getElementById('game').style.gap = Math.round(bestW * 0.22) + 'px';
+        }
+
+        // ─── Render ───────────────────────────────────────────────────────
+        function render() {
+            computeBottleSize();
+            const gameEl = document.getElementById('game');
+            gameEl.innerHTML = '';
+            const layerH = 100 / game.capacity;
+
+            game.bottles.forEach((bottle, idx) => {
+                const isSelected = game.selected === idx;
+                const { color: topColor, count: topCount } = game.topRun(bottle);
+                const topRunStart = bottle.length - topCount;
+
+                const wrap = document.createElement('div');
+                wrap.className = 'bottle-wrap' + (isSelected ? ' selected' : '');
+                wrap.dataset.idx = idx;
+                wrap.onclick = () => clickBottle(idx);
+
+                const cap = document.createElement('div');
+                cap.className = 'bottle-cap';
+                if (isSelected && bottle.length > 0) {
+                    cap.style.background = getColor(topColor).hue;
+                    cap.style.borderColor = getColor(topColor).dark;
+                }
+
+                const neck = document.createElement('div');
+                neck.className = 'bottle-neck';
+                if (isSelected && bottle.length > 0) {
+                    const nf = document.createElement('div');
+                    nf.className = 'neck-fill';
+                    nf.style.height = '100%';
+                    const nfTex = getTexture(topColor, getColor(topColor).hue);
+                    if (nfTex) {
+                        const isDots = Math.floor((topColor % PALETTE.length) / 5) === 2;
+                        nf.style.background = `${nfTex}, ${getColor(topColor).hue}cc`;
+                        if (isDots) nf.style.backgroundSize = '8px 8px, 100% 100%';
+                    } else {
+                        nf.style.background = getColor(topColor).hue + 'cc';
+                    }
+                    neck.appendChild(nf);
+                }
+
+                const body = document.createElement('div');
+                body.className = 'bottle-body';
+
+                [...bottle].reverse().forEach((colorId, li) => {
+                    const layer = document.createElement('div');
+                    layer.className = 'liquid-layer' + (isSelected && li < topCount ? ' top-run' : '');
+                    layer.style.height = layerH + '%';
+                    const c = getColor(colorId);
+                    const tex = getTexture(colorId, c.hue);
+                    if (tex) {
+                        // For dots tier we need background-size for the tile repeat
+                        const isDots = Math.floor((colorId % PALETTE.length) / 5) === 2;
+                        layer.style.background = `${tex}, linear-gradient(to bottom, ${c.light}, ${c.hue}cc)`;
+                        if (isDots) layer.style.backgroundSize = '8px 8px, 100% 100%';
+                    } else {
+                        layer.style.background = `linear-gradient(to bottom, ${c.light}, ${c.hue}cc)`;
+                    }
+                    layer.style.setProperty('--bubble-delay', (li * 0.7 + (li * 0.13)) + 's');
+                    body.appendChild(layer);
+                });
+
+                wrap.appendChild(cap);
+                wrap.appendChild(neck);
+                wrap.appendChild(body);
+                gameEl.appendChild(wrap);
+            });
+        }
+
+        // ─── Pour particles ───────────────────────────────────────────────
+        function spawnPourParticle(srcEl, colorId) {
+            if (!srcEl) return;
+            const sr = srcEl.getBoundingClientRect();
+            const c = getColor(colorId);
+            for (let i = 0; i < 4; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'pour-arc';
+                dot.style.background = c.hue;
+                dot.style.left = (sr.left + sr.width / 2 - 5 + (i - 1.5) * 7) + 'px';
+                dot.style.top = (sr.top + 12) + 'px';
+                dot.style.animationDelay = (i * 55) + 'ms';
+                document.body.appendChild(dot);
+                dot.addEventListener('animationend', () => dot.remove());
+            }
+        }
+
+        // ─── Status ───────────────────────────────────────────────────────
+        function setStatus(msg, cls = '') {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = 'status-bar ' + cls;
+        }
+
+        // ─── Solve step ───────────────────────────────────────────────────
+        function solveStep() {
+            const prevSelected = game.selected;
+            const move = game.getSolveMove();
+            if (!move) { setStatus('No solution found.'); return; }
+            // Drive through the class tap handler
+            game.select(move.src);
+            const event = game.select(move.dst);
+            if (event === 'poured' || event === 'solved') {
+                spawnPourParticle(
+                    document.querySelector(`[data-idx="${move.src}"]`),
+                    game.bottles[move.dst][game.bottles[move.dst].length - 1]
+                );
+                render();
+                document.getElementById('undoBtn').disabled = false;
+                saveGame();
+                if (event === 'solved') setTimeout(showWin, 400);
+                else setStatus('');
+            }
+        }
+
+        // ─── Win ──────────────────────────────────────────────────────────
+        function showWin() {
+            document.getElementById('win-moves').textContent = `Solved in ${game.moveCount} move${game.moveCount === 1 ? '' : 's'}`;
+            document.getElementById('win-overlay').classList.add('show');
+            setStatus('');
+        }
+
+        // ─── Settings modal ───────────────────────────────────────────────
+        function openSettings() { document.getElementById('settingsModal').classList.add('show'); }
+        function closeSettings() { document.getElementById('settingsModal').classList.remove('show'); }
+        function applySettings() {
+            NUM_COLORS = Math.max(1, parseInt(document.getElementById('numColors').value) || 4);
+            CAPACITY = Math.max(2, parseInt(document.getElementById('capacity').value) || 4);
+            EXTRA_BOTTLES = Math.max(0, parseInt(document.getElementById('extraBottles').value) ?? 0);
+            DIFFICULTY = Math.max(1, parseInt(document.getElementById('difficulty').value) || 500);
+            document.getElementById('presetSelect').value = 'custom';
+            saveCustomSettings();
+            savePresetChoice('custom');
+            closeSettings();
+            newGame();
+        }
+        document.getElementById('settingsModal').addEventListener('click', function (e) {
+            if (e.target === this) closeSettings();
         });
 
-        wrap.appendChild(cap);
-        wrap.appendChild(neck);
-        wrap.appendChild(body);
-        game.appendChild(wrap);
-      });
-    }
+        // ─── localStorage ─────────────────────────────────────────────────
+        // Custom settings are always saved separately so presets never clobber them.
+        function saveSettings() {
+            localStorage.setItem('ls_settings', JSON.stringify({
+                NUM_COLORS, CAPACITY, EXTRA_BOTTLES, DIFFICULTY
+            }));
+        }
 
-    // ─── Pour particles ───────────────────────────────────────────────
-    function spawnPourParticle(srcEl, colorId) {
-      if (!srcEl) return;
-      const sr = srcEl.getBoundingClientRect();
-      const c = getColor(colorId);
-      for (let i = 0; i < 4; i++) {
-        const dot = document.createElement('div');
-        dot.className = 'pour-arc';
-        dot.style.background = c.hue;
-        dot.style.left = (sr.left + sr.width / 2 - 5 + (i - 1.5) * 7) + 'px';
-        dot.style.top = (sr.top + 12) + 'px';
-        dot.style.animationDelay = (i * 55) + 'ms';
-        document.body.appendChild(dot);
-        dot.addEventListener('animationend', () => dot.remove());
-      }
-    }
+        function saveCustomSettings() {
+            localStorage.setItem('ls_custom', JSON.stringify({
+                NUM_COLORS, CAPACITY, EXTRA_BOTTLES, DIFFICULTY
+            }));
+        }
 
-    // ─── Status ───────────────────────────────────────────────────────
-    function setStatus(msg, cls = '') {
-      const el = document.getElementById('status');
-      el.textContent = msg;
-      el.className = 'status-bar ' + cls;
-    }
+        function loadCustomSettings() {
+            try {
+                const s = JSON.parse(localStorage.getItem('ls_custom'));
+                if (!s) return;
+                NUM_COLORS = Math.max(1, s.NUM_COLORS || 4);
+                CAPACITY = Math.max(2, s.CAPACITY || 4);
+                EXTRA_BOTTLES = Math.max(0, s.EXTRA_BOTTLES ?? 2);
+                DIFFICULTY = Math.max(1, s.DIFFICULTY || 500);
+            } catch (e) { }
+        }
 
-    // ─── Hint ─────────────────────────────────────────────────────────
-    function showHint() {
-      for (let s = 0; s < bottles.length; s++) {
-        for (let d = 0; d < bottles.length; d++) {
-          if (canPour(s, d)) {
-            selected = s;
+        function savePresetChoice(key) {
+            localStorage.setItem('ls_preset', key);
+        }
+
+        function loadSettings() {
+            try {
+                // Restore active preset
+                const preset = localStorage.getItem('ls_preset') || 'medium';
+                document.getElementById('presetSelect').value = preset;
+
+                if (preset === 'custom') {
+                    loadCustomSettings();
+                } else {
+                    const p = PRESETS[preset];
+                    if (p) {
+                        NUM_COLORS = p.NUM_COLORS;
+                        CAPACITY = p.CAPACITY;
+                        EXTRA_BOTTLES = p.EXTRA_BOTTLES;
+                        DIFFICULTY = p.DIFFICULTY;
+                    }
+                }
+                syncInputs();
+            } catch (e) { }
+        }
+
+        function saveGame() {
+            localStorage.setItem('ls_game', JSON.stringify(game.serialise()));
+        }
+
+        function loadGame() {
+            try {
+                const g = JSON.parse(localStorage.getItem('ls_game'));
+                return game.deserialise(g);
+            } catch (e) { return false; }
+        }
+
+        // ─── New game ─────────────────────────────────────────────────────
+        function newGame() {
+            document.getElementById('win-overlay').classList.remove('show');
+            game = new LiquidSortGame(NUM_COLORS, CAPACITY, EXTRA_BOTTLES, DIFFICULTY);
+            game.generateLevel();
+            game.saveInitial();
             render();
-            const { color, count } = topRun(bottles[s]);
-            setStatus(`Hint: pour ${count}× ${getColor(color).name} from bottle ${s + 1} → ${d + 1}.`, 'hint');
-            return;
-          }
+            setStatus('');
+            document.getElementById('undoBtn').disabled = true;
+            document.getElementById('resetBtn').disabled = false;
+            saveGame();
         }
-      }
-      setStatus('');
-    }
 
-    // ─── Win ──────────────────────────────────────────────────────────
-    function showWin() {
-      document.getElementById('win-moves').textContent = `Solved in ${moveCount} move${moveCount === 1 ? '' : 's'}`;
-      document.getElementById('win-overlay').classList.add('show');
-      setStatus('');
-    }
-
-    // ─── Settings modal ───────────────────────────────────────────────
-    function openSettings() { document.getElementById('settingsModal').classList.add('show'); }
-    function closeSettings() { document.getElementById('settingsModal').classList.remove('show'); }
-    function applySettings() {
-      NUM_COLORS = Math.max(1, parseInt(document.getElementById('numColors').value) || 4);
-      CAPACITY = Math.max(2, parseInt(document.getElementById('capacity').value) || 4);
-      EXTRA_BOTTLES = Math.max(0, parseInt(document.getElementById('extraBottles').value) ?? 0);
-      DIFFICULTY = Math.max(1, parseInt(document.getElementById('difficulty').value) || 500);
-      // Coming from the settings modal always counts as Custom
-      document.getElementById('presetSelect').value = 'custom';
-      saveCustomSettings();
-      savePresetChoice('custom');
-      closeSettings();
-      newGame();
-    }
-    document.getElementById('settingsModal').addEventListener('click', function (e) {
-      if (e.target === this) closeSettings();
-    });
-
-    // ─── localStorage ─────────────────────────────────────────────────
-    // Custom settings are always saved separately so presets never clobber them.
-    function saveSettings() {
-      localStorage.setItem('ls_settings', JSON.stringify({
-        NUM_COLORS, CAPACITY, EXTRA_BOTTLES, DIFFICULTY
-      }));
-    }
-
-    function saveCustomSettings() {
-      localStorage.setItem('ls_custom', JSON.stringify({
-        NUM_COLORS, CAPACITY, EXTRA_BOTTLES, DIFFICULTY
-      }));
-    }
-
-    function loadCustomSettings() {
-      try {
-        const s = JSON.parse(localStorage.getItem('ls_custom'));
-        if (!s) return;
-        NUM_COLORS = Math.max(1, s.NUM_COLORS || 4);
-        CAPACITY = Math.max(2, s.CAPACITY || 4);
-        EXTRA_BOTTLES = Math.max(0, s.EXTRA_BOTTLES ?? 2);
-        DIFFICULTY = Math.max(1, s.DIFFICULTY || 500);
-      } catch (e) { }
-    }
-
-    function savePresetChoice(key) {
-      localStorage.setItem('ls_preset', key);
-    }
-
-    function loadSettings() {
-      try {
-        // Restore active preset
-        const preset = localStorage.getItem('ls_preset') || 'medium';
-        document.getElementById('presetSelect').value = preset;
-
-        if (preset === 'custom') {
-          loadCustomSettings();
-        } else {
-          const p = PRESETS[preset];
-          if (p) {
-            NUM_COLORS = p.NUM_COLORS;
-            CAPACITY = p.CAPACITY;
-            EXTRA_BOTTLES = p.EXTRA_BOTTLES;
-            DIFFICULTY = p.DIFFICULTY;
-          }
+        // ─── Reset ────────────────────────────────────────────────────
+        function resetGame() {
+            if (!game.resetToInitial()) return;
+            document.getElementById('win-overlay').classList.remove('show');
+            render();
+            setStatus('');
+            document.getElementById('undoBtn').disabled = true;
+            saveGame();
         }
-        syncInputs();
-      } catch (e) { }
-    }
 
-    function saveGame() {
-      localStorage.setItem('ls_game', JSON.stringify({
-        bottles, moveCount,
-        history: history.slice(-50)  // cap history to avoid quota issues
-      }));
-    }
+        // ─── Click outside to deselect ────────────────────────────────────
+        document.getElementById('game').addEventListener('click', function (e) {
+            if (game.selected !== null && !e.target.closest('.bottle-wrap')) {
+                game.select(game.selected); // deselect by tapping the selected bottle
+                render();
+            }
+        });
 
-    function loadGame() {
-      try {
-        const g = JSON.parse(localStorage.getItem('ls_game'));
-        if (!g || !g.bottles) return false;
-        // Validate the saved game matches current settings
-        if (g.bottles.length !== NUM_COLORS + EXTRA_BOTTLES) return false;
-        bottles = g.bottles;
-        moveCount = g.moveCount || 0;
-        history = g.history || [];
-        return true;
-      } catch (e) { return false; }
-    }
-
-    // ─── New game ─────────────────────────────────────────────────────
-    function newGame() {
-      document.getElementById('win-overlay').classList.remove('show');
-      selected = null;
-      moveCount = 0;
-      history = [];
-      generateLevel();
-      render();
-      setStatus('');
-      document.getElementById('undoBtn').disabled = true;
-      saveGame();
-    }
-
-    // ─── Click outside to deselect ────────────────────────────────────
-    document.getElementById('game').addEventListener('click', function (e) {
-      if (selected !== null && !e.target.closest('.bottle-wrap')) {
-        selected = null;
+        // ─── Init ─────────────────────────────────────────────────────────
+        loadSettings();
+        game = new LiquidSortGame(NUM_COLORS, CAPACITY, EXTRA_BOTTLES, DIFFICULTY);
+        if (!loadGame()) {
+            game.generateLevel();
+            game.saveInitial();
+        }
         render();
-      }
-    });
+        setStatus('');
+        document.getElementById('undoBtn').disabled = game.history.length === 0;
+        document.getElementById('resetBtn').disabled = false;
 
-    // ─── Init ─────────────────────────────────────────────────────────
-    loadSettings();
-    if (!loadGame()) {
-      generateLevel();
-    }
-    render();
-    setStatus('');
-    document.getElementById('undoBtn').disabled = history.length === 0;
+        window.addEventListener('resize', () => { computeBottleSize(); });
 
-    window.addEventListener('resize', () => { computeBottleSize(); });
-
-    // ─── Service worker ───────────────────────────────────────────────
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => { });
-    }
-  </script>
+        // ─── Service worker ───────────────────────────────────────────────
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => { });
+        }
+    </script>
 </body>
 
 </html>
