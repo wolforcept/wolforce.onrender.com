@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inkfold</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- ============================================================= -->
+    <!-- 1. HTML structure                                              -->
+    <!-- ============================================================= -->
+    <nav id="nav">
+        <span class="brand">INKFOLD</span>
+        <button data-view="play" class="active">Play</button>
+        <button data-view="gallery">Gallery</button>
+        <button data-view="customize">Customize</button>
+    </nav>
+
+    <!-- Play view -->
+    <section id="play-view" class="view active">
+        <div id="playWrap">
+            <div id="playHud">
+                <div class="bar-row">
+                    <span class="bar-label">Ink</span>
+                    <div class="bar-track" id="inkTrack">
+                        <div class="bar-fill" id="inkFill"></div>
+                    </div>
+                </div>
+                <div class="bar-row">
+                    <span class="bar-label">XP</span>
+                    <div class="bar-track">
+                        <div class="bar-fill" id="xpFill"></div>
+                    </div>
+                </div>
+                <div id="hudMeta">
+                    <span id="metaLeft">Level 0</span>
+                    <span id="metaRight">Vertical Mirror</span>
+                </div>
+            </div>
+
+            <div id="stage">
+                <canvas id="canvas"></canvas>
+                <svg id="overlay" viewBox="0 0 720 720" preserveAspectRatio="none"></svg>
+                <div id="dots"></div>
+                <div id="penCursor">
+                    <div id="cursorDot"></div>
+                </div>
+            </div>
+
+            <div id="swatches"></div>
+            <div id="pens"></div>
+
+            <div id="playButtons">
+                <button class="btn ghost" id="newPuzzleBtn">New puzzle</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery view -->
+    <section id="gallery-view" class="view">
+        <div id="galleryGrid"></div>
+        <div id="galleryEmpty">No drawings yet — complete a puzzle to fill your gallery.</div>
+    </section>
+
+    <!-- Customization view -->
+    <section id="customize-view" class="view">
+        <div id="customizeRoot"></div>
+    </section>
+
+    <!-- Level-up overlay -->
+    <div class="overlay" id="levelOverlay">
+        <div class="card">
+            <h2 id="levelTitle">Level Up</h2>
+            <div class="sub" id="levelUnlock">New unlock</div>
+            <button class="btn" id="levelContinue">Continue</button>
+        </div>
+    </div>
+
+    <!-- Puzzle-complete overlay -->
+    <div class="overlay" id="completeOverlay">
+        <div class="card">
+            <h2>Complete!</h2>
+            <img id="completeImg" class="complete-preview" alt="your drawing" />
+            <div class="xp" id="completeXp">+0 XP</div>
+            <div class="sub" id="completeSub">Save this drawing to your gallery?</div>
+            <div class="card-actions">
+                <button class="btn" id="completeSave">Save to gallery</button>
+                <button class="btn ghost" id="completeNext">Next puzzle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="overlay" id="lightbox">
+        <div class="card">
+            <img id="lightboxImg" alt="drawing" />
+            <div style="margin-top:14px; display:flex; gap:10px; justify-content:center;">
+                <a class="btn" id="lightboxDownload" download="inkfold.png">Download</a>
+                <button class="btn ghost" id="lightboxClose">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- 3-19. JS                                                       -->
+    <!-- ============================================================= -->
+    <script src="js/constants.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/StateManager.js"></script>
+    <script src="js/PuzzleGenerator.js"></script>
+    <script src="js/SymmetryEngine.js"></script>
+    <script src="js/GridSnapper.js"></script>
+    <script src="js/PenRenderer.js"></script>
+    <script src="js/ZoneManager.js"></script>
+    <script src="js/InkMeter.js"></script>
+    <script src="js/ConnectionChecker.js"></script>
+    <script src="js/UIRenderer.js"></script>
+    <script src="js/AnimationLoop.js"></script>
+    <script src="js/DrawingSession.js"></script>
+    <script src="js/GalleryManager.js"></script>
+    <script src="js/CustomizationPage.js"></script>
+    <script src="js/LevelUpOverlay.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
