@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Average Flags</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;600&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #f7f6f2;
+            --ink: #1a1a18;
+            --muted: #7a7972;
+            --rule: #d8d6ce;
+            --accent: #2a4fff;
+            --btn-bg: #fff;
+            --btn-border: #c8c6be;
+            --btn-active-bg: var(--ink);
+            --btn-active-color: #fff;
+            --radius: 3px;
+            --sidebar-w: 180px;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        /* ── Layout ── */
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: var(--sidebar-w);
+            flex-shrink: 0;
+            border-right: 1px solid var(--rule);
+            padding: 40px 20px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .sidebar-rule {
+            border: none;
+            border-top: 1px solid var(--rule);
+            margin: 0;
+        }
+
+        button {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 400;
+            padding: 7px 14px;
+            width: 100%;
+            border: 1px solid var(--btn-border);
+            border-radius: var(--radius);
+            background: var(--btn-bg);
+            color: var(--ink);
+            cursor: pointer;
+            transition: background .12s, color .12s, border-color .12s;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            border-color: var(--ink);
+        }
+
+        button.active {
+            background: var(--btn-active-bg);
+            color: var(--btn-active-color);
+            border-color: var(--btn-active-bg);
+        }
+
+        button.smaller{
+            width: 100px;
+            text-align: center;
+        }
+
+        .quick-swap {
+            display:flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+
+        button.toggle-btn.sized-on {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        /* ── Main ── */
+        .main {
+            flex: 1;
+            padding: 48px 40px 80px;
+            max-width: 900px;
+        }
+
+        header {
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2em;
+            font-weight: 300;
+            line-height: 1.1;
+            letter-spacing: -.02em;
+            margin-bottom: 16px;
+        }
+
+        h1 em {
+            font-style: normal;
+            color: var(--accent);
+        }
+
+        .description {
+            max-width: 540px;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.65;
+        }
+
+        /* ── Display ── */
+        #display {
+            min-height: 320px;
+        }
+
+        .region-view {
+            display: grid;
+            grid-template-columns: 1fr;
+            max-width: 500px;
+            gap: 32px;
+            align-items: start;
+        }
+
+        .multi-view {
+            display: grid;
+            gap: 28px;
+        }
+
+        .multi-view.three {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .card img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border: 1px solid var(--rule);
+            border-radius: var(--radius);
+        }
+
+        /* ── Hamburger (mobile only) ── */
+        .hamburger {
+            display: none;
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 200;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: 1px solid var(--btn-border);
+            border-radius: var(--radius);
+            background: var(--bg);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .hamburger span {
+            display: block;
+            width: 18px;
+            height: 1.5px;
+            background: var(--ink);
+            transition: transform .2s, opacity .2s;
+            border-radius: 1px;
+        }
+
+        .hamburger.open span:nth-child(1) {
+            transform: translateY(6.5px) rotate(45deg);
+        }
+
+        .hamburger.open span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.open span:nth-child(3) {
+            transform: translateY(-6.5px) rotate(-45deg);
+        }
+
+        /* overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(26, 26, 24, .35);
+            z-index: 99;
+        }
+
+        /* ── Mobile ── */
+        @media (max-width: 640px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 100;
+                transform: translateX(-100%);
+                transition: transform .25s ease;
+                background: var(--bg);
+                box-shadow: 2px 0 16px rgba(0, 0, 0, .08);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .overlay.open {
+                display: block;
+            }
+
+            .main {
+                padding: 72px 20px 60px;
+            }
+
+            .multi-view.three {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+    </button>
+
+    <div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+    <div class="layout">
+        <nav class="sidebar" id="sidebar">
+            <span class="sidebar-logo"></span>
+
+            <div class="sidebar-section">
+                <p class="sidebar-label">Region</p>
+                <div id="region-buttons"></div>
+            </div>
+
+            <hr class="sidebar-rule">
+
+            <div class="sidebar-section">
+                <p class="sidebar-label">Compare</p>
+                <button onclick="pick('showAllHistograms')" id="btn-histograms">All histograms</button>
+                <button onclick="pick('showAllFlags')" id="btn-flags">All flags</button>
+            </div>
+
+            <hr class="sidebar-rule">
+
+            <div class="sidebar-section">
+                <p class="sidebar-label">Shape</p>
+                <button class="toggle-btn" id="btn-toggle" onclick="toggleSized()">Square</button>
+            </div>
+        </nav>
+
+        <main class="main">
+            <header>
+                <h1>The average flag</h1>
+                <p class="description">
+                    Each image is computed by averaging every pixel across all national flags in a region.
+                </p>
+            </header>
+            <div id="display"></div>
+        </main>
+    </div>
+
+    <script>
+        const REGIONS = [
+            { id: 'americas', label: 'Americas' },
+            { id: 'asia', label: 'Asia' },
+            { id: 'europe', label: 'Europe' },
+        ];
+
+        let useSized = false;
+        let currentView = { type: 'region', id: REGIONS[0].id };
+
+        // Build region buttons
+        const regionBtnContainer = document.getElementById('region-buttons');
+        REGIONS.forEach(r => {
+            const btn = document.createElement('button');
+            btn.textContent = r.label;
+            btn.id = `btn-region-${r.id}`;
+            btn.onclick = () => { showRegion(r.id); closeMenu(); };
+            regionBtnContainer.appendChild(btn);
+        });
+
+        function flagSrc(id) { return useSized ? `${id}-sized.png` : `${id}-square.png`; }
+        function histSrc(id) { return `${id}-histogram.png`; }
+
+        function showRegion(id) {
+            currentView = { type: 'region', id };
+            updateActiveButtons();
+            const region = REGIONS.find(r => r.id === id);
+            document.getElementById('display').innerHTML = `
+      <div class="region-view">
+        <div class="card"><img src="${histSrc(id)}" alt="${region.label} histogram"></div>
+        <div class="card"><img src="${flagSrc(id)}" alt="${region.label} average flag"></div>
+        <div class="quick-swap">${REGIONS.map(region => {
+                return `<button class="smaller" id="btn-region-${region.label}" onclick="showRegion('${region.id}')">${region.label}</button>`;
+            }).join('')}</div>
+      </div>`;
+        }
+
+        function showAllHistograms() {
+            currentView = { type: 'histograms' };
+            updateActiveButtons();
+            document.getElementById('display').innerHTML =
+                `<div class="multi-view three">` +
+                REGIONS.map(r => `<div class="card"><span class="card-label">${r.label}</span><img src="${histSrc(r.id)}" alt="${r.label} histogram"></div>`).join('') +
+                `</div>`;
+        }
+
+        function showAllFlags() {
+            currentView = { type: 'flags' };
+            updateActiveButtons();
+            renderAllFlags();
+        }
+
+        function renderAllFlags() {
+            document.getElementById('display').innerHTML =
+                `<div class="multi-view three">` +
+                REGIONS.map(r => `<div class="card"><span class="card-label">${r.label}</span><img src="${flagSrc(r.id)}" alt="${r.label} average flag"></div>`).join('') +
+                `</div>`;
+        }
+
+        // Wrapper so compare buttons can close menu too
+        function pick(fnName) {
+            if (fnName === 'showAllHistograms') showAllHistograms();
+            else if (fnName === 'showAllFlags') showAllFlags();
+            closeMenu();
+        }
+
+        function toggleSized() {
+            useSized = !useSized;
+            const btn = document.getElementById('btn-toggle');
+            btn.textContent = useSized ? 'Sized' : 'Square';
+            btn.classList.toggle('sized-on', useSized);
+            if (currentView.type === 'region') showRegion(currentView.id);
+            else if (currentView.type === 'flags') renderAllFlags();
+        }
+
+        function updateActiveButtons() {
+            document.querySelectorAll('button:not(.toggle-btn)').forEach(b => b.classList.remove('active'));
+            if (currentView.type === 'region') {
+                document.getElementById(`btn-region-${currentView.id}`)?.classList.add('active');
+            } else if (currentView.type === 'histograms') {
+                document.getElementById('btn-histograms').classList.add('active');
+            } else if (currentView.type === 'flags') {
+                document.getElementById('btn-flags').classList.add('active');
+            }
+        }
+
+        // Mobile menu
+        function toggleMenu() {
+            const open = document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('hamburger').classList.toggle('open', open);
+            document.getElementById('overlay').classList.toggle('open', open);
+        }
+
+        function closeMenu() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('hamburger').classList.remove('open');
+            document.getElementById('overlay').classList.remove('open');
+        }
+
+        showRegion(REGIONS[0].id);
+    </script>
+</body>
+
+</html>
