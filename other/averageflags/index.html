@@ -113,15 +113,16 @@
             border-color: var(--btn-active-bg);
         }
 
-        button.smaller{
+        button.smaller {
             width: 100px;
             text-align: center;
         }
 
         .quick-swap {
-            display:flex;
+            display: flex;
             flex-direction: row;
             justify-content: center;
+            display: none;
         }
 
         button.toggle-btn.sized-on {
@@ -257,6 +258,11 @@
 
         /* ── Mobile ── */
         @media (max-width: 640px) {
+
+            .quick-swap {
+                display: flex;
+            }
+
             .hamburger {
                 display: flex;
             }
@@ -365,11 +371,11 @@
             const region = REGIONS.find(r => r.id === id);
             document.getElementById('display').innerHTML = `
       <div class="region-view">
-        <div class="card"><img src="${histSrc(id)}" alt="${region.label} histogram"></div>
-        <div class="card"><img src="${flagSrc(id)}" alt="${region.label} average flag"></div>
         <div class="quick-swap">${REGIONS.map(region => {
                 return `<button class="smaller" id="btn-region-${region.label}" onclick="showRegion('${region.id}')">${region.label}</button>`;
             }).join('')}</div>
+        <div class="card"><img src="${histSrc(id)}" alt="${region.label} histogram"></div>
+        <div class="card"><img src="${flagSrc(id)}" alt="${region.label} average flag"></div>
       </div>`;
         }
 
