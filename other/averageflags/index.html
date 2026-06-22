@@ -206,6 +206,13 @@
             border-radius: var(--radius);
         }
 
+        .country-prose {
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--muted);
+            max-width: 500px;
+        }
+
         /* ── Hamburger (mobile only) ── */
         .hamburger {
             display: none;
@@ -332,7 +339,7 @@
         </nav>
 
         <main class="main">
-            <header>
+            <header id="main-header">
                 <h1>The average flag</h1>
                 <p class="description">
                     Each image is computed by averaging every pixel across all national flags in a region.
@@ -347,10 +354,45 @@
             { id: 'americas', label: 'Americas' },
             { id: 'asia', label: 'Asia' },
             { id: 'europe', label: 'Europe' },
+            { id: 'africa', label: 'Africa' },
+            { id: 'arabia', label: 'Arabia' },
+            { id: 'oceania', label: 'Oceania' },
         ];
 
         let useSized = false;
-        let currentView = { type: 'region', id: REGIONS[0].id };
+        let currentView = { type: 'flags' };
+        let regionCountries = {};
+        let countryNamer = null;
+        try {
+            countryNamer = new Intl.DisplayNames(['en'], { type: 'region' });
+        } catch (e) {
+            countryNamer = null;
+        }
+
+        fetch('maker/out/region-countries.json')
+            .then(res => res.json())
+            .then(data => {
+                regionCountries = data;
+                if (currentView.type === 'region') showRegion(currentView.id);
+            })
+            .catch(() => { regionCountries = {}; });
+
+        function countryProse(id) {
+            const codes = regionCountries[id] || [];
+            if (!codes.length) return '';
+            const names = codes.map(code => {
+                if (countryNamer) {
+                    try { return countryNamer.of(code.toUpperCase()); }
+                    catch (e) { return code.toUpperCase(); }
+                }
+                return code.toUpperCase();
+            });
+            return names.join(', ') + '.';
+        }
+
+        function setHeaderVisible(visible) {
+            document.getElementById('main-header').style.display = visible ? '' : 'none';
+        }
 
         // Build region buttons
         const regionBtnContainer = document.getElementById('region-buttons');
@@ -362,13 +404,15 @@
             regionBtnContainer.appendChild(btn);
         });
 
-        function flagSrc(id) { return useSized ? `${id}-sized.png` : `${id}-square.png`; }
-        function histSrc(id) { return `${id}-histogram.png`; }
+        function flagSrc(id) { return useSized ? `maker/out/${id}-sized.png` : `maker/out/${id}-square.png`; }
+        function histSrc(id) { return `maker/out/${id}-histogram.png`; }
 
         function showRegion(id) {
             currentView = { type: 'region', id };
             updateActiveButtons();
+            setHeaderVisible(false);
             const region = REGIONS.find(r => r.id === id);
+            const prose = countryProse(id);
             document.getElementById('display').innerHTML = `
       <div class="region-view">
         <div class="quick-swap">${REGIONS.map(region => {
@@ -376,12 +420,14 @@
             }).join('')}</div>
         <div class="card"><img src="${histSrc(id)}" alt="${region.label} histogram"></div>
         <div class="card"><img src="${flagSrc(id)}" alt="${region.label} average flag"></div>
+        ${prose ? `<p class="country-prose">${prose}</p>` : ''}
       </div>`;
         }
 
         function showAllHistograms() {
             currentView = { type: 'histograms' };
             updateActiveButtons();
+            setHeaderVisible(false);
             document.getElementById('display').innerHTML =
                 `<div class="multi-view three">` +
                 REGIONS.map(r => `<div class="card"><span class="card-label">${r.label}</span><img src="${histSrc(r.id)}" alt="${r.label} histogram"></div>`).join('') +
@@ -391,6 +437,7 @@
         function showAllFlags() {
             currentView = { type: 'flags' };
             updateActiveButtons();
+            setHeaderVisible(true);
             renderAllFlags();
         }
 
@@ -441,7 +488,7 @@
             document.getElementById('overlay').classList.remove('open');
         }
 
-        showRegion(REGIONS[0].id);
+        showAllFlags();
     </script>
 </body>
 
