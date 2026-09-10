@@ -2,22 +2,45 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0d1016" />
     <title>Flick Soccer</title>
-    <base href="./">
+    <script>
+      // Assets are referenced relatively so this build drops into any
+      // subdirectory. Reached without a trailing slash (/games/flicksoccer), the
+      // browser would resolve them one level too high (/games/assets/...), so
+      // pin the base to this directory. document.write is deliberate: it lands
+      // in the token stream ahead of the asset tags, so even the preload scanner
+      // uses the corrected base and never issues a 404.
+      (function () {
+        var path = location.pathname;
+        if (!path.endsWith("/") && !/\.[a-z0-9]+$/i.test(path)) {
+          document.write('<base href="' + path + '/">');
+        }
+      })();
+    </script>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f7a3f'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23f8fafc'/%3E%3C/svg%3E"
     />
-    <script type="module" crossorigin src="/assets/index-CXlQelU2.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/p5-BaoySeaG.js">
-    <link rel="modulepreload" crossorigin href="/assets/miglib-BHKpUBdY.js">
-    <link rel="modulepreload" crossorigin href="/assets/@noble-cHYuSaCn.js">
-    <link rel="modulepreload" crossorigin href="/assets/@trystero-p2p-O6USOLUT.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-CSvRsrbX.css">
+    <script type="module" crossorigin src="./assets/index-Bpbr0OzP.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Nnhn8wmr.css">
   </head>
   <body>
     <div id="game"></div>
     <div id="ui"></div>
+    <div id="rotate-hint">
+      <div class="rotate-card">
+        <div class="rotate-icon">⟳</div>
+        <h2>Rotate your device</h2>
+        <p>Flick Soccer needs landscape. Turn your phone sideways to keep playing.</p>
+      </div>
+    </div>
   </body>
 </html>
