@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRONWORKS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/preact/10.19.3/preact.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/preact/10.19.3/hooks.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #0d0a07;
+    --bg2: #14100c;
+    --bg3: #1c1510;
+    --bg4: #221a12;
+    --border: #3a2a1a;
+    --border2: #4a3520;
+    --text: #d4b896;
+    --text2: #8a6a4a;
+    --text3: #5a4030;
+    --iron: #8090a8;
+    --copper: #b87333;
+    --bronze: #cd7f32;
+    --steel: #a8b8c8;
+    --brass: #c8a840;
+    --gold: #f0c040;
+    --heat-low: #331500;
+    --heat-mid: #882200;
+    --heat-high: #ff6600;
+    --heat-peak: #ffcc00;
+    --accent: #e08030;
+    --accent2: #c06020;
+    --green: #50a060;
+    --red: #c04040;
+    --glow: 0 0 12px rgba(224,128,48,0.4);
+    --glow2: 0 0 24px rgba(224,128,48,0.6);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  h1, h2, h3 { font-family: 'Cinzel', serif; letter-spacing: 0.05em; }
+
+  .app { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(to bottom, #0a0705, var(--bg2));
+    border-bottom: 1px solid var(--border);
+    padding: 8px 20px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .header h1 {
+    font-size: 22px; color: var(--accent);
+    text-shadow: 0 0 20px rgba(224,128,48,0.5);
+    letter-spacing: 0.15em;
+  }
+  .header-rating {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 4px;
+  }
+  .header-rating .label { font-size: 11px; color: var(--text2); font-family: 'Share Tech Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; }
+  .header-rating .value { font-family: 'Cinzel', serif; font-size: 16px; color: var(--gold); }
+  .header-rank { font-size: 12px; color: var(--text2); font-style: italic; }
+  .header-gold {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--gold);
+    margin-left: auto;
+  }
+  .header-gold i { color: var(--gold); font-size: 12px; }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: grid;
+    grid-template-columns: 220px 1fr 260px;
+    gap: 0;
+    height: calc(100vh - 52px - 36px);
+    overflow: hidden;
+  }
+
+  /* PANELS */
+  .panel {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .panel::-webkit-scrollbar { width: 4px; }
+  .panel::-webkit-scrollbar-track { background: var(--bg2); }
+  .panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .panel-title {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text3);
+    text-transform: uppercase;
+    padding: 10px 14px 6px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 10;
+  }
+
+  /* RESOURCES */
+  .resource-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px;
+    border-bottom: 1px solid rgba(58,42,26,0.4);
+    transition: background 0.15s;
+  }
+  .resource-item:hover { background: var(--bg3); }
+  .resource-icon { width: 18px; text-align: center; font-size: 13px; }
+  .resource-name { flex: 1; font-size: 13px; color: var(--text2); }
+  .resource-amount { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--text); }
+  .resource-max { font-size: 11px; color: var(--text3); }
+
+  /* CENTER WORKSHOP */
+  .workshop {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    gap: 0;
+  }
+  .workshop::-webkit-scrollbar { width: 4px; }
+  .workshop::-webkit-scrollbar-track { background: var(--bg); }
+  .workshop::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* FURNACE STATION */
+  .furnace-station {
+    background: linear-gradient(to bottom, var(--bg2), var(--bg));
+    border-bottom: 1px solid var(--border);
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .furnace-visual {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    grid-column: 2;
+  }
+
+  .furnace-body {
+    width: 100px; height: 120px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .furnace-svg { width: 100%; height: 100%; }
+
+  .temp-gauge {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .temp-label { font-size: 11px; color: var(--text2); font-family: 'Share Tech Mono', monospace; }
+  .temp-bar-wrap {
+    width: 100px; height: 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .temp-bar {
+    height: 100%;
+    transition: width 0.3s, background 0.5s;
+    border-radius: 1px;
+  }
+  .temp-value { font-family: 'Share Tech Mono', monospace; font-size: 14px; }
+
+  .furnace-controls { display: flex; gap: 8px; margin-top: 4px; }
+
+  /* CRUCIBLE */
+  .crucible-area {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .crucible-title { font-size: 11px; letter-spacing: 0.1em; color: var(--text2); font-family: 'Cinzel', serif; text-transform: uppercase; }
+  .crucible-visual {
+    width: 80px; height: 60px;
+    position: relative; cursor: pointer;
+  }
+  .metal-fill-bar {
+    width: 100%; height: 8px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 2px; overflow: hidden; margin-top: 4px;
+  }
+  .metal-fill-inner { height: 100%; transition: width 0.3s, background 0.5s; }
+
+  /* MOLD STATION */
+  .mold-area {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  /* CASTING QUEUE */
+  .casting-queue {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+  .queue-title { font-size: 11px; letter-spacing: 0.15em; color: var(--text3); font-family: 'Cinzel', serif; margin-bottom: 8px; text-transform: uppercase; }
+  .queue-items { display: flex; flex-wrap: wrap; gap: 6px; }
+  .queue-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 5px 10px;
+    font-size: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .queue-progress {
+    width: 50px; height: 4px;
+    background: var(--bg4); border-radius: 2px; overflow: hidden;
+  }
+  .queue-progress-bar {
+    height: 100%; background: var(--accent);
+    transition: width 0.2s;
+  }
+
+  /* MOLD SELECTOR */
+  .mold-selector {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+  .mold-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .mold-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 6px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-family: 'Crimson Pro', serif;
+    font-size: 12px;
+    text-align: center;
+    transition: all 0.15s;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .mold-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--bg4); color: var(--accent); box-shadow: var(--glow); }
+  .mold-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .mold-btn.active { border-color: var(--accent); background: rgba(224,128,48,0.1); }
+  .mold-btn i { font-size: 16px; }
+  .mold-cost { font-size: 10px; color: var(--text3); }
+
+  /* MARKET SECTION */
+  .market-section {
+    padding: 12px 16px;
+  }
+  .market-items { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+  .market-item {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 3px; padding: 6px 10px;
+  }
+  .market-item-name { flex: 1; font-size: 13px; }
+  .market-item-qty {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; color: var(--text2); min-width: 24px; text-align: right;
+  }
+  .market-demand {
+    width: 48px; height: 4px;
+    background: var(--bg4); border-radius: 2px; overflow: hidden;
+  }
+  .market-demand-bar { height: 100%; border-radius: 2px; transition: width 0.5s; }
+  .market-price { font-size: 12px; color: var(--gold); min-width: 48px; text-align: right; font-family: 'Share Tech Mono', monospace; }
+  .sell-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 2px 8px;
+    cursor: pointer;
+    border-radius: 2px;
+    font-size: 11px;
+    font-family: 'Crimson Pro', serif;
+    transition: all 0.15s;
+  }
+  .sell-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+  .sell-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    border-left: 1px solid var(--border);
+    border-right: none;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .right-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .right-tab {
+    flex: 1;
+    padding: 8px 4px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-family: 'Cinzel', serif;
+    text-transform: uppercase;
+    text-align: center;
+    transition: all 0.15s;
+    border-bottom: 2px solid transparent;
+  }
+  .right-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .right-tab:hover:not(.active) { color: var(--text2); }
+  .right-panel-content { flex: 1; overflow-y: auto; padding: 12px; }
+  .right-panel-content::-webkit-scrollbar { width: 4px; }
+  .right-panel-content::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* UPGRADES */
+  .upgrade-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .upgrade-item:hover:not(.locked):not(.maxed) { border-color: var(--accent2); background: var(--bg4); }
+  .upgrade-item.locked { opacity: 0.5; cursor: not-allowed; }
+  .upgrade-item.maxed { border-color: var(--gold); opacity: 0.7; cursor: default; }
+  .upgrade-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .upgrade-icon { font-size: 16px; width: 20px; text-align: center; }
+  .upgrade-name { font-family: 'Cinzel', serif; font-size: 13px; flex: 1; }
+  .upgrade-level { font-size: 11px; color: var(--text3); font-family: 'Share Tech Mono', monospace; }
+  .upgrade-desc { font-size: 12px; color: var(--text2); margin-bottom: 6px; font-style: italic; }
+  .upgrade-cost { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--gold); font-family: 'Share Tech Mono', monospace; }
+  .upgrade-cost.cant-afford { color: var(--red); }
+  .upgrade-effect { font-size: 11px; color: var(--green); margin-top: 3px; }
+
+  /* RESEARCH */
+  .research-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+    transition: all 0.15s;
+  }
+  .research-item.unlocked { border-color: var(--border2); opacity: 0.6; }
+  .research-item.available { cursor: pointer; }
+  .research-item.available:hover { border-color: var(--accent2); background: var(--bg4); }
+  .research-item.locked { opacity: 0.35; cursor: not-allowed; }
+  .research-name { font-family: 'Cinzel', serif; font-size: 12px; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+  .research-desc { font-size: 11px; color: var(--text2); font-style: italic; margin-bottom: 5px; }
+  .research-cost { font-size: 11px; color: var(--gold); font-family: 'Share Tech Mono', monospace; }
+  .badge-unlocked { background: rgba(80,160,96,0.2); color: var(--green); font-size: 9px; padding: 1px 5px; border-radius: 2px; font-family: 'Share Tech Mono', monospace; }
+  .badge-locked { background: rgba(90,64,48,0.3); color: var(--text3); font-size: 9px; padding: 1px 5px; border-radius: 2px; font-family: 'Share Tech Mono', monospace; }
+
+  /* CONTRACTS */
+  .contract-item {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .contract-item.active { border-color: var(--accent); }
+  .contract-name { font-family: 'Cinzel', serif; font-size: 13px; color: var(--accent); margin-bottom: 4px; }
+  .contract-desc { font-size: 12px; color: var(--text2); margin-bottom: 8px; font-style: italic; }
+  .contract-reqs { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+  .contract-req { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .contract-req-bar { flex: 1; height: 4px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+  .contract-req-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+  .contract-req.done .contract-req-fill { background: var(--green); }
+  .contract-reward { font-size: 12px; color: var(--gold); }
+  .contract-btn {
+    width: 100%; padding: 6px;
+    background: rgba(224,128,48,0.15);
+    border: 1px solid var(--accent2);
+    color: var(--accent);
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+    margin-top: 8px;
+    letter-spacing: 0.05em;
+  }
+  .contract-btn:hover:not(:disabled) { background: rgba(224,128,48,0.3); }
+  .contract-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* LOG */
+  .log-bar {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 4px 16px;
+    height: 36px;
+    display: flex; align-items: center; gap: 10px;
+    overflow: hidden;
+  }
+  .log-label { font-size: 10px; color: var(--text3); letter-spacing: 0.1em; font-family: 'Cinzel', serif; white-space: nowrap; }
+  .log-message { font-size: 13px; color: var(--text2); font-style: italic; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .log-message.highlight { color: var(--accent); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'Crimson Pro', serif;
+    font-size: 13px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--bg4); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.primary { background: rgba(224,128,48,0.15); border-color: var(--accent2); color: var(--accent); }
+  .btn.primary:hover:not(:disabled) { background: rgba(224,128,48,0.3); box-shadow: var(--glow); }
+  .btn.small { padding: 4px 8px; font-size: 12px; }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+
+  /* SPARK ANIMATION */
+  @keyframes spark { 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0} }
+  .spark {
+    position: absolute; pointer-events: none;
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--heat-high);
+    animation: spark 0.6s ease-out forwards;
+  }
+
+  @keyframes pour { 0%{transform:scaleX(1);opacity:0.9} 50%{transform:scaleX(0.8);opacity:0.7} 100%{transform:scaleX(1);opacity:0.9} }
+  @keyframes glow-pulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.3)} }
+  @keyframes float-up { 0%{opacity:0.8;transform:translateY(0)} 100%{opacity:0;transform:translateY(-20px)} }
+  @keyframes shimmer { 0%{opacity:0.3} 50%{opacity:0.6} 100%{opacity:0.3} }
+  @keyframes ripple { 0%{r:2;opacity:0.6} 100%{r:12;opacity:0} }
+
+  .smoke-particle {
+    position: absolute;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: rgba(100,80,60,0.5);
+    animation: float-up 1.5s ease-out forwards;
+    pointer-events: none;
+  }
+
+  /* Section titles */
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 8px 0;
+  }
+
+  /* Tooltip */
+  .tooltip-wrap { position: relative; }
+  .tooltip { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--bg); border: 1px solid var(--border2); color: var(--text); font-size: 12px; padding: 6px 10px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 100; opacity: 0; transition: opacity 0.15s; }
+  .tooltip-wrap:hover .tooltip { opacity: 1; }
+
+  /* Metal color helpers */
+  .col-iron { color: var(--iron); }
+  .col-copper { color: var(--copper); }
+  .col-bronze { color: var(--bronze); }
+  .col-steel { color: var(--steel); }
+  .col-brass { color: var(--brass); }
+  .col-gold { color: var(--gold); }
+  .col-accent { color: var(--accent); }
+  .col-green { color: var(--green); }
+  .col-red { color: var(--red); }
+
+  /* Notification toast */
+  .toast-container { position: fixed; top: 60px; right: 16px; z-index: 1000; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+  @keyframes toast-in { from{transform:translateX(120%);opacity:0} to{transform:translateX(0);opacity:1} }
+  @keyframes toast-out { from{opacity:1} to{opacity:0} }
+  .toast { background: var(--bg3); border: 1px solid var(--border2); border-left: 3px solid var(--accent); color: var(--text); padding: 8px 14px; border-radius: 4px; font-size: 13px; animation: toast-in 0.3s ease; max-width: 260px; }
+  .toast.good { border-left-color: var(--green); }
+  .toast.bad { border-left-color: var(--red); }
+
+  /* Stars */
+  .stars { color: var(--gold); font-size: 11px; }
+  .stars .empty { color: var(--text3); }
+
+  /* Furnace level label */
+  .station-level {
+    font-size: 10px; color: var(--text3);
+    font-family: 'Share Tech Mono', monospace;
+    text-align: center; margin-top: 2px;
+  }
+
+  /* Flowing metal animation */
+  @keyframes metal-flow {
+    0% { stroke-dashoffset: 40; }
+    100% { stroke-dashoffset: 0; }
+  }
+
+  /* Blinking cursor for mono */
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .empty-state { color: var(--text3); font-style: italic; font-size: 13px; padding: 8px 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const { h, render, createRef } = preact;
+const { useState, useEffect, useRef, useCallback, useMemo } = preactHooks;
+
+// =====================
+// GAME DATA DEFINITIONS
+// =====================
+
+const METALS = {
+  iron:   { name: 'Iron',   color: '#8090a8', meltTemp: 420,  icon: 'fa-cube',       unlocked: true  },
+  copper: { name: 'Copper', color: '#b87333', meltTemp: 380,  icon: 'fa-circle',     unlocked: false },
+  bronze: { name: 'Bronze', color: '#cd7f32', meltTemp: 450,  icon: 'fa-gem',        unlocked: false },
+  steel:  { name: 'Steel',  color: '#a8b8c8', meltTemp: 600,  icon: 'fa-shield',     unlocked: false },
+  brass:  { name: 'Brass',  color: '#c8a840', meltTemp: 500,  icon: 'fa-star',       unlocked: false },
+};
+
+const MOLDS = {
+  ingot:     { name: 'Ingot',     icon: 'fa-rectangle-list', baseTime: 4,  baseCost: 1,  baseValue: 8,   quality: true,  always: true,    desc: 'Basic metal bar' },
+  coin:      { name: 'Coins',     icon: 'fa-coins',          baseTime: 6,  baseCost: 2,  baseValue: 18,  quality: true,  unlockRes: 'resCoins',    desc: 'Minted currency discs' },
+  tool:      { name: 'Tool',      icon: 'fa-wrench',         baseTime: 10, baseCost: 3,  baseValue: 32,  quality: true,  unlockRes: 'resTools',    desc: 'Axe, chisel, or hammer' },
+  gear:      { name: 'Gear',      icon: 'fa-gear',           baseTime: 14, baseCost: 4,  baseValue: 55,  quality: true,  unlockRes: 'resGears',    desc: 'Mechanical gear wheel' },
+  art:       { name: 'Art Piece', icon: 'fa-trophy',         baseTime: 22, baseCost: 6,  baseValue: 120, quality: true,  unlockRes: 'resArt',      desc: 'Decorative figurine' },
+  pipe:      { name: 'Pipe',      icon: 'fa-grip-lines',     baseTime: 12, baseCost: 4,  baseValue: 45,  quality: false, unlockRes: 'resPipe',     desc: 'Structural iron pipe' },
+};
+
+const FURNACE_LEVELS = [
+  { name: 'Pit Furnace',    maxTemp: 600,  heatRate: 12, fuelUse: 1.2, capacity: 50  },
+  { name: 'Bloomery',       maxTemp: 900,  heatRate: 20, fuelUse: 1.0, capacity: 80  },
+  { name: 'Reverb Furnace', maxTemp: 1200, heatRate: 28, fuelUse: 0.85,capacity: 120 },
+  { name: 'Blast Furnace',  maxTemp: 1600, heatRate: 40, fuelUse: 0.7, capacity: 200 },
+];
+
+const BELLOWS_LEVELS = [
+  { name: 'Hand Bellows',   boost: 40, cooldown: 3000 },
+  { name: 'Foot Bellows',   boost: 80, cooldown: 2000 },
+  { name: 'Water Wheel',    boost: 140, cooldown: 1200 },
+  { name: 'Steam Bellows',  boost: 250, cooldown: 600  },
+];
+
+const CRUCIBLE_LEVELS = [
+  { name: 'Clay Crucible',  capacity: 30  },
+  { name: 'Iron Crucible',  capacity: 60  },
+  { name: 'Steel Crucible', capacity: 120 },
+  { name: 'Graphite Pot',   capacity: 220 },
+];
+
+const STORAGE_LEVELS = [
+  { name: 'Dirt Floor',    oreMax: 100, coalMax: 80  },
+  { name: 'Wooden Shelf',  oreMax: 200, coalMax: 150 },
+  { name: 'Stone Vault',   oreMax: 400, coalMax: 280 },
+  { name: 'Iron Depot',    oreMax: 800, coalMax: 500 },
+];
+
+const UPGRADE_DEFS = [
+  { id: 'furnace',  name: 'Furnace',       icon: 'fa-fire',        levels: FURNACE_LEVELS,  costBase: 120, costMult: 3.5,  desc: (l) => `Upgrade to ${FURNACE_LEVELS[l]?.name || 'MAX'}: higher temp, faster heat` },
+  { id: 'bellows',  name: 'Bellows',       icon: 'fa-wind',        levels: BELLOWS_LEVELS,  costBase: 60,  costMult: 3.0,  desc: (l) => `Upgrade to ${BELLOWS_LEVELS[l]?.name || 'MAX'}: stronger temp boost` },
+  { id: 'crucible', name: 'Crucible',      icon: 'fa-flask',       levels: CRUCIBLE_LEVELS, costBase: 80,  costMult: 2.8,  desc: (l) => `Upgrade to ${CRUCIBLE_LEVELS[l]?.name || 'MAX'}: hold more molten metal` },
+  { id: 'storage',  name: 'Storage',       icon: 'fa-warehouse',   levels: STORAGE_LEVELS,  costBase: 50,  costMult: 2.2,  desc: (l) => `Upgrade to ${STORAGE_LEVELS[l]?.name || 'MAX'}: store more ore and coal` },
+];
+
+const RESEARCH_DEFS = [
+  { id: 'copperMining',  name: 'Copper Mining',     cost: 80,   prereqs: [],               effect: 'Unlock Copper Ore',              unlock: 'copper' },
+  { id: 'resCoins',      name: 'Coin Minting',      cost: 60,   prereqs: [],               effect: 'Unlock Coin mold',               unlock: 'resCoins' },
+  { id: 'resTools',      name: 'Tool Casting',      cost: 100,  prereqs: ['resCoins'],     effect: 'Unlock Tool mold',               unlock: 'resTools' },
+  { id: 'bronzeAlloy',   name: 'Bronze Alloy',      cost: 180,  prereqs: ['copperMining'], effect: 'Unlock Bronze (Iron+Copper)',     unlock: 'bronze' },
+  { id: 'resGears',      name: 'Gear Works',        cost: 150,  prereqs: ['resTools'],     effect: 'Unlock Gear mold',               unlock: 'resGears' },
+  { id: 'quenching',     name: 'Quenching',         cost: 120,  prereqs: ['resTools'],     effect: '+25% product quality',           unlock: 'quenching' },
+  { id: 'autoFuel',      name: 'Auto-Stoker',       cost: 200,  prereqs: ['resGears'],     effect: 'Furnace auto-consumes fuel',     unlock: 'autoFuel' },
+  { id: 'steelMaking',   name: 'Steel Making',      cost: 350,  prereqs: ['bronzeAlloy','resGears'], effect: 'Unlock Steel (Iron+Coal)', unlock: 'steel' },
+  { id: 'resPipe',       name: 'Pipe Drawing',      cost: 200,  prereqs: ['resGears'],     effect: 'Unlock Pipe mold',               unlock: 'resPipe' },
+  { id: 'brassAlloy',    name: 'Brass Alloy',       cost: 280,  prereqs: ['steelMaking'],  effect: 'Unlock Brass (Copper+Zinc)',     unlock: 'brass' },
+  { id: 'resArt',        name: 'Fine Casting',      cost: 300,  prereqs: ['quenching','resPipe'], effect: 'Unlock Art Piece mold',   unlock: 'resArt' },
+  { id: 'autoMold',      name: 'Auto-Casting',      cost: 400,  prereqs: ['autoFuel'],     effect: 'Auto-cast selected mold',        unlock: 'autoMold' },
+  { id: 'heatControl',   name: 'Pyrometer',         cost: 450,  prereqs: ['steelMaking'],  effect: '+40% quality at perfect temp',   unlock: 'heatControl' },
+  { id: 'autoMine',      name: 'Mine Shaft',        cost: 600,  prereqs: ['autoFuel'],     effect: 'Auto-generate ore over time',    unlock: 'autoMine' },
+  { id: 'masterForge',   name: 'Master Forge',      cost: 1200, prereqs: ['autoMold','brassAlloy'], effect: '+50% all production value', unlock: 'masterForge' },
+];
+
+const CONTRACT_DEFS = [
+  {
+    id: 'village',
+    name: 'Village Commission',
+    desc: 'The local village needs basic ironwork to survive the winter.',
+    reqs: [{ item: 'iron_ingot', qty: 10 }, { item: 'iron_tool', qty: 3 }],
+    reward: { gold: 200, rating: 150, unlock: null },
+    prereq: null,
+  },
+  {
+    id: 'merchant',
+    name: 'Merchant Guild Order',
+    desc: 'A traveling merchant guild needs quality goods for their caravans.',
+    reqs: [{ item: 'iron_tool', qty: 8 }, { item: 'copper_ingot', qty: 6 }, { item: 'bronze_ingot', qty: 4 }],
+    reward: { gold: 600, rating: 400, unlock: 'resGears' },
+    prereq: 'village',
+  },
+  {
+    id: 'castle',
+    name: 'Castle Armaments',
+    desc: 'The lord\'s castle requires fine metalwork for fortifications.',
+    reqs: [{ item: 'steel_ingot', qty: 10 }, { item: 'iron_gear', qty: 6 }, { item: 'steel_tool', qty: 5 }],
+    reward: { gold: 2000, rating: 1200, unlock: 'masterForge' },
+    prereq: 'merchant',
+  },
+];
+
+// =====================
+// INITIAL STATE
+// =====================
+
+function makeInitialState() {
+  return {
+    // Resources
+    gold: 30,
+    coalMax: 80,
+    coal: 25,
+    ores: { iron: 30, copper: 0 },
+    oreMax: 100,
+    inventory: {}, // item_id -> qty
+
+    // Furnace state
+    temp: 0,
+    furnaceOn: false,
+    furnaceLevel: 0,
+    bellowsLevel: 0,
+    bellowsCooldown: 0,
+
+    // Crucible
+    crucibleLevel: 0,
+    moltenMetal: 0,
+    moltenType: null,
+
+    // Casting
+    castingQueue: [], // { id, moldId, metal, timeLeft, totalTime, quality }
+    selectedMold: 'ingot',
+    selectedMetal: 'iron',
+    autoCastActive: false,
+
+    // Upgrades
+    storageLevel: 0,
+
+    // Research
+    researched: new Set(),
+
+    // Contracts
+    completedContracts: new Set(),
+    activeContractId: null,
+
+    // Meta
+    rating: 0,
+    totalGoldEarned: 0,
+    log: ['Your ironworks awaits. Load the furnace and begin.'],
+    tick: 0,
+  };
+}
+
+// =====================
+// GAME LOGIC HELPERS
+// =====================
+
+function getQualityFromTemp(temp, meltTemp, researched) {
+  const diff = Math.abs(temp - meltTemp);
+  let q;
+  if (diff < 20) q = 5;
+  else if (diff < 50) q = 4;
+  else if (diff < 100) q = 3;
+  else if (diff < 160) q = 2;
+  else q = 1;
+  if (researched.has('quenching') && q < 5) q = Math.min(5, q + 1);
+  if (researched.has('heatControl') && diff < 30) q = 5;
+  return q;
+}
+
+function qualityMult(q) { return [0, 0.7, 0.9, 1.0, 1.3, 1.8][q]; }
+
+function getMoldKey(moldId, metalId) { return `${metalId}_${moldId}`; }
+
+function canCastMold(moldId, state) {
+  const mold = MOLDS[moldId];
+  if (!mold) return false;
+  if (!mold.always && !state.researched.has(mold.unlockRes)) return false;
+  if (state.moltenMetal < mold.baseCost) return false;
+  if (state.temp < METALS[state.moltenType || state.selectedMetal].meltTemp - 80) return false;
+  return true;
+}
+
+function calcItemValue(moldId, metalId, quality, researched) {
+  const mold = MOLDS[moldId];
+  if (!mold) return 0;
+  const mult = mold.quality ? qualityMult(quality) : 1;
+  const masterBonus = researched.has('masterForge') ? 1.5 : 1;
+  const metalMult = { iron: 1, copper: 1.4, bronze: 1.8, steel: 2.4, brass: 2.2 }[metalId] || 1;
+  return Math.round(mold.baseValue * metalMult * mult * masterBonus);
+}
+
+function getUpgradeCost(upgradeId, currentLevel) {
+  const def = UPGRADE_DEFS.find(u => u.id === upgradeId);
+  if (!def) return Infinity;
+  return Math.floor(def.costBase * Math.pow(def.costMult, currentLevel));
+}
+
+function getRank(rating) {
+  if (rating >= 5000) return 'Legendary Smith';
+  if (rating >= 2500) return 'Master Smith';
+  if (rating >= 1200) return 'Journeyman';
+  if (rating >= 500)  return 'Apprentice';
+  if (rating >= 150)  return 'Novice';
+  return 'Greenhand';
+}
+
+function getContractProgress(contractDef, inventory) {
+  return contractDef.reqs.map(req => {
+    const have = inventory[req.item] || 0;
+    return { ...req, have, done: have >= req.qty };
+  });
+}
+
+function canCompleteContract(contractDef, inventory) {
+  return contractDef.reqs.every(r => (inventory[r.item] || 0) >= r.qty);
+}
+
+function formatItem(key) {
+  const parts = key.split('_');
+  const metal = parts[0];
+  const type = parts.slice(1).join(' ');
+  const m = METALS[metal];
+  const moldName = MOLDS[parts.slice(1).join('')]?.name || type;
+  return `${m ? m.name : metal} ${moldName}`;
+}
+
+// =====================
+// MAIN GAME COMPONENT
+// =====================
+
+function App() {
+  const [gs, setGs] = useState(() => makeInitialState());
+  const [rightTab, setRightTab] = useState('upgrades');
+  const [toasts, setToasts] = useState([]);
+  const [sparks, setSparks] = useState([]);
+  const timerRef = useRef(null);
+  const autoCastRef = useRef(false);
+  const gsRef = useRef(gs);
+  gsRef.current = gs;
+
+  function addToast(msg, type = '') {
+    const id = Date.now() + Math.random();
+    setToasts(t => [...t.slice(-4), { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3000);
+  }
+
+  function addLog(msg) {
+    setGs(s => ({ ...s, log: [msg, ...s.log.slice(0, 20)] }));
+  }
+
+  function addSpark(e) {
+    const rect = e.currentTarget?.getBoundingClientRect?.();
+    if (!rect) return;
+    const sparksNew = Array.from({ length: 6 }, (_, i) => ({
+      id: Date.now() + i,
+      dx: (Math.random() - 0.5) * 50,
+      dy: -(Math.random() * 40 + 10),
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    }));
+    setSparks(s => [...s, ...sparksNew]);
+    setTimeout(() => setSparks(s => s.filter(sp => !sparksNew.find(n => n.id === sp.id))), 700);
+  }
+
+  // ---- TICK ----
+  useEffect(() => {
+    const TICK_MS = 200;
+    timerRef.current = setInterval(() => {
+      setGs(prev => {
+        const s = { ...prev };
+        s.tick = (s.tick || 0) + 1;
+        const DT = TICK_MS / 1000;
+
+        const furnaceDef = FURNACE_LEVELS[s.furnaceLevel];
+        const crucibleDef = CRUCIBLE_LEVELS[s.crucibleLevel];
+        const storageDef = STORAGE_LEVELS[s.storageLevel];
+        s.oreMax = storageDef.oreMax;
+        s.coalMax = storageDef.coalMax;
+
+        // Furnace heating / cooling
+        if (s.furnaceOn && s.coal > 0) {
+          s.temp = Math.min(furnaceDef.maxTemp, s.temp + furnaceDef.heatRate * DT);
+          s.coal = Math.max(0, s.coal - furnaceDef.fuelUse * DT);
+          if (s.coal <= 0) { s.furnaceOn = false; }
+        } else {
+          s.temp = Math.max(0, s.temp - 18 * DT);
+        }
+
+        // Bellows cooldown
+        if (s.bellowsCooldown > 0) s.bellowsCooldown = Math.max(0, s.bellowsCooldown - TICK_MS);
+
+        // Auto-fuel
+        if (s.researched.has('autoFuel') && s.furnaceOn && s.coal < 5 && s.coal < s.coalMax) {
+          // already handled via coal having fuel - just note coal is managed
+        }
+
+        // Auto-mine
+        if (s.researched.has('autoMine') && s.tick % 25 === 0) {
+          const ores = { ...s.ores };
+          if ((ores.iron || 0) < s.oreMax) ores.iron = Math.min(s.oreMax, (ores.iron || 0) + 2);
+          if (s.researched.has('copperMining') && (ores.copper || 0) < s.oreMax) {
+            ores.copper = Math.min(s.oreMax, (ores.copper || 0) + 1);
+          }
+          s.ores = ores;
+        }
+
+        // Auto-cast
+        if (s.researched.has('autoMold') && s.tick % 10 === 0) {
+          const moldId = s.selectedMold;
+          const metalId = s.moltenType || s.selectedMetal;
+          const mold = MOLDS[moldId];
+          if (mold && canCastMold(moldId, s) && s.castingQueue.length < 5) {
+            const q = getQualityFromTemp(s.temp, METALS[metalId].meltTemp, s.researched);
+            s.moltenMetal = Math.max(0, s.moltenMetal - mold.baseCost);
+            const castItem = {
+              id: Math.random().toString(36).slice(2),
+              moldId, metal: metalId, quality: q,
+              totalTime: mold.baseTime, timeLeft: mold.baseTime,
+            };
+            s.castingQueue = [...s.castingQueue, castItem];
+          }
+        }
+
+        // Casting queue progress
+        if (s.castingQueue.length > 0) {
+          const queue = s.castingQueue.map(ci => ({ ...ci, timeLeft: ci.timeLeft - DT }));
+          const done = queue.filter(ci => ci.timeLeft <= 0);
+          const remaining = queue.filter(ci => ci.timeLeft > 0);
+          s.castingQueue = remaining;
+          for (const ci of done) {
+            const key = getMoldKey(ci.moldId, ci.metal);
+            const inv = { ...s.inventory };
+            inv[key] = (inv[key] || 0) + 1;
+            s.inventory = inv;
+            s.rating = s.rating + Math.ceil(calcItemValue(ci.moldId, ci.metal, ci.quality, s.researched) * 0.05);
+          }
+        }
+
+        return s;
+      });
+    }, TICK_MS);
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  // ---- ACTIONS ----
+  function toggleFurnace() {
+    setGs(s => {
+      if (!s.furnaceOn && s.coal <= 0) { addToast('No coal in the furnace!', 'bad'); return s; }
+      return { ...s, furnaceOn: !s.furnaceOn };
+    });
+  }
+
+  function pumpBellows(e) {
+    addSpark(e);
+    setGs(s => {
+      const bellowsDef = BELLOWS_LEVELS[s.bellowsLevel];
+      if (s.bellowsCooldown > 0) return s;
+      if (!s.furnaceOn) { addToast('Light the furnace first!', 'bad'); return s; }
+      if (s.coal <= 0) { addToast('No fuel! Add coal first.', 'bad'); return s; }
+      const newTemp = Math.min(FURNACE_LEVELS[s.furnaceLevel].maxTemp, s.temp + bellowsDef.boost);
+      return { ...s, temp: newTemp, bellowsCooldown: bellowsDef.cooldown };
+    });
+  }
+
+  function addCoal(amount = 10) {
+    setGs(s => {
+      const add = Math.min(amount, s.coalMax - s.coal);
+      if (add <= 0) { addToast('Coal storage is full!', 'bad'); return s; }
+      return { ...s, coal: s.coal + add };
+    });
+  }
+
+  function addOre(metalId, amount = 10) {
+    setGs(s => {
+      const metal = METALS[metalId];
+      if (!metal?.unlocked && !s.researched.has(metalId + 'Mining') && metalId !== 'iron') {
+        addToast('You haven\'t researched this ore yet.', 'bad'); return s;
+      }
+      const current = s.ores[metalId] || 0;
+      const canAdd = Math.min(amount, s.oreMax - current);
+      if (canAdd <= 0) { addToast('Ore storage is full!', 'bad'); return s; }
+      return { ...s, ores: { ...s.ores, [metalId]: current + canAdd } };
+    });
+  }
+
+  function meltOre(metalId) {
+    setGs(s => {
+      const metal = METALS[metalId];
+      if (!metal) return s;
+      const needTemp = metal.meltTemp;
+      if (s.temp < needTemp - 80) {
+        addToast(`Need ~${needTemp}°C to melt ${metal.name}. Current: ${Math.round(s.temp)}°C`, 'bad');
+        return s;
+      }
+      const oreAmt = s.ores[metalId] || 0;
+      if (oreAmt < 1) { addToast(`No ${metal.name} ore to melt!`, 'bad'); return s; }
+      const crucibleDef = CRUCIBLE_LEVELS[s.crucibleLevel];
+      const canMelt = Math.min(oreAmt, crucibleDef.capacity - s.moltenMetal);
+      if (canMelt <= 0) { addToast('Crucible is full!', 'bad'); return s; }
+      const add = Math.min(canMelt, 8);
+      addToast(`${metal.name} ore melting...`, '');
+      return {
+        ...s,
+        ores: { ...s.ores, [metalId]: oreAmt - add },
+        moltenMetal: s.moltenMetal + add,
+        moltenType: metalId,
+      };
+    });
+  }
+
+  function castMold() {
+    setGs(s => {
+      const moldId = s.selectedMold;
+      const metalId = s.moltenType || s.selectedMetal;
+      const mold = MOLDS[moldId];
+      const metal = METALS[metalId];
+      if (!mold || !metal) return s;
+      if (!canCastMold(moldId, s)) { addToast('Cannot cast: check mold requirements.', 'bad'); return s; }
+      if (s.castingQueue.length >= 6) { addToast('Casting queue full!', 'bad'); return s; }
+      const q = getQualityFromTemp(s.temp, metal.meltTemp, s.researched);
+      const newMolten = Math.max(0, s.moltenMetal - mold.baseCost);
+      const castItem = {
+        id: Math.random().toString(36).slice(2),
+        moldId, metal: metalId, quality: q,
+        totalTime: mold.baseTime, timeLeft: mold.baseTime,
+      };
+      return {
+        ...s,
+        moltenMetal: newMolten,
+        castingQueue: [...s.castingQueue, castItem],
+      };
+    });
+  }
+
+  function sellItem(key, qty = 1) {
+    setGs(s => {
+      const have = s.inventory[key] || 0;
+      if (have < qty) return s;
+      const parts = key.split('_');
+      const metalId = parts[0];
+      const moldId = parts.slice(1).join('');
+      const value = calcItemValue(moldId, metalId, 3, s.researched) * qty;
+      const inv = { ...s.inventory, [key]: have - qty };
+      if (inv[key] <= 0) delete inv[key];
+      addToast(`Sold ${qty}x ${formatItem(key)} for ${value}g`, 'good');
+      return {
+        ...s,
+        inventory: inv,
+        gold: s.gold + value,
+        totalGoldEarned: s.totalGoldEarned + value,
+        rating: s.rating + Math.ceil(value * 0.1),
+      };
+    });
+  }
+
+  function sellAll(key) {
+    setGs(s => {
+      const have = s.inventory[key] || 0;
+      if (have <= 0) return s;
+      const parts = key.split('_');
+      const metalId = parts[0];
+      const moldId = parts.slice(1).join('');
+      const value = calcItemValue(moldId, metalId, 3, s.researched) * have;
+      const inv = { ...s.inventory };
+      delete inv[key];
+      addToast(`Sold all ${formatItem(key)} for ${value}g`, 'good');
+      return {
+        ...s,
+        inventory: inv,
+        gold: s.gold + value,
+        totalGoldEarned: s.totalGoldEarned + value,
+        rating: s.rating + Math.ceil(value * 0.12),
+      };
+    });
+  }
+
+  function doUpgrade(upgradeId) {
+    setGs(s => {
+      const levelKey = upgradeId === 'furnace' ? 'furnaceLevel' :
+                       upgradeId === 'bellows' ? 'bellowsLevel' :
+                       upgradeId === 'crucible' ? 'crucibleLevel' :
+                       upgradeId === 'storage' ? 'storageLevel' : null;
+      if (!levelKey) return s;
+      const currentLevel = s[levelKey];
+      const def = UPGRADE_DEFS.find(u => u.id === upgradeId);
+      if (currentLevel >= def.levels.length - 1) { addToast('Already at maximum level!', 'bad'); return s; }
+      const cost = getUpgradeCost(upgradeId, currentLevel);
+      if (s.gold < cost) { addToast('Not enough gold!', 'bad'); return s; }
+      const newLevel = currentLevel + 1;
+      addToast(`${def.name} upgraded to level ${newLevel + 1}!`, 'good');
+      addLog(`Upgraded ${def.name} → ${def.levels[newLevel].name}`);
+      return { ...s, gold: s.gold - cost, [levelKey]: newLevel };
+    });
+  }
+
+  function doResearch(resId) {
+    setGs(s => {
+      const def = RESEARCH_DEFS.find(r => r.id === resId);
+      if (!def) return s;
+      if (s.researched.has(resId)) return s;
+      if (def.prereqs.some(p => !s.researched.has(p))) { addToast('Prerequisites not met!', 'bad'); return s; }
+      if (s.gold < def.cost) { addToast('Not enough gold!', 'bad'); return s; }
+      const newResearched = new Set(s.researched);
+      newResearched.add(resId);
+      newResearched.add(def.unlock);
+      addToast(`Research complete: ${def.name}!`, 'good');
+      addLog(`Discovered: ${def.name}`);
+      return { ...s, gold: s.gold - def.cost, researched: newResearched };
+    });
+  }
+
+  function activateContract(contractId) {
+    setGs(s => ({ ...s, activeContractId: contractId }));
+  }
+
+  function completeContract(contractDef) {
+    setGs(s => {
+      if (!canCompleteContract(contractDef, s.inventory)) { addToast('Requirements not fully met!', 'bad'); return s; }
+      const inv = { ...s.inventory };
+      for (const req of contractDef.reqs) {
+        inv[req.item] = (inv[req.item] || 0) - req.qty;
+        if (inv[req.item] <= 0) delete inv[req.item];
+      }
+      const newCompleted = new Set(s.completedContracts);
+      newCompleted.add(contractDef.id);
+      addToast(`Contract fulfilled: ${contractDef.name}! +${contractDef.reward.gold}g`, 'good');
+      addLog(`Fulfilled contract: ${contractDef.name}`);
+      const newResearched = new Set(s.researched);
+      if (contractDef.reward.unlock) {
+        newResearched.add(contractDef.reward.unlock);
+      }
+      return {
+        ...s,
+        inventory: inv,
+        gold: s.gold + contractDef.reward.gold,
+        rating: s.rating + contractDef.reward.rating,
+        completedContracts: newCompleted,
+        activeContractId: null,
+        researched: newResearched,
+        totalGoldEarned: s.totalGoldEarned + contractDef.reward.gold,
+      };
+    });
+  }
+
+  // ---- DERIVED ----
+  const furnaceDef = FURNACE_LEVELS[gs.furnaceLevel];
+  const bellowsDef = BELLOWS_LEVELS[gs.bellowsLevel];
+  const crucibleDef = CRUCIBLE_LEVELS[gs.crucibleLevel];
+  const tempPct = gs.temp / furnaceDef.maxTemp;
+  const tempColor = gs.temp < 200 ? '#551100' : gs.temp < 400 ? '#882200' : gs.temp < 600 ? '#cc4400' : gs.temp < 900 ? '#ff6600' : '#ffaa00';
+  const moltenColor = gs.moltenType ? METALS[gs.moltenType].color : '#666';
+
+  const availableOres = Object.entries(METALS).filter(([id, m]) => {
+    return id === 'iron' || gs.researched.has(id + 'Mining') || gs.researched.has(id);
+  });
+
+  const availableMolds = Object.entries(MOLDS).filter(([id, m]) => {
+    return m.always || gs.researched.has(m.unlockRes);
+  });
+
+  const inventoryItems = Object.entries(gs.inventory).filter(([k, v]) => v > 0);
+
+  return h('div', { class: 'app' },
+    // TOASTS
+    h('div', { class: 'toast-container' },
+      toasts.map(t => h('div', { key: t.id, class: `toast ${t.type}` }, t.msg))
+    ),
+    // SPARKS
+    sparks.map(sp => h('div', {
+      key: sp.id,
+      class: 'spark',
+      style: { left: sp.x + 'px', top: sp.y + 'px', '--dx': sp.dx + 'px', '--dy': sp.dy + 'px', position: 'fixed', zIndex: 9000 }
+    })),
+    // HEADER
+    h('header', { class: 'header' },
+      h('h1', null, '⚒ IRONWORKS'),
+      h('div', { class: 'header-rating' },
+        h('span', { class: 'label' }, 'Rating'),
+        h('span', { class: 'value' }, gs.rating.toLocaleString()),
+      ),
+      h('span', { class: 'header-rank' }, getRank(gs.rating)),
+      h('div', { class: 'header-gold' },
+        h('i', { class: 'fa-solid fa-coins' }),
+        Math.floor(gs.gold).toLocaleString(), ' g'
+      )
+    ),
+    // MAIN
+    h('main', { class: 'main' },
+      // LEFT PANEL - Resources
+      h('aside', { class: 'panel' },
+        h('div', { class: 'panel-title' }, 'Resources'),
+
+        // Coal
+        h('div', { class: 'resource-item' },
+          h('span', { class: 'resource-icon', style: 'color:#666' }, h('i', { class: 'fa-solid fa-fire-flame-simple' })),
+          h('span', { class: 'resource-name' }, 'Coal'),
+          h('span', { class: 'resource-amount' }, `${Math.floor(gs.coal)}`),
+          h('span', { class: 'resource-max' }, `/${gs.coalMax}`)
+        ),
+        // Coal bar
+        h('div', { style: 'padding: 0 14px 6px; display:flex; gap:6px; align-items:center;' },
+          h('div', { style: 'flex:1; height:3px; background:var(--bg3); border-radius:2px; overflow:hidden' },
+            h('div', { style: `height:100%; width:${(gs.coal/gs.coalMax)*100}%; background:#555; border-radius:2px;` })
+          ),
+          h('button', { class: 'btn small', onClick: () => addCoal(15), style: 'font-size:11px; padding:2px 7px' }, '+Coal'),
+        ),
+
+        // Ores
+        availableOres.map(([metalId, metal]) =>
+          h('div', { key: metalId },
+            h('div', { class: 'resource-item' },
+              h('span', { class: 'resource-icon', style: `color:${metal.color}` }, h('i', { class: `fa-solid ${metal.icon}` })),
+              h('span', { class: 'resource-name' }, `${metal.name} Ore`),
+              h('span', { class: 'resource-amount' }, Math.floor(gs.ores[metalId] || 0)),
+              h('span', { class: 'resource-max' }, `/${gs.oreMax}`)
+            ),
+            h('div', { style: 'padding: 0 14px 6px; display:flex; gap:6px; align-items:center;' },
+              h('div', { style: 'flex:1; height:3px; background:var(--bg3); border-radius:2px; overflow:hidden' },
+                h('div', { style: `height:100%; width:${((gs.ores[metalId]||0)/gs.oreMax)*100}%; background:${metal.color}80; border-radius:2px;` })
+              ),
+              h('button', { class: 'btn small', onClick: () => addOre(metalId, 12), style: 'font-size:11px; padding:2px 7px' }, '+Ore'),
+            )
+          )
+        ),
+
+        h('div', { class: 'divider' }),
+
+        // Molten metal
+        h('div', { class: 'panel-title' }, 'Crucible'),
+        h('div', { class: 'resource-item' },
+          h('span', { class: 'resource-icon', style: `color:${moltenColor}` }, h('i', { class: 'fa-solid fa-droplet' })),
+          h('span', { class: 'resource-name' }, gs.moltenType ? `Molten ${METALS[gs.moltenType]?.name}` : 'Empty'),
+          h('span', { class: 'resource-amount' }, `${Math.floor(gs.moltenMetal)}`),
+          h('span', { class: 'resource-max' }, `/${crucibleDef.capacity}`)
+        ),
+        h('div', { style: 'padding: 0 14px 10px' },
+          h('div', { style: 'height:4px; background:var(--bg3); border-radius:2px; overflow:hidden' },
+            h('div', { style: `height:100%; width:${(gs.moltenMetal/crucibleDef.capacity)*100}%; background:${moltenColor}; border-radius:2px; transition:width 0.3s;` })
+          )
+        ),
+
+        // Melt controls
+        h('div', { style: 'padding: 4px 14px 12px; display:flex; flex-direction:column; gap:6px;' },
+          availableOres.map(([metalId, metal]) =>
+            h('button', {
+              key: metalId,
+              class: 'btn small',
+              onClick: () => meltOre(metalId),
+              disabled: (gs.ores[metalId] || 0) < 1 || gs.temp < METALS[metalId].meltTemp - 80 || gs.moltenMetal >= crucibleDef.capacity,
+              style: `border-color:${metal.color}50; color:${metal.color};`
+            },
+              h('i', { class: 'fa-solid fa-fire', style: 'font-size:11px' }),
+              `Melt ${metal.name}`
+            )
+          )
+        ),
+
+        h('div', { class: 'divider' }),
+        h('div', { class: 'panel-title' }, 'Temperature'),
+        h('div', { style: 'padding: 6px 14px 10px' },
+          h('div', { style: 'display:flex; justify-content:space-between; align-items:center; margin-bottom:6px' },
+            h('span', { style: `font-family:Share Tech Mono,monospace; font-size:16px; color:${tempColor}` }, `${Math.round(gs.temp)}°C`),
+            h('span', { style: 'font-size:11px; color:var(--text3)' }, furnaceDef.name),
+          ),
+          h('div', { style: 'height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; margin-bottom:8px' },
+            h('div', { style: `height:100%; width:${tempPct*100}%; background:${tempColor}; transition:width 0.3s, background 0.5s; border-radius:3px;` })
+          ),
+          // Melt temps reference
+          availableOres.map(([metalId, metal]) => {
+            const pct = (METALS[metalId].meltTemp / furnaceDef.maxTemp) * 100;
+            return h('div', { key: metalId, style: 'display:flex; align-items:center; gap:6px; margin-bottom:3px; font-size:11px' },
+              h('div', { style: `width:2px; height:10px; background:${metal.color};` }),
+              h('span', { style: `color:${metal.color}` }, metal.name),
+              h('span', { style: 'color:var(--text3)' }, `${METALS[metalId].meltTemp}°C`)
+            );
+          })
+        ),
+      ),
+
+      // CENTER - Workshop
+      h('section', { class: 'workshop' },
+        // Furnace
+        h('div', { class: 'furnace-station' },
+          h('div', { class: 'furnace-controls', style: 'flex-direction:column; gap:8px; justify-content:center; align-items:flex-start' },
+            h('button', {
+              class: `btn primary`,
+              onClick: toggleFurnace,
+              style: gs.furnaceOn ? 'border-color:#ff6600; color:#ff6600; background:rgba(255,102,0,0.15)' : ''
+            },
+              h('i', { class: gs.furnaceOn ? 'fa-solid fa-fire' : 'fa-regular fa-circle-stop' }),
+              gs.furnaceOn ? 'Douse Furnace' : 'Light Furnace'
+            ),
+            h('button', {
+              class: 'btn',
+              onClick: pumpBellows,
+              disabled: !gs.furnaceOn || gs.bellowsCooldown > 0,
+              style: 'position:relative'
+            },
+              h('i', { class: 'fa-solid fa-wind' }),
+              gs.bellowsCooldown > 0
+                ? `Ready in ${Math.ceil(gs.bellowsCooldown/1000)}s`
+                : `Pump Bellows (+${bellowsDef.boost}°)`
+            ),
+            h('div', { style: 'font-size:11px; color:var(--text3); font-style:italic; max-width:120px' },
+              `Fuel use: ${furnaceDef.fuelUse.toFixed(1)}/s`
+            )
+          ),
+
+          // Furnace Visual
+          h('div', { class: 'furnace-visual' },
+            h('div', { class: 'furnace-body', onClick: toggleFurnace },
+              h('svg', { class: 'furnace-svg', viewBox: '0 0 100 120', xmlns: 'http://www.w3.org/2000/svg' },
+                // Furnace body
+                h('rect', { x: 10, y: 30, width: 80, height: 80, rx: 4, fill: '#1c1510', stroke: '#3a2a1a', 'stroke-width': 1.5 }),
+                h('rect', { x: 15, y: 35, width: 70, height: 70, rx: 3, fill: '#0d0a07' }),
+                // Glow based on temp
+                gs.furnaceOn && gs.temp > 100 && h('ellipse', { cx: 50, cy: 90, rx: 30, ry: 15, fill: tempColor, opacity: Math.min(0.8, tempPct * 0.9) }),
+                // Flames
+                gs.furnaceOn && gs.temp > 200 && h('g', null,
+                  h('path', { d: 'M35 90 Q38 70 42 78 Q45 60 50 85 Q55 68 58 76 Q62 65 65 90Z', fill: '#ff6600', opacity: 0.8 }),
+                  h('path', { d: 'M38 90 Q42 75 45 80 Q48 68 52 84 Q56 72 60 90Z', fill: '#ffaa00', opacity: 0.6 }),
+                ),
+                // Top chimney / opening
+                h('rect', { x: 30, y: 15, width: 40, height: 18, rx: 2, fill: '#14100c', stroke: '#3a2a1a', 'stroke-width': 1 }),
+                h('rect', { x: 35, y: 18, width: 30, height: 12, rx: 1, fill: '#0d0a07' }),
+                // Smoke puffs if heating
+                gs.furnaceOn && gs.temp > 150 && h('g', null,
+                  h('circle', { cx: 50, cy: 8, r: 4, fill: '#3a3028', opacity: 0.5 }),
+                  h('circle', { cx: 45, cy: 2, r: 3, fill: '#3a3028', opacity: 0.3 }),
+                ),
+                // Glow outline
+                gs.furnaceOn && h('rect', { x: 10, y: 30, width: 80, height: 80, rx: 4, fill: 'none', stroke: tempColor, 'stroke-width': 1, opacity: Math.min(0.7, tempPct) }),
+              )
+            ),
+            h('div', { class: 'station-level' }, furnaceDef.name),
+          ),
+
+          // Mold selector - right of furnace
+          h('div', { class: 'mold-area' },
+            h('div', { class: 'crucible-title' }, 'Select Mold'),
+            h('div', { class: 'mold-grid' },
+              availableMolds.map(([moldId, mold]) =>
+                h('button', {
+                  key: moldId,
+                  class: `mold-btn ${gs.selectedMold === moldId ? 'active' : ''}`,
+                  onClick: () => setGs(s => ({ ...s, selectedMold: moldId })),
+                  title: mold.desc,
+                },
+                  h('i', { class: `fa-solid ${mold.icon}`, style: 'font-size:14px' }),
+                  mold.name,
+                  h('span', { class: 'mold-cost' }, `${MOLDS[moldId].baseCost} metal`)
+                )
+              )
+            ),
+            h('button', {
+              class: 'btn primary',
+              onClick: castMold,
+              disabled: !gs.moltenType || gs.moltenMetal < (MOLDS[gs.selectedMold]?.baseCost || 99) || gs.castingQueue.length >= 6,
+              style: 'margin-top:8px; width:100%'
+            },
+              h('i', { class: 'fa-solid fa-faucet' }),
+              'Cast into Mold'
+            )
+          ),
+        ),
+
+        // Casting Queue
+        h('div', { class: 'casting-queue' },
+          h('div', { class: 'queue-title' }, `Casting Queue (${gs.castingQueue.length}/6)`),
+          gs.castingQueue.length === 0
+            ? h('span', { class: 'empty-state' }, 'No active castings — pour molten metal into a mold to begin')
+            : h('div', { class: 'queue-items' },
+              gs.castingQueue.map(ci =>
+                h('div', { key: ci.id, class: 'queue-item' },
+                  h('i', { class: `fa-solid ${MOLDS[ci.moldId]?.icon}`, style: `color:${METALS[ci.metal]?.color}; font-size:12px` }),
+                  h('span', { style: 'font-size:12px' }, `${METALS[ci.metal]?.name} ${MOLDS[ci.moldId]?.name}`),
+                  h('span', { style: 'font-size:10px; color:var(--text3); margin-left:2px' }, `Q${ci.quality}`),
+                  h('div', { class: 'queue-progress' },
+                    h('div', { class: 'queue-progress-bar', style: `width:${((ci.totalTime - ci.timeLeft) / ci.totalTime) * 100}%` })
+                  ),
+                  h('span', { style: 'font-size:10px; color:var(--text3); min-width:20px' }, `${Math.ceil(ci.timeLeft)}s`)
+                )
+              )
+            )
+        ),
+
+        // Inventory / Market
+        h('div', { class: 'market-section' },
+          h('div', { class: 'section-title' }, `Workshop Output — ${inventoryItems.length} item types`),
+          inventoryItems.length === 0
+            ? h('span', { class: 'empty-state' }, 'Cast and cool metal to produce sellable goods')
+            : h('div', { class: 'market-items' },
+              inventoryItems.map(([key, qty]) => {
+                const parts = key.split('_');
+                const metalId = parts[0];
+                const moldId = parts.slice(1).join('');
+                const value = calcItemValue(moldId, metalId, 3, gs.researched);
+                const metal = METALS[metalId];
+                return h('div', { key, class: 'market-item' },
+                  h('i', { class: `fa-solid ${MOLDS[moldId]?.icon || 'fa-box'}`, style: `color:${metal?.color || '#aaa'}; font-size:13px; width:16px` }),
+                  h('span', { class: 'market-item-name' }, formatItem(key)),
+                  h('span', { class: 'market-item-qty' }, `×${qty}`),
+                  h('span', { class: 'market-price' }, `${value}g`),
+                  h('button', { class: 'sell-btn', onClick: () => sellItem(key, 1), disabled: qty < 1 }, 'Sell'),
+                  h('button', { class: 'sell-btn', onClick: () => sellAll(key), disabled: qty < 1, style: 'color:var(--accent)' }, 'All'),
+                );
+              })
+            )
+        ),
+
+        // Log
+        h('div', { style: 'padding: 10px 16px; color: var(--text3); font-size:12px; font-style:italic; border-top: 1px solid var(--border)' },
+          gs.log[0]
+        ),
+      ),
+
+      // RIGHT PANEL
+      h('aside', { class: 'panel right-panel' },
+        h('div', { class: 'right-tabs' },
+          ['upgrades', 'research', 'contracts'].map(tab =>
+            h('button', {
+              key: tab,
+              class: `right-tab ${rightTab === tab ? 'active' : ''}`,
+              onClick: () => setRightTab(tab)
+            },
+              h('i', { class: tab === 'upgrades' ? 'fa-solid fa-arrow-up' : tab === 'research' ? 'fa-solid fa-flask' : 'fa-solid fa-scroll', style: 'display:block; font-size:12px; margin-bottom:2px' }),
+              tab.charAt(0).toUpperCase() + tab.slice(1)
+            )
+          )
+        ),
+        h('div', { class: 'right-panel-content' },
+          rightTab === 'upgrades' && h(UpgradeTab, { gs, onUpgrade: doUpgrade }),
+          rightTab === 'research' && h(ResearchTab, { gs, onResearch: doResearch }),
+          rightTab === 'contracts' && h(ContractsTab, { gs, onActivate: activateContract, onComplete: completeContract }),
+        )
+      ),
+    ),
+    // BOTTOM LOG
+    h('footer', { class: 'log-bar' },
+      h('span', { class: 'log-label' }, 'Log'),
+      h('span', { class: `log-message ${gs.log[0]?.includes('!') ? 'highlight' : ''}` }, gs.log[0] || '—'),
+    )
+  );
+}
+
+// =====================
+// UPGRADE TAB
+// =====================
+function UpgradeTab({ gs, onUpgrade }) {
+  return h('div', null,
+    UPGRADE_DEFS.map(def => {
+      const levelKey = def.id === 'furnace' ? 'furnaceLevel' :
+                       def.id === 'bellows' ? 'bellowsLevel' :
+                       def.id === 'crucible' ? 'crucibleLevel' :
+                       def.id === 'storage' ? 'storageLevel' : null;
+      const currentLevel = gs[levelKey] || 0;
+      const isMaxed = currentLevel >= def.levels.length - 1;
+      const cost = isMaxed ? 0 : getUpgradeCost(def.id, currentLevel);
+      const canAfford = gs.gold >= cost;
+      const nextLevel = def.levels[currentLevel + 1];
+
+      return h('div', {
+        key: def.id,
+        class: `upgrade-item ${isMaxed ? 'maxed' : ''}`,
+        onClick: () => !isMaxed && onUpgrade(def.id)
+      },
+        h('div', { class: 'upgrade-header' },
+          h('i', { class: `fa-solid ${def.icon} upgrade-icon`, style: `color:${isMaxed ? 'var(--gold)' : 'var(--accent)'}` }),
+          h('span', { class: 'upgrade-name' }, def.name),
+          h('span', { class: 'upgrade-level' }, `LV ${currentLevel + 1}/${def.levels.length}`)
+        ),
+        h('div', { class: 'upgrade-desc' }, def.levels[currentLevel].name),
+        !isMaxed && h('div', { class: `upgrade-cost ${canAfford ? '' : 'cant-afford'}` },
+          h('i', { class: 'fa-solid fa-coins', style: 'font-size:10px' }),
+          cost, 'g'
+        ),
+        !isMaxed && h('div', { class: 'upgrade-effect' },
+          `→ ${nextLevel?.name}: ${def.id === 'furnace' ? `${nextLevel?.maxTemp}°C max` : def.id === 'bellows' ? `+${nextLevel?.boost}° boost` : def.id === 'crucible' ? `${nextLevel?.capacity} capacity` : `${nextLevel?.oreMax} ore max`}`
+        ),
+        isMaxed && h('div', { class: 'upgrade-effect' }, '✓ Maximum level achieved'),
+      );
+    })
+  );
+}
+
+// =====================
+// RESEARCH TAB
+// =====================
+function ResearchTab({ gs, onResearch }) {
+  return h('div', null,
+    RESEARCH_DEFS.map(def => {
+      const isUnlocked = gs.researched.has(def.id);
+      const prereqsMet = def.prereqs.every(p => gs.researched.has(p));
+      const canAfford = gs.gold >= def.cost;
+      const status = isUnlocked ? 'unlocked' : prereqsMet ? 'available' : 'locked';
+
+      return h('div', {
+        key: def.id,
+        class: `research-item ${status}`,
+        onClick: () => status === 'available' && onResearch(def.id)
+      },
+        h('div', { class: 'research-name' },
+          def.name,
+          h('span', { class: status === 'unlocked' ? 'badge-unlocked' : status === 'locked' ? 'badge-locked' : '' },
+            status === 'unlocked' ? 'DONE' : status === 'locked' ? 'LOCKED' : ''
+          )
+        ),
+        h('div', { class: 'research-desc' }, def.effect),
+        !isUnlocked && status !== 'locked' && h('div', { class: 'research-cost', style: canAfford ? '' : 'color:var(--red)' },
+          h('i', { class: 'fa-solid fa-coins', style: 'font-size:10px; margin-right:4px' }),
+          def.cost, 'g'
+        ),
+        !isUnlocked && status === 'locked' && def.prereqs.length > 0 && h('div', { style: 'font-size:10px; color:var(--text3); margin-top:3px' },
+          'Requires: ', def.prereqs.map(p => RESEARCH_DEFS.find(r => r.id === p)?.name).join(', ')
+        )
+      );
+    })
+  );
+}
+
+// =====================
+// CONTRACTS TAB
+// =====================
+function ContractsTab({ gs, onActivate, onComplete }) {
+  return h('div', null,
+    CONTRACT_DEFS.map(contract => {
+      const isDone = gs.completedContracts.has(contract.id);
+      const prereqDone = !contract.prereq || gs.completedContracts.has(contract.prereq);
+      const isActive = gs.activeContractId === contract.id;
+      const progress = getContractProgress(contract, gs.inventory);
+      const canComplete = canCompleteContract(contract, gs.inventory);
+
+      if (isDone) return h('div', { key: contract.id, class: 'contract-item', style: 'opacity:0.4' },
+        h('div', { class: 'contract-name' }, '✓ ' + contract.name),
+        h('div', { class: 'contract-desc' }, 'Fulfilled — reward collected')
+      );
+
+      if (!prereqDone) return h('div', { key: contract.id, class: 'contract-item', style: 'opacity:0.3' },
+        h('div', { class: 'contract-name' }, contract.name),
+        h('div', { class: 'contract-desc', style: 'font-size:11px; color:var(--text3)' }, 'Complete previous contract first')
+      );
+
+      return h('div', { key: contract.id, class: `contract-item ${isActive ? 'active' : ''}` },
+        h('div', { class: 'contract-name' }, contract.name),
+        h('div', { class: 'contract-desc' }, contract.desc),
+        h('div', { class: 'contract-reqs' },
+          progress.map(req =>
+            h('div', { key: req.item, class: `contract-req ${req.done ? 'done' : ''}` },
+              h('span', { style: 'font-size:11px; min-width:120px' }, formatItem(req.item)),
+              h('div', { class: 'contract-req-bar' },
+                h('div', { class: 'contract-req-fill', style: `width:${Math.min(100, (req.have / req.qty) * 100)}%` })
+              ),
+              h('span', { style: 'font-size:11px; color:var(--text3); min-width:40px; text-align:right' }, `${req.have}/${req.qty}`)
+            )
+          )
+        ),
+        h('div', { class: 'contract-reward' },
+          h('i', { class: 'fa-solid fa-coins', style: 'margin-right:4px' }),
+          `Reward: ${contract.reward.gold}g + ${contract.reward.rating} rating`,
+          contract.reward.unlock && h('span', { style: 'color:var(--accent); margin-left:6px; font-size:11px' }, '+ Special Unlock')
+        ),
+        !isActive
+          ? h('button', { class: 'contract-btn', onClick: () => onActivate(contract.id) }, 'Track Contract')
+          : h('button', {
+              class: 'contract-btn',
+              onClick: () => onComplete(contract),
+              disabled: !canComplete
+            }, canComplete ? 'Fulfill Contract →' : 'Requirements Incomplete'
+          )
+      );
+    })
+  );
+}
+
+render(h(App, null), document.getElementById('app'));
+</script>
+</body>
+</html>

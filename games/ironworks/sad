@@ -1,0 +1,31 @@
+Ok i actually did two fixes that make the game much more enjoyable:
+
+temp increase rate i multiplied by .5
+
+
+
+```html
+
+s.temp = Math.min(fD.maxT, s.temp + hR * DT * .5);
+
+```
+
+
+
+temp decrease rate i multiplied by .1
+
+
+
+```html
+
+s.temp = Math.max(0, s.temp - fD.cR * DT * .1);
+
+```
+
+
+
+
+
+if you do that it is much better.
+
+Another very important missing element is saving the game data so i dont always have to start from the beginning. can you do that?

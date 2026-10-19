@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRONWORKS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/preact/10.19.3/preact.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/preact/10.19.3/hooks.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&family=Share+Tech+Mono&display=swap');
+:root {
+  --bg:#0e0b07;--bg2:#17120d;--bg3:#201710;--bg4:#2a1f13;
+  --border:#3d2d1a;--border2:#5a4028;
+  --text:#d8bc9c;--text2:#9a7a58;--text3:#5a4030;
+  --accent:#e08030;--accent2:#c06820;
+  --gold:#f0c040;--green:#50b060;--red:#c84040;
+  --iron:#8898b0;--copper:#c88040;--tin:#90a0a8;--zinc:#a0a898;
+  --bronze:#d08832;--steel:#b0c0d0;--silver:#d0d8e0;
+  --gold-m:#e8c050;--mithril:#80c0e0;--void:#9060c0;
+  --heat0:#1a0800;--heat1:#8a2200;--heat2:#e05000;--heat3:#ffa000;--heat4:#ffe060;
+  --fs:17px;--fs-sm:14px;--fs-xs:12px;--fs-lg:20px;--fs-xl:24px;--fs-h:28px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Crimson Pro',Georgia,serif;min-height:100vh;overflow:hidden;font-size:var(--fs);line-height:1.5;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5;}
+h1,h2,h3,h4{font-family:'Cinzel',serif;letter-spacing:.06em;}
+.mono{font-family:'Share Tech Mono',monospace;}
+
+/* LAYOUT */
+.app{display:grid;grid-template-rows:56px 1fr 42px;height:100vh;}
+.header{background:linear-gradient(to bottom,#0a0705,var(--bg2));border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:20px;}
+.header h1{font-size:var(--fs-xl);color:var(--accent);text-shadow:0 0 24px rgba(224,128,48,.5);letter-spacing:.15em;}
+.hstat{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);padding:5px 14px;border-radius:4px;}
+.hstat .lbl{font-size:var(--fs-xs);color:var(--text3);font-family:'Share Tech Mono',monospace;text-transform:uppercase;letter-spacing:.1em;}
+.hstat .val{font-family:'Cinzel',serif;font-size:var(--fs-lg);color:var(--gold);}
+.hrank{font-size:var(--fs-sm);color:var(--text2);font-style:italic;}
+.hgold{display:flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:var(--fs-lg);color:var(--gold);margin-left:auto;}
+
+/* MAIN 3-COL */
+.main{display:grid;grid-template-columns:260px 1fr 280px;overflow:hidden;}
+.panel{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;}
+.panel::-webkit-scrollbar{width:4px;}
+.panel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.ptitle{font-family:'Cinzel',serif;font-size:var(--fs-xs);letter-spacing:.2em;color:var(--text3);text-transform:uppercase;padding:10px 16px 8px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:5;}
+
+/* NAV TABS (left panel) */
+.nav-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0;}
+.nav-tab{flex:1;padding:10px 4px;font-size:var(--fs-xs);letter-spacing:.08em;color:var(--text3);cursor:pointer;border:none;background:transparent;font-family:'Cinzel',serif;text-transform:uppercase;text-align:center;transition:all .15s;border-bottom:2px solid transparent;}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.nav-tab:hover:not(.active){color:var(--text2);}
+
+/* ============ MINE PANEL ============ */
+.mine-panel{padding:14px;display:flex;flex-direction:column;gap:12px;flex:1;}
+.vein-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.vein-node{
+  aspect-ratio:1;border-radius:6px;cursor:pointer;border:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  transition:all .12s;position:relative;overflow:hidden;background:var(--bg3);
+  font-size:var(--fs-xs);color:var(--text2);
+}
+.vein-node:hover:not(.depleted){border-color:var(--accent);background:var(--bg4);transform:scale(1.04);}
+.vein-node.depleted{opacity:.35;cursor:not-allowed;filter:grayscale(.8);}
+.vein-node i{font-size:22px;}
+.vein-hp{position:absolute;bottom:0;left:0;height:3px;transition:width .2s;}
+.vein-regen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);color:var(--text3);}
+.ore-yield{font-size:var(--fs-xs);color:var(--text3);}
+
+.pickaxe-shop{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;}
+.pickaxe-shop h4{font-size:var(--fs-sm);color:var(--text2);margin-bottom:8px;}
+.pickaxe-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);}
+.pickaxe-row:last-child{border-bottom:none;}
+.pickaxe-name{flex:1;font-size:var(--fs-sm);}
+.pickaxe-yield{font-size:var(--fs-xs);color:var(--green);min-width:60px;}
+.pickaxe-cost{font-size:var(--fs-xs);color:var(--gold);font-family:'Share Tech Mono',monospace;min-width:70px;}
+
+/* ============ CENTER SMELTERY ============ */
+.workshop{background:var(--bg);display:flex;flex-direction:column;overflow-y:auto;}
+.workshop::-webkit-scrollbar{width:4px;}
+.workshop::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* SMELTERY VISUAL */
+.smeltery-section{padding:20px 20px 12px;display:flex;gap:20px;align-items:flex-start;border-bottom:1px solid var(--border);}
+.smeltery-visual{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;}
+.smeltery-crucible{width:140px;height:160px;cursor:pointer;position:relative;}
+.smeltery-info{flex:1;display:flex;flex-direction:column;gap:10px;}
+
+/* TEMP CONTROLS */
+.temp-section{display:flex;flex-direction:column;gap:6px;}
+.temp-bar-wrap{height:10px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;overflow:hidden;position:relative;}
+.temp-bar{height:100%;border-radius:2px;transition:width .3s,background .5s;}
+.temp-markers{position:relative;height:14px;margin-top:2px;}
+.temp-marker{position:absolute;transform:translateX(-50%);font-size:10px;font-family:'Share Tech Mono',monospace;}
+.temp-readout{font-family:'Share Tech Mono',monospace;font-size:var(--fs-lg);font-weight:bold;}
+.temp-danger{color:var(--red);font-size:var(--fs-xs);animation:blink-red 1s infinite;}
+@keyframes blink-red{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* METAL LAYERS in crucible SVG */
+.metal-layer{transition:height .4s,y .4s,fill .5s;}
+@keyframes bubble-rise{0%{cy:var(--start-y);opacity:.7;r:2}100%{cy:var(--end-y);opacity:0;r:4}}
+.bubble{animation:bubble-rise 1.2s ease-out infinite;}
+
+/* FURNACE CONTROLS */
+.furnace-btns{display:flex;flex-wrap:wrap;gap:8px;}
+
+/* ALLOY INDICATOR */
+.alloy-indicator{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-size:var(--fs-sm);}
+.alloy-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.alloy-row:last-child{margin-bottom:0;}
+.alloy-bar-wrap{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;position:relative;}
+.alloy-segment{position:absolute;height:100%;top:0;transition:left .3s,width .3s;}
+.alloy-name{font-family:'Cinzel',serif;color:var(--accent);font-size:var(--fs-sm);}
+.alloy-check{font-size:var(--fs-xs);padding:1px 6px;border-radius:2px;font-family:'Share Tech Mono',monospace;}
+.alloy-check.ok{background:rgba(80,176,96,.2);color:var(--green);}
+.alloy-check.no{background:rgba(200,64,64,.2);color:var(--red);}
+
+/* MOLD + CAST */
+.mold-section{padding:14px 20px;border-bottom:1px solid var(--border);}
+.mold-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;margin:10px 0;}
+.mold-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 6px;cursor:pointer;border-radius:4px;font-family:'Crimson Pro',serif;font-size:var(--fs-sm);text-align:center;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.mold-btn:hover:not(:disabled){border-color:var(--accent);background:var(--bg4);color:var(--accent);}
+.mold-btn:disabled{opacity:.35;cursor:not-allowed;}
+.mold-btn.active{border-color:var(--accent);background:rgba(224,128,48,.1);}
+.mold-btn i{font-size:18px;}
+.mold-cost{font-size:var(--fs-xs);color:var(--text3);}
+.mold-value{font-size:var(--fs-xs);color:var(--gold);}
+
+/* CASTING QUEUE */
+.cast-queue{padding:12px 20px;border-bottom:1px solid var(--border);}
+.queue-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
+.qi{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:var(--fs-sm);display:flex;align-items:center;gap:7px;}
+.qi-prog{width:54px;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.qi-prog-bar{height:100%;background:var(--accent);transition:width .2s;}
+
+/* INVENTORY */
+.inventory-section{padding:14px 20px;}
+.inv-grid{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
+.inv-row{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:7px 12px;display:flex;align-items:center;gap:10px;}
+.inv-icon{font-size:16px;width:20px;text-align:center;}
+.inv-name{flex:1;font-size:var(--fs-sm);}
+.inv-qty{font-family:'Share Tech Mono',monospace;font-size:var(--fs-sm);min-width:30px;text-align:right;}
+.inv-val{font-size:var(--fs-xs);color:var(--gold);font-family:'Share Tech Mono',monospace;min-width:54px;text-align:right;}
+.sell-btn{border:1px solid var(--border);background:transparent;color:var(--text2);padding:3px 10px;cursor:pointer;border-radius:2px;font-size:var(--fs-xs);font-family:'Crimson Pro',serif;transition:all .15s;}
+.sell-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
+.sell-btn:disabled{opacity:.3;cursor:not-allowed;}
+.sell-all-btn{border:1px solid var(--border2);background:transparent;color:var(--accent);padding:3px 10px;cursor:pointer;border-radius:2px;font-size:var(--fs-xs);font-family:'Crimson Pro',serif;transition:all .15s;}
+.sell-all-btn:hover:not(:disabled){border-color:var(--accent);background:rgba(224,128,48,.1);}
+
+/* RIGHT PANEL */
+.right-panel{border-left:1px solid var(--border);border-right:none;display:flex;flex-direction:column;overflow:hidden;}
+.right-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0;}
+.rt{flex:1;padding:8px 2px;font-size:10px;letter-spacing:.08em;color:var(--text3);cursor:pointer;border:none;background:transparent;font-family:'Cinzel',serif;text-transform:uppercase;text-align:center;transition:all .15s;border-bottom:2px solid transparent;}
+.rt.active{color:var(--accent);border-bottom-color:var(--accent);}
+.rt i{display:block;font-size:13px;margin-bottom:2px;}
+.rpanel{flex:1;overflow-y:auto;padding:12px;}
+.rpanel::-webkit-scrollbar{width:4px;}
+.rpanel::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* UPGRADE CARD */
+.upg-card{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+.upg-card:hover:not(.maxed){border-color:var(--accent2);background:var(--bg4);}
+.upg-card.maxed{border-color:var(--gold);opacity:.65;cursor:default;}
+.upg-head{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
+.upg-icon{font-size:18px;width:22px;text-align:center;}
+.upg-name{font-family:'Cinzel',serif;font-size:var(--fs-sm);flex:1;}
+.upg-lv{font-size:var(--fs-xs);color:var(--text3);font-family:'Share Tech Mono',monospace;}
+.upg-cur{font-size:var(--fs-xs);color:var(--text2);font-style:italic;margin-bottom:5px;}
+.upg-cost{display:flex;align-items:center;gap:5px;font-size:var(--fs-sm);color:var(--gold);font-family:'Share Tech Mono',monospace;}
+.upg-cost.no{color:var(--red);}
+.upg-eff{font-size:var(--fs-xs);color:var(--green);margin-top:4px;}
+
+/* RESEARCH */
+.res-card{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:11px;margin-bottom:9px;transition:all .15s;}
+.res-card.avail{cursor:pointer;}
+.res-card.avail:hover{border-color:var(--accent2);background:var(--bg4);}
+.res-card.done{opacity:.55;border-color:var(--border2);}
+.res-card.locked{opacity:.3;cursor:not-allowed;}
+.res-name{font-family:'Cinzel',serif;font-size:var(--fs-sm);display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+.res-desc{font-size:var(--fs-xs);color:var(--text2);font-style:italic;margin-bottom:5px;}
+.res-cost{font-size:var(--fs-xs);color:var(--gold);font-family:'Share Tech Mono',monospace;}
+.badge{font-size:10px;padding:1px 6px;border-radius:2px;font-family:'Share Tech Mono',monospace;}
+.badge-done{background:rgba(80,176,96,.2);color:var(--green);}
+.badge-locked{background:rgba(90,64,48,.3);color:var(--text3);}
+.badge-era{background:rgba(224,128,48,.15);color:var(--accent2);}
+.req-txt{font-size:10px;color:var(--text3);margin-top:3px;}
+
+/* CONTRACTS */
+.con-card{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:13px;margin-bottom:10px;}
+.con-card.active{border-color:var(--accent);}
+.con-card.done-c{opacity:.4;}
+.con-name{font-family:'Cinzel',serif;font-size:var(--fs-sm);color:var(--accent);margin-bottom:4px;}
+.con-desc{font-size:var(--fs-xs);color:var(--text2);font-style:italic;margin-bottom:9px;}
+.con-req{display:flex;align-items:center;gap:7px;font-size:var(--fs-sm);margin-bottom:5px;}
+.con-req-bar{flex:1;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.con-req-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s;}
+.con-req.done-r .con-req-fill{background:var(--green);}
+.con-req-count{font-size:var(--fs-xs);color:var(--text3);font-family:'Share Tech Mono',monospace;min-width:40px;text-align:right;}
+.con-reward{font-size:var(--fs-xs);color:var(--gold);margin-bottom:7px;}
+.con-btn{width:100%;padding:7px;background:rgba(224,128,48,.12);border:1px solid var(--accent2);color:var(--accent);font-family:'Cinzel',serif;font-size:var(--fs-sm);cursor:pointer;border-radius:4px;transition:all .15s;letter-spacing:.05em;}
+.con-btn:hover:not(:disabled){background:rgba(224,128,48,.28);}
+.con-btn:disabled{opacity:.4;cursor:not-allowed;}
+.con-locked{font-size:var(--fs-xs);color:var(--text3);font-style:italic;padding:4px 0;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;font-family:'Crimson Pro',serif;font-size:var(--fs-sm);border-radius:4px;transition:all .15s;white-space:nowrap;}
+.btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--bg4);}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn.primary{background:rgba(224,128,48,.14);border-color:var(--accent2);color:var(--accent);}
+.btn.primary:hover:not(:disabled){background:rgba(224,128,48,.28);box-shadow:0 0 14px rgba(224,128,48,.3);}
+.btn.sm{padding:5px 10px;font-size:var(--fs-xs);}
+.btn.danger{border-color:var(--red);color:var(--red);}
+.btn.full{width:100%;justify-content:center;}
+
+/* LOG + FOOTER */
+.footer{background:var(--bg2);border-top:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:12px;overflow:hidden;}
+.log-lbl{font-size:var(--fs-xs);color:var(--text3);letter-spacing:.1em;font-family:'Cinzel',serif;white-space:nowrap;}
+.log-msg{font-size:var(--fs-sm);color:var(--text2);font-style:italic;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.log-msg.hi{color:var(--accent);}
+
+/* TOASTS — bottom-right, above footer */
+.toasts{position:fixed;bottom:50px;right:18px;z-index:1000;display:flex;flex-direction:column;gap:7px;pointer-events:none;align-items:flex-end;}
+@keyframes tin{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tout{from{opacity:1}to{opacity:0;transform:translateY(8px)}}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-left:3px solid var(--accent);color:var(--text);padding:9px 14px;border-radius:4px;font-size:var(--fs-sm);animation:tin .25s ease;max-width:280px;}
+.toast.good{border-left-color:var(--green);}
+.toast.bad{border-left-color:var(--red);}
+
+/* DIVIDER */
+.div{height:1px;background:linear-gradient(to right,transparent,var(--border),transparent);margin:10px 0;}
+
+/* MISC */
+.empty{color:var(--text3);font-style:italic;font-size:var(--fs-sm);padding:8px 0;}
+.row{display:flex;align-items:center;gap:8px;}
+.col{display:flex;flex-direction:column;gap:6px;}
+
+/* SPARK ANIMATION */
+@keyframes spark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+.spark{position:fixed;pointer-events:none;width:4px;height:4px;border-radius:50%;background:var(--heat3);animation:spark .55s ease-out forwards;z-index:8000;}
+@keyframes ore-pop{0%{transform:scale(1.3);opacity:1}100%{transform:scale(1);opacity:0}}
+.ore-pop{position:fixed;pointer-events:none;font-size:var(--fs-sm);font-family:'Share Tech Mono',monospace;animation:ore-pop .7s ease-out forwards;z-index:7000;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const {h,render}=preact;
+const {useState,useEffect,useRef,useCallback}=preactHooks;
+
+// =====================================================================
+// DATA DEFINITIONS
+// =====================================================================
+const METALS={
+  iron:  {name:'Iron',   color:'#8898b0',meltTemp:400, maxTemp:750,  oreKey:'iron',   icon:'fa-cube',      era:0,locked:false},
+  copper:{name:'Copper', color:'#c88040',meltTemp:380, maxTemp:700,  oreKey:'copper', icon:'fa-circle',    era:0,locked:true},
+  tin:   {name:'Tin',    color:'#90a0a8',meltTemp:280, maxTemp:600,  oreKey:'tin',    icon:'fa-droplet',   era:0,locked:true},
+  zinc:  {name:'Zinc',   color:'#a0a898',meltTemp:330, maxTemp:620,  oreKey:'zinc',   icon:'fa-atom',      era:1,locked:true},
+  bronze:{name:'Bronze', color:'#d08832',meltTemp:450, maxTemp:800,  oreKey:null,     icon:'fa-gem',       era:1,locked:true,
+          alloy:{copper:0.5,tin:0.5},tolerance:0.15},
+  steel: {name:'Steel',  color:'#b0c0d0',meltTemp:600, maxTemp:1100, oreKey:null,     icon:'fa-shield',    era:2,locked:true,
+          alloy:{iron:0.7,coal_flux:0.3},tolerance:0.12},
+  silver:{name:'Silver', color:'#d0d8e0',meltTemp:490, maxTemp:750,  oreKey:'silver', icon:'fa-star',      era:2,locked:true},
+  gold_m:{name:'Gold',   color:'#e8c050',meltTemp:620, maxTemp:900,  oreKey:'gold_ore',icon:'fa-sun',     era:2,locked:true},
+  mithril:{name:'Mithril',color:'#80c0e0',meltTemp:820, maxTemp:1400,oreKey:'mithril',icon:'fa-wand-sparkles',era:3,locked:true},
+  void_steel:{name:'Void Steel',color:'#9060c0',meltTemp:940,maxTemp:1600,oreKey:null,icon:'fa-skull',  era:3,locked:true,
+              alloy:{steel:0.6,mithril:0.4},tolerance:0.08,unstable:true},
+};
+
+const ORES={
+  iron:    {name:'Iron Ore',   color:'#8898b0',icon:'fa-cube',      biome:'surface', era:0},
+  copper:  {name:'Copper Ore', color:'#c88040',icon:'fa-circle',    biome:'surface', era:0},
+  tin:     {name:'Tin Ore',    color:'#90a0a8',icon:'fa-droplet',   biome:'surface', era:0},
+  zinc:    {name:'Zinc Ore',   color:'#a0a898',icon:'fa-atom',      biome:'deep',    era:1},
+  silver:  {name:'Silver Ore', color:'#d0d8e0',icon:'fa-star',      biome:'deep',    era:2},
+  gold_ore:{name:'Gold Ore',   color:'#e8c050',icon:'fa-sun',       biome:'deep',    era:2},
+  mithril: {name:'Mithril Ore',color:'#80c0e0',icon:'fa-wand-sparkles',biome:'void', era:3},
+  coal:    {name:'Coal',       color:'#555',   icon:'fa-fire-flame-simple',biome:'surface',era:0},
+  coal_flux:{name:'Coal Flux', color:'#444',   icon:'fa-fire',      biome:'surface', era:1},
+};
+
+const MOLDS={
+  ingot:  {name:'Ingot',     icon:'fa-rectangle-list',baseMetal:1,  baseTime:5,   baseValue:14,  always:true,   desc:'Standard metal bar'},
+  coin:   {name:'Coins',     icon:'fa-coins',          baseMetal:2,  baseTime:7,   baseValue:38,  unlock:'mCoins',desc:'Minted currency'},
+  tool:   {name:'Tool',      icon:'fa-wrench',          baseMetal:3,  baseTime:12,  baseValue:80,  unlock:'mTools',desc:'Axe, chisel, or hammer'},
+  gear:   {name:'Gear',      icon:'fa-gear',            baseMetal:4,  baseTime:18,  baseValue:150, unlock:'mGears',desc:'Precision gear wheel'},
+  weapon: {name:'Weapon',    icon:'fa-khanda',          baseMetal:5,  baseTime:26,  baseValue:280, unlock:'mWeapons',desc:'Sword or spear'},
+  pipe:   {name:'Pipe',      icon:'fa-grip-lines',      baseMetal:4,  baseTime:14,  baseValue:130, unlock:'mPipes',desc:'Structural pipe'},
+  art:    {name:'Art Piece', icon:'fa-trophy',          baseMetal:6,  baseTime:35,  baseValue:600, unlock:'mArt',  desc:'Decorative masterwork'},
+  circuit:{name:'Circuit',   icon:'fa-microchip',       baseMetal:8,  baseTime:50,  baseValue:2000,unlock:'mCircuits',desc:'Arcane circuitry'},
+};
+
+const ERA_NAMES=['Iron Age','Bronze Age','Steel Era','Mythic Age'];
+
+const PICKAXES=[
+  {id:'hands',name:'Bare Hands',yield:1,cost:null,costDisplay:'Free',icon:'fa-hand'},
+  {id:'iron_pick',name:'Iron Pickaxe',yield:3,costIngots:{iron_ingot:5},costDisplay:'5 iron ingots',icon:'fa-pickaxe'},
+  {id:'steel_pick',name:'Steel Pickaxe',yield:7,costIngots:{steel_ingot:8},costDisplay:'8 steel ingots',icon:'fa-pickaxe'},
+  {id:'mithril_pick',name:'Mithril Pickaxe',yield:18,costIngots:{mithril_ingot:5},costDisplay:'5 mithril ingots',icon:'fa-wand-sparkles'},
+];
+
+const FURNACE_LEVELS=[
+  {name:'Pit Furnace',    maxTemp:700,  heatRate:14, coolRate:20, fuelUse:1.0, capacity:40},
+  {name:'Bloomery',       maxTemp:1000, heatRate:22, coolRate:18, fuelUse:0.9, capacity:70},
+  {name:'Reverb Furnace', maxTemp:1350, heatRate:32, coolRate:16, fuelUse:0.75,capacity:120},
+  {name:'Blast Furnace',  maxTemp:1700, heatRate:48, coolRate:14, fuelUse:0.6, capacity:220},
+];
+const BELLOWS_LEVELS=[
+  {name:'Hand Bellows',  boost:50,  cd:3200},
+  {name:'Foot Bellows',  boost:100, cd:2200},
+  {name:'Water Wheel',   boost:180, cd:1400},
+  {name:'Steam Bellows', boost:320, cd:700},
+];
+const CRUCIBLE_LEVELS=[
+  {name:'Clay Crucible', capacity:40},
+  {name:'Iron Crucible', capacity:80},
+  {name:'Steel Crucible',capacity:160},
+  {name:'Graphite Pot',  capacity:300},
+];
+const STORAGE_LEVELS=[
+  {name:'Dirt Floor',  oreMax:120, coalMax:80},
+  {name:'Wood Shelves',oreMax:250, coalMax:160},
+  {name:'Stone Vault', oreMax:500, coalMax:320},
+  {name:'Iron Depot',  oreMax:1000,coalMax:650},
+];
+const UPGRADE_DEFS=[
+  {id:'furnace', name:'Furnace',  icon:'fa-fire',      levels:FURNACE_LEVELS,  lvKey:'fLv', costBase:200, costMult:6},
+  {id:'bellows', name:'Bellows',  icon:'fa-wind',      levels:BELLOWS_LEVELS,  lvKey:'bLv', costBase:120, costMult:5},
+  {id:'crucible',name:'Crucible', icon:'fa-flask',     levels:CRUCIBLE_LEVELS, lvKey:'cLv', costBase:160, costMult:5},
+  {id:'storage', name:'Storage',  icon:'fa-warehouse', levels:STORAGE_LEVELS,  lvKey:'sLv', costBase:90,  costMult:4},
+];
+
+const RESEARCH_DEFS=[
+  // Era 0 - Iron Age
+  {id:'rCopper',   name:'Copper Mining',     cost:150,   era:0, prereqs:[],                        effect:'Unlock Copper ore vein',         unlock:'copper'},
+  {id:'rTin',      name:'Tin Mining',         cost:120,   era:0, prereqs:[],                        effect:'Unlock Tin ore vein',            unlock:'tin'},
+  {id:'mCoins',    name:'Coin Minting',       cost:100,   era:0, prereqs:[],                        effect:'Unlock Coin mold',               unlock:'mCoins'},
+  {id:'mTools',    name:'Tool Casting',       cost:200,   era:0, prereqs:['mCoins'],                effect:'Unlock Tool mold',               unlock:'mTools'},
+  // Era 1 - Bronze Age
+  {id:'rBronze',   name:'Bronze Alloy',       cost:500,   era:1, prereqs:['rCopper','rTin'],         effect:'Unlock Bronze (Copper 50%+Tin 50%)',unlock:'bronze'},
+  {id:'rZinc',     name:'Zinc Mining',        cost:400,   era:1, prereqs:['rCopper'],               effect:'Unlock Zinc ore & Coal Flux',    unlock:'zinc'},
+  {id:'mGears',    name:'Gear Works',         cost:450,   era:1, prereqs:['mTools'],                effect:'Unlock Gear mold',               unlock:'mGears'},
+  {id:'mPipes',    name:'Pipe Drawing',       cost:380,   era:1, prereqs:['mTools'],                effect:'Unlock Pipe mold',               unlock:'mPipes'},
+  {id:'autoFuel',  name:'Auto-Stoker',        cost:600,   era:1, prereqs:['mGears'],                effect:'Furnace auto-consumes coal',     unlock:'autoFuel'},
+  {id:'quenching', name:'Quenching',          cost:350,   era:1, prereqs:['mTools'],                effect:'+1 quality tier on all castings',unlock:'quenching'},
+  // Era 2 - Steel Era
+  {id:'rSteel',    name:'Steel Smelting',     cost:1200,  era:2, prereqs:['rBronze','rZinc'],        effect:'Unlock Steel (Iron 70%+Coal Flux 30%)',unlock:'steel'},
+  {id:'rSilver',   name:'Silver Lode',        cost:1000,  era:2, prereqs:['rZinc'],                 effect:'Unlock Silver ore (deep mine)',   unlock:'silver'},
+  {id:'rGold',     name:'Gold Prospecting',   cost:1500,  era:2, prereqs:['rSilver'],               effect:'Unlock Gold ore (deep mine)',    unlock:'gold_m'},
+  {id:'mWeapons',  name:'Weapon Forging',     cost:1400,  era:2, prereqs:['mGears'],                effect:'Unlock Weapon mold',             unlock:'mWeapons'},
+  {id:'mArt',      name:'Fine Casting',       cost:2000,  era:2, prereqs:['quenching','mWeapons'],   effect:'Unlock Art Piece mold',         unlock:'mArt'},
+  {id:'autoMold',  name:'Auto-Casting',       cost:2500,  era:2, prereqs:['autoFuel'],              effect:'Auto-cast selected mold',        unlock:'autoMold'},
+  {id:'pyrometer', name:'Pyrometer',          cost:1800,  era:2, prereqs:['rSteel'],               effect:'+40% quality at perfect temp',   unlock:'pyrometer'},
+  {id:'autoMine',  name:'Mine Shaft',         cost:3000,  era:2, prereqs:['autoFuel'],              effect:'Auto-mine ore over time',        unlock:'autoMine'},
+  // Era 3 - Mythic Age
+  {id:'rMithril',  name:'Mithril Vein',       cost:8000,  era:3, prereqs:['rGold','autoMine'],       effect:'Unlock Mithril ore (void)',       unlock:'mithril'},
+  {id:'rVoid',     name:'Void Metallurgy',    cost:15000, era:3, prereqs:['rMithril'],              effect:'Unlock Void Steel alloy',        unlock:'void_steel'},
+  {id:'mCircuits', name:'Arcane Circuits',    cost:12000, era:3, prereqs:['mArt','pyrometer'],      effect:'Unlock Circuit mold',            unlock:'mCircuits'},
+  {id:'masterForge',name:'Master Forge',      cost:20000, era:3, prereqs:['rVoid','mCircuits'],     effect:'+60% all production value',      unlock:'masterForge'},
+];
+
+const CONTRACTS=[
+  {id:'village',   name:'Village Commission',     era:0,prereq:null,
+   desc:'The village smithy needs basic ironwork before winter.',
+   reqs:[{item:'iron_ingot',qty:12,qmin:1},{item:'iron_coin',qty:8,qmin:1}],
+   reward:{gold:400,rating:200},
+   story:'A grateful village chief pays you and spreads word of your work.'},
+  {id:'hunters',   name:"Hunters' Guild",          era:0,prereq:'village',
+   desc:'Skilled hunters require reliable tools for the coming season.',
+   reqs:[{item:'iron_tool',qty:6,qmin:2},{item:'copper_ingot',qty:10,qmin:1}],
+   reward:{gold:900,rating:500},
+   story:'The guild master awards you their silver-leaf endorsement.'},
+  {id:'merchant',  name:'Merchant Caravan',        era:1,prereq:'hunters',
+   desc:'A trading caravan needs quality goods for distant markets.',
+   reqs:[{item:'bronze_ingot',qty:8,qmin:2},{item:'bronze_tool',qty:4,qmin:3},{item:'copper_coin',qty:12,qmin:1}],
+   reward:{gold:2800,rating:1200},
+   story:'The merchant returns with word of your craft across three kingdoms.'},
+  {id:'guild',     name:'Artificers Guild',        era:1,prereq:'merchant',
+   desc:'The guild demands precision components for their mechanisms.',
+   reqs:[{item:'bronze_gear',qty:6,qmin:3},{item:'iron_pipe',qty:8,qmin:2},{item:'steel_ingot',qty:5,qmin:1}],
+   reward:{gold:6000,rating:2500},
+   story:'You are inducted as an Associate of the Artificers Guild.'},
+  {id:'castle',    name:'Castle Armaments',        era:2,prereq:'guild',
+   desc:"The lord's castle requires fine arms and armor components.",
+   reqs:[{item:'steel_tool',qty:10,qmin:3},{item:'steel_weapon',qty:6,qmin:3},{item:'silver_ingot',qty:8,qmin:2}],
+   reward:{gold:16000,rating:6000},
+   story:"The lord grants you the title of Royal Smith. Your works hang in the great hall."},
+  {id:'navy',      name:'Naval Foundry',           era:2,prereq:'castle',
+   desc:'The navy needs structural components for their flagship.',
+   reqs:[{item:'steel_pipe',qty:15,qmin:3},{item:'steel_gear',qty:12,qmin:4},{item:'gold_m_art',qty:3,qmin:4}],
+   reward:{gold:40000,rating:12000},
+   story:'The flagship sets sail with your metalwork. A legend is born.'},
+  {id:'arcane',    name:'Arcane Order',            era:3,prereq:'navy',
+   desc:'Ancient mages seek rare metals for their mystical instruments.',
+   reqs:[{item:'mithril_ingot',qty:10,qmin:3},{item:'mithril_art',qty:4,qmin:4},{item:'silver_weapon',qty:6,qmin:4}],
+   reward:{gold:120000,rating:30000},
+   story:'The Arcane Order inscribes your name in their Book of Masters.'},
+  {id:'emperor',   name:'Imperial Commission',     era:3,prereq:'arcane',
+   desc:'The Emperor demands the finest weapons ever forged.',
+   reqs:[{item:'void_steel_weapon',qty:5,qmin:5},{item:'void_steel_gear',qty:8,qmin:5},{item:'mithril_circuit',qty:3,qmin:4}],
+   reward:{gold:500000,rating:100000},
+   story:'You are declared the Grand Master Smith of the Empire. Your forge becomes legend.'},
+];
+
+// =====================================================================
+// HELPERS
+// =====================================================================
+function upgCost(def,lv){return Math.floor(def.costBase*Math.pow(def.costMult,lv));}
+function getQ(temp,metal,researched){
+  const m=METALS[metal];if(!m)return 1;
+  const diff=Math.abs(temp-m.meltTemp);
+  let q=diff<15?5:diff<40?4:diff<90?3:diff<150?2:1;
+  if(researched.has('quenching')&&q<5)q=Math.min(5,q+1);
+  if(researched.has('pyrometer')&&diff<25)q=5;
+  return q;
+}
+function qMult(q){return[0,.6,.8,1,1.4,2][q]||1;}
+function metalMult(m){return{iron:1,copper:1.5,tin:1.2,zinc:1.1,bronze:2.2,steel:3.5,silver:4,gold_m:7,mithril:15,void_steel:30}[m]||1;}
+function itemVal(moldId,metalId,quality,researched){
+  const mold=MOLDS[moldId];if(!mold)return 0;
+  const masterBonus=researched.has('masterForge')?1.6:1;
+  return Math.round(mold.baseValue*metalMult(metalId)*qMult(quality)*masterBonus);
+}
+function fmtItem(key){
+  const parts=key.split('_');
+  // metal is first segment(s), mold is last
+  // find matching metal
+  let metalId='',moldId='';
+  for(const mid of Object.keys(METALS)){
+    if(key.startsWith(mid+'_')){metalId=mid;moldId=key.slice(mid.length+1);break;}
+  }
+  if(!metalId)return key;
+  const m=METALS[metalId];const mo=MOLDS[moldId];
+  return `${m?m.name:'?'} ${mo?mo.name:'?'}`;
+}
+function getRank(r){
+  if(r>=80000)return'Grand Master Smith';
+  if(r>=20000)return'Master Smith';
+  if(r>=6000)return'Journeyman Smith';
+  if(r>=2000)return'Craftsman';
+  if(r>=500)return'Apprentice';
+  if(r>=150)return'Novice';
+  return'Greenhand';
+}
+function fmtNum(n){
+  if(n>=1000000)return(n/1000000).toFixed(1)+'M';
+  if(n>=1000)return(n/1000).toFixed(1)+'k';
+  return Math.floor(n).toString();
+}
+
+// =====================================================================
+// INITIAL STATE
+// =====================================================================
+function initState(){return{
+  gold:50,
+  ores:{iron:40,coal:30},
+  oreMax:120,coalMax:80,
+  // crucible holds MIXED contents: {metalId: amount}
+  crucible:{},       // e.g. {iron:8, copper:4}
+  crucibleTotal:0,
+  // Furnace
+  temp:0,furnaceOn:false,
+  fLv:0,bLv:0,cLv:0,sLv:0,
+  bellowsCD:0,
+  // Casting
+  queue:[],  // {id,moldId,metalId,quality,timeLeft,totalTime}
+  selectedMold:'ingot',
+  // Inventory: {key:{qty,quality}[]}
+  inventory:{},
+  // Pickaxe
+  pickaxe:'hands',
+  // Vein state: {oreId:{hp,maxHp,regenLeft}}
+  veins:{},
+  // Research + contracts
+  researched:new Set(),
+  completedContracts:new Set(),
+  activeContract:null,
+  // Meta
+  rating:0,totalGold:0,era:0,
+  log:['Welcome to Ironworks. Mine ore, feed the furnace, and begin forging.'],
+  tick:0,
+}}
+
+// =====================================================================
+// VEIN GENERATION
+// =====================================================================
+function generateVeins(researched,era){
+  const veins=[];
+  const add=(oreId,count)=>{
+    const ore=ORES[oreId];if(!ore)return;
+    for(let i=0;i<count;i++){
+      const maxHp=12+Math.floor(Math.random()*8);
+      veins.push({id:oreId+'_'+i,oreId,hp:maxHp,maxHp,regenTimer:0});
+    }
+  };
+  // Always available
+  add('iron',4);add('coal',3);
+  if(researched.has('copper'))add('copper',3);
+  if(researched.has('tin'))add('tin',3);
+  if(researched.has('zinc'))add('zinc',2);
+  if(researched.has('coal_flux'))add('coal_flux',2);
+  if(researched.has('silver'))add('silver',2);
+  if(researched.has('gold_m'))add('gold_ore',2);
+  if(researched.has('mithril'))add('mithril',2);
+  return veins;
+}
+
+// =====================================================================
+// ALLOY CHECK
+// =====================================================================
+function getAlloyResult(crucible, researched){
+  const total=Object.values(crucible).reduce((a,b)=>a+b,0);
+  if(total===0)return null;
+  // Check each alloy
+  for(const [mid,m] of Object.entries(METALS)){
+    if(!m.alloy)continue;
+    if(!researched.has(mid))continue;
+    // Check ratios
+    let ok=true;
+    for(const [comp,ratio] of Object.entries(m.alloy)){
+      const have=(crucible[comp]||0)/total;
+      if(Math.abs(have-ratio)>m.tolerance){ok=false;break;}
+    }
+    // Also check no OTHER metals present
+    const alloyComps=Object.keys(m.alloy);
+    const crucibleComps=Object.keys(crucible).filter(k=>crucible[k]>0);
+    if(crucibleComps.some(k=>!alloyComps.includes(k)))ok=false;
+    if(ok)return mid;
+  }
+  return null;
+}
+
+function getCrucibleMetal(crucible){
+  const keys=Object.keys(crucible).filter(k=>crucible[k]>0);
+  if(keys.length===0)return null;
+  if(keys.length===1)return keys[0];
+  return 'mixed';
+}
+
+// =====================================================================
+// APP
+// =====================================================================
+function App(){
+  const [gs,setGs]=useState(initState);
+  const [tab,setTab]=useState('mine');   // left panel tab
+  const [rtab,setRtab]=useState('upgrades');
+  const [toasts,setToasts]=useState([]);
+  const [sparks,setSparks]=useState([]);
+  const [orePops,setOrePops]=useState([]);
+  const [veins,setVeins]=useState(()=>generateVeins(new Set(),0));
+  const gsRef=useRef(gs);gsRef.current=gs;
+
+  function toast(msg,type=''){
+    const id=Date.now()+Math.random();
+    setToasts(t=>[...t.slice(-4),{id,msg,type}]);
+    setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3200);
+  }
+  function log(msg){setGs(s=>({...s,log:[msg,...s.log.slice(0,30)]}))}
+
+  function spark(e){
+    if(!e?.currentTarget)return;
+    const r=e.currentTarget.getBoundingClientRect();
+    const cx=r.left+r.width/2,cy=r.top+r.height/2;
+    const ns=Array.from({length:7},(_,i)=>({
+      id:Date.now()+i,
+      dx:(Math.random()-.5)*60,dy:-(Math.random()*50+15),
+      x:cx,y:cy,
+    }));
+    setSparks(s=>[...s,...ns]);
+    setTimeout(()=>setSparks(s=>s.filter(x=>!ns.find(n=>n.id===x.id))),700);
+  }
+
+  function orePop(x,y,text,color){
+    const id=Date.now()+Math.random();
+    setOrePops(p=>[...p,{id,x,y,text,color}]);
+    setTimeout(()=>setOrePops(p=>p.filter(q=>q.id!==id)),900);
+  }
+
+  // ---- MAIN TICK ----
+  useEffect(()=>{
+    const INT=200;
+    const t=setInterval(()=>{
+      setGs(prev=>{
+        const s={...prev,tick:(prev.tick||0)+1};
+        const DT=INT/1000;
+        const fDef=FURNACE_LEVELS[s.fLv];
+        const cDef=CRUCIBLE_LEVELS[s.cLv];
+        const stDef=STORAGE_LEVELS[s.sLv];
+        s.oreMax=stDef.oreMax;s.coalMax=stDef.coalMax;
+
+        // TEMP
+        if(s.furnaceOn&&s.ores.coal>0){
+          s.temp=Math.min(fDef.maxTemp,s.temp+fDef.heatRate*DT);
+          let fuelCost=fDef.fuelUse*DT;
+          // PENALTY: overheating consumes extra fuel
+          if(s.temp>fDef.maxTemp*0.9)fuelCost*=2.2;
+          const ores={...s.ores};
+          ores.coal=Math.max(0,ores.coal-fuelCost);
+          s.ores=ores;
+          if(s.ores.coal<=0)s.furnaceOn=false;
+        }else{
+          s.temp=Math.max(0,s.temp-fDef.coolRate*DT);
+        }
+
+        // OVERHEATING PENALTY: destroy molten metal above max safe temp for that metal
+        if(s.crucibleTotal>0){
+          const cm=getCrucibleMetal(s.crucible);
+          if(cm&&cm!=='mixed'){
+            const metal=METALS[cm];
+            if(metal&&s.temp>metal.maxTemp){
+              const burn=s.crucibleTotal*0.003*DT; // slow burn
+              const ratio=Math.max(0,(s.crucibleTotal-burn)/s.crucibleTotal);
+              const newCruc={};let newTotal=0;
+              for(const[k,v] of Object.entries(s.crucible)){newCruc[k]=v*ratio;newTotal+=v*ratio;}
+              s.crucible=newCruc;s.crucibleTotal=newTotal;
+            }
+          }
+          // Void steel instability: random temp drift
+          if(cm==='void_steel'&&s.tick%8===0){
+            const drift=(Math.random()-.5)*40;
+            s.temp=Math.max(0,Math.min(fDef.maxTemp,s.temp+drift));
+          }
+        }
+
+        // BELLOWS CD
+        if(s.bellowsCD>0)s.bellowsCD=Math.max(0,s.bellowsCD-INT);
+
+        // AUTO FUEL
+        if(s.researched.has('autoFuel')&&s.furnaceOn&&s.ores.coal<8){
+          // auto-adds coal from... thin air (it's automation, pretend it's a hopper)
+          // Actually: only if coal in storage, consume from storage
+        }
+
+        // AUTO MINE
+        if(s.researched.has('autoMine')&&s.tick%20===0){
+          const ores={...s.ores};
+          const pickY=PICKAXES.find(p=>p.id===s.pickaxe)?.yield||1;
+          for(const oreId of Object.keys(ORES)){
+            if(!s.researched.has(oreId)&&!['iron','coal'].includes(oreId))continue;
+            const cap=oreId==='coal'||oreId==='coal_flux'?s.coalMax:s.oreMax;
+            const cur=ores[oreId]||0;
+            if(cur<cap)ores[oreId]=Math.min(cap,cur+Math.ceil(pickY/2));
+          }
+          s.ores=ores;
+        }
+
+        // AUTO CAST
+        if(s.researched.has('autoMold')&&s.tick%8===0){
+          const mold=MOLDS[s.selectedMold];
+          const alloyResult=getAlloyResult(s.crucible,s.researched);
+          const metalId=alloyResult||(getCrucibleMetal(s.crucible)==='mixed'?null:getCrucibleMetal(s.crucible));
+          if(mold&&metalId&&metalId!=='mixed'&&s.crucibleTotal>=mold.baseMetal&&s.queue.length<6){
+            const q=getQ(s.temp,metalId,s.researched);
+            const newCruc={};let newTotal=0;
+            const ratio=(s.crucibleTotal-mold.baseMetal)/s.crucibleTotal;
+            for(const[k,v] of Object.entries(s.crucible)){newCruc[k]=v*ratio;newTotal+=v*ratio;}
+            s.crucible=newCruc;s.crucibleTotal=newTotal;
+            s.queue=[...s.queue,{id:Math.random().toString(36).slice(2),moldId:s.selectedMold,metalId,quality:q,timeLeft:mold.baseTime,totalTime:mold.baseTime}];
+          }
+        }
+
+        // QUEUE PROGRESS
+        if(s.queue.length>0){
+          const q2=s.queue.map(ci=>({...ci,timeLeft:ci.timeLeft-DT}));
+          const done=q2.filter(ci=>ci.timeLeft<=0);
+          s.queue=q2.filter(ci=>ci.timeLeft>0);
+          for(const ci of done){
+            const key=ci.metalId+'_'+ci.moldId;
+            const inv={...s.inventory};
+            if(!inv[key])inv[key]=[];
+            inv[key]=[...inv[key],{qty:1,quality:ci.quality}];
+            s.inventory=inv;
+            s.rating+=Math.ceil(itemVal(ci.moldId,ci.metalId,ci.quality,s.researched)*0.04);
+          }
+        }
+
+        // ERA check
+        const era=s.researched.has('rVoid')?3:s.researched.has('rSteel')?2:s.researched.has('rBronze')?1:0;
+        s.era=era;
+
+        return s;
+      });
+    },INT);
+    return()=>clearInterval(t);
+  },[]);
+
+  // Refresh veins when research changes
+  useEffect(()=>{
+    setVeins(generateVeins(gs.researched,gs.era));
+  },[gs.researched.size]);
+
+  // ---- ACTIONS ----
+  function toggleFurnace(){
+    setGs(s=>{
+      if(!s.furnaceOn&&s.ores.coal<=0){toast('No coal! Mine or add coal first.','bad');return s;}
+      return{...s,furnaceOn:!s.furnaceOn};
+    });
+  }
+
+  function pumpBellows(e){
+    spark(e);
+    setGs(s=>{
+      if(s.bellowsCD>0)return s;
+      if(!s.furnaceOn){toast('Light the furnace first!','bad');return s;}
+      const bDef=BELLOWS_LEVELS[s.bLv];
+      const fDef=FURNACE_LEVELS[s.fLv];
+      return{...s,temp:Math.min(fDef.maxTemp,s.temp+bDef.boost),bellowsCD:bDef.cd};
+    });
+  }
+
+  function mineVein(vein,e){
+    if(vein.hp<=0)return;
+    const pick=PICKAXES.find(p=>p.id===gs.pickaxe)||PICKAXES[0];
+    const yieldAmt=pick.yield;
+    const oreId=vein.oreId;
+    const ore=ORES[oreId];
+    // Spark
+    if(e){
+      const r=e.currentTarget.getBoundingClientRect();
+      const ns=Array.from({length:4},(_,i)=>({id:Date.now()+i,dx:(Math.random()-.5)*40,dy:-(Math.random()*30+10),x:r.left+r.width/2,y:r.top+r.height/2}));
+      setSparks(s=>[...s,...ns]);
+      setTimeout(()=>setSparks(s=>s.filter(x=>!ns.find(n=>n.id===x.id))),600);
+      orePop(r.left+r.width/2,r.top,'+'+yieldAmt,ore.color);
+    }
+    // Update vein
+    setVeins(vs=>vs.map(v=>{
+      if(v.id!==vein.id)return v;
+      const newHp=Math.max(0,v.hp-1);
+      return{...v,hp:newHp,regenTimer:newHp===0?15:v.regenTimer};
+    }));
+    // Add ore
+    setGs(s=>{
+      const ores={...s.ores};
+      const isCoal=oreId==='coal'||oreId==='coal_flux';
+      const cap=isCoal?s.coalMax:s.oreMax;
+      const cur=ores[oreId]||0;
+      const add=Math.min(yieldAmt,cap-cur);
+      if(add<=0){toast(`${ore.name} storage full!`,'bad');return s;}
+      ores[oreId]=cur+add;
+      return{...s,ores};
+    });
+  }
+
+  // Vein regen ticker
+  useEffect(()=>{
+    const t=setInterval(()=>{
+      setVeins(vs=>vs.map(v=>{
+        if(v.hp>0)return v;
+        const rt=v.regenTimer-1;
+        if(rt<=0)return{...v,hp:v.maxHp,regenTimer:0};
+        return{...v,regenTimer:rt};
+      }));
+    },1000);
+    return()=>clearInterval(t);
+  },[]);
+
+  function addToFurnace(oreId){
+    setGs(s=>{
+      const ore=ORES[oreId];const metal=Object.entries(METALS).find(([id,m])=>m.oreKey===oreId);
+      if(!metal){toast('This ore cannot be directly smelted.','bad');return s;}
+      const [metalId,mDef]=metal;
+      const needed=mDef.meltTemp-80;
+      if(s.temp<needed){toast(`Need ~${mDef.meltTemp}°C to smelt ${mDef.name}. Current: ${Math.round(s.temp)}°C`,'bad');return s;}
+      const have=s.ores[oreId]||0;
+      if(have<1){toast(`No ${ore.name} in storage!`,'bad');return s;}
+      const cDef=CRUCIBLE_LEVELS[s.cLv];
+      const space=cDef.capacity-s.crucibleTotal;
+      if(space<1){toast('Crucible is full!','bad');return s;}
+      const amt=Math.min(have,8,space);
+      const ores={...s.ores,[oreId]:have-amt};
+      const crucible={...s.crucible,[metalId]:(s.crucible[metalId]||0)+amt};
+      toast(`Smelting ${amt} ${ore.name}...`,'');
+      return{...s,ores,crucible,crucibleTotal:s.crucibleTotal+amt};
+    });
+  }
+
+  function castMold(){
+    setGs(s=>{
+      const mold=MOLDS[s.selectedMold];
+      if(!mold){toast('No mold selected.','bad');return s;}
+      const alloyResult=getAlloyResult(s.crucible,s.researched);
+      const cm=getCrucibleMetal(s.crucible);
+      const metalId=alloyResult||(cm==='mixed'?null:cm);
+      if(!metalId){
+        if(cm==='mixed'&&!alloyResult)toast('Wrong alloy ratio! Check the alloy indicator.','bad');
+        else toast('Crucible is empty.','bad');
+        return s;
+      }
+      if(s.crucibleTotal<mold.baseMetal){toast(`Need ${mold.baseMetal} molten metal, have ${Math.floor(s.crucibleTotal)}.`,'bad');return s;}
+      if(s.queue.length>=6){toast('Casting queue is full!','bad');return s;}
+      const q=getQ(s.temp,metalId,s.researched);
+      const ratio=(s.crucibleTotal-mold.baseMetal)/Math.max(0.001,s.crucibleTotal);
+      const newCruc={};let newTotal=0;
+      for(const[k,v] of Object.entries(s.crucible)){newCruc[k]=v*ratio;newTotal+=v*ratio;}
+      toast(`Casting ${METALS[metalId]?.name} ${mold.name} (Q${q})...`,'');
+      return{...s,crucible:newCruc,crucibleTotal:newTotal,
+        queue:[...s.queue,{id:Math.random().toString(36).slice(2),moldId:s.selectedMold,metalId,quality:q,timeLeft:mold.baseTime,totalTime:mold.baseTime}]};
+    });
+  }
+
+  function sellItem(key,quality,qty=1){
+    setGs(s=>{
+      const inv={...s.inventory};
+      if(!inv[key])return s;
+      const parts=key.split('_');
+      const metalId=parts[0]==='gold'&&parts[1]==='m'?'gold_m':parts[0];
+      const moldId=key.slice(metalId.length+1);
+      const val=itemVal(moldId,metalId,quality,s.researched)*qty;
+      // remove from inv
+      let bucket=[...inv[key]];
+      let removed=0;
+      const newBucket=[];
+      for(const entry of bucket){
+        if(removed>=qty){newBucket.push(entry);continue;}
+        if(entry.qty<=qty-removed){removed+=entry.qty;}
+        else{newBucket.push({...entry,qty:entry.qty-(qty-removed)});removed=qty;}
+      }
+      if(newBucket.length===0||newBucket.every(e=>e.qty<=0))delete inv[key];
+      else inv[key]=newBucket;
+      toast(`Sold ${qty}x ${fmtItem(key)} (Q${quality}) for ${val}g`,'good');
+      return{...s,inventory:inv,gold:s.gold+val,totalGold:s.totalGold+val,rating:s.rating+Math.ceil(val*.1)};
+    });
+  }
+
+  function sellAllKey(key){
+    setGs(s=>{
+      const inv={...s.inventory};
+      if(!inv[key])return s;
+      const parts=key.split('_');
+      const metalId=parts[0]==='gold'&&parts[1]==='m'?'gold_m':parts[0];
+      const moldId=key.slice(metalId.length+1);
+      let total=0;
+      for(const e of inv[key])total+=itemVal(moldId,metalId,e.quality,s.researched)*e.qty;
+      const totalQty=inv[key].reduce((a,e)=>a+e.qty,0);
+      delete inv[key];
+      toast(`Sold all ${fmtItem(key)} for ${fmtNum(total)}g`,'good');
+      return{...s,inventory:inv,gold:s.gold+total,totalGold:s.totalGold+total,rating:s.rating+Math.ceil(total*.1)};
+    });
+  }
+
+  function doUpgrade(def){
+    setGs(s=>{
+      const lv=s[def.lvKey]||0;
+      if(lv>=def.levels.length-1){toast('Already at max level!','bad');return s;}
+      const cost=upgCost(def,lv);
+      if(s.gold<cost){toast('Not enough gold!','bad');return s;}
+      log(`Upgraded ${def.name} → ${def.levels[lv+1].name}`);
+      toast(`${def.name} upgraded!`,'good');
+      return{...s,gold:s.gold-cost,[def.lvKey]:lv+1};
+    });
+  }
+
+  function doResearch(res){
+    setGs(s=>{
+      if(s.researched.has(res.id))return s;
+      if(res.prereqs.some(p=>!s.researched.has(p))){toast('Prerequisites not met!','bad');return s;}
+      if(s.gold<res.cost){toast('Not enough gold!','bad');return s;}
+      const nr=new Set(s.researched);nr.add(res.id);if(res.unlock)nr.add(res.unlock);
+      log(`Discovered: ${res.name}`);
+      toast(`Research complete: ${res.name}!`,'good');
+      // refresh veins
+      setTimeout(()=>setVeins(generateVeins(nr,s.era)),50);
+      return{...s,gold:s.gold-res.cost,researched:nr};
+    });
+  }
+
+  function buyPickaxe(pick){
+    if(pick.id==='hands')return;
+    setGs(s=>{
+      if(!pick.costIngots)return s;
+      const inv={...s.inventory};
+      for(const[key,need] of Object.entries(pick.costIngots)){
+        const have=inv[key]?inv[key].reduce((a,e)=>a+e.qty,0):0;
+        if(have<need){toast(`Need ${need}x ${fmtItem(key)} to craft this pickaxe.`,'bad');return s;}
+      }
+      // Deduct
+      for(const[key,need] of Object.entries(pick.costIngots)){
+        let rem=need;
+        inv[key]=inv[key].map(e=>{
+          if(rem<=0)return e;
+          const take=Math.min(e.qty,rem);rem-=take;
+          return{...e,qty:e.qty-take};
+        }).filter(e=>e.qty>0);
+        if(inv[key].length===0)delete inv[key];
+      }
+      toast(`Crafted ${pick.name}!`,'good');
+      log(`Crafted ${pick.name}`);
+      return{...s,inventory:inv,pickaxe:pick.id};
+    });
+  }
+
+  function activateContract(id){setGs(s=>({...s,activeContract:id}));}
+
+  function fulfillContract(con){
+    setGs(s=>{
+      const inv={...s.inventory};
+      for(const req of con.reqs){
+        const entries=inv[req.item]||[];
+        const have=entries.reduce((a,e)=>a+e.qty,0);
+        const qualOk=entries.some(e=>e.quality>=req.qmin&&e.qty>0);
+        if(have<req.qty||!qualOk){toast('Requirements not fully met (check quality)!','bad');return s;}
+      }
+      // Deduct
+      for(const req of con.reqs){
+        let rem=req.qty;
+        inv[req.item]=inv[req.item].map(e=>{
+          if(rem<=0||e.quality<req.qmin)return e;
+          const take=Math.min(e.qty,rem);rem-=take;
+          return{...e,qty:e.qty-take};
+        }).filter(e=>e.qty>0);
+        if(!inv[req.item]||inv[req.item].length===0)delete inv[req.item];
+      }
+      const nc=new Set(s.completedContracts);nc.add(con.id);
+      toast(`Contract fulfilled: ${con.name}! +${fmtNum(con.reward.gold)}g`,'good');
+      log(con.story);
+      return{...s,inventory:inv,gold:s.gold+con.reward.gold,totalGold:s.totalGold+con.reward.gold,rating:s.rating+con.reward.rating,completedContracts:nc,activeContract:null};
+    });
+  }
+
+  // ---- DERIVED ----
+  const fDef=FURNACE_LEVELS[gs.fLv];
+  const bDef=BELLOWS_LEVELS[gs.bLv];
+  const cDef=CRUCIBLE_LEVELS[gs.cLv];
+  const tempPct=gs.temp/fDef.maxTemp;
+  const tempColor=gs.temp<100?'#330d00':gs.temp<350?'#8a2200':gs.temp<600?'#e05000':gs.temp<900?'#ffa000':'#ffe060';
+  const crucibleMetal=getCrucibleMetal(gs.crucible);
+  const alloyResult=getAlloyResult(gs.crucible,gs.researched);
+  const displayMetal=alloyResult||(crucibleMetal==='mixed'?null:crucibleMetal);
+  const displayColor=displayMetal?METALS[displayMetal]?.color:'#333';
+
+  // Crucible layers for SVG
+  const crucibleLayers=Object.entries(gs.crucible).filter(([,v])=>v>0).map(([k,v])=>({metal:k,amount:v,color:METALS[k]?.color||'#888'}));
+
+  const inventoryEntries=Object.entries(gs.inventory).filter(([,v])=>v&&v.length>0&&v.some(e=>e.qty>0));
+  const oreEntries=Object.entries(gs.ores).filter(([,v])=>v>0);
+
+  const availMolds=Object.entries(MOLDS).filter(([id,m])=>m.always||gs.researched.has(m.unlock));
+
+  return h('div',{class:'app'},
+    // SPARKS + ORE POPS
+    sparks.map(sp=>h('div',{key:sp.id,class:'spark',style:{left:sp.x+'px',top:sp.y+'px','--dx':sp.dx+'px','--dy':sp.dy+'px'}})),
+    orePops.map(p=>h('div',{key:p.id,class:'ore-pop',style:{left:p.x+'px',top:p.y+'px',color:p.color}},'+'+ p.text.replace('+',''))),
+    // TOASTS
+    h('div',{class:'toasts'},toasts.map(t=>h('div',{key:t.id,class:`toast ${t.type}`},t.msg))),
+
+    // HEADER
+    h('header',{class:'header'},
+      h('h1',null,'⚒ IRONWORKS'),
+      h('div',{class:'hstat'},h('span',{class:'lbl'},'Rating'),h('span',{class:'val'},fmtNum(gs.rating))),
+      h('span',{class:'hrank'},getRank(gs.rating)),
+      h('div',{class:'hstat'},h('span',{class:'lbl'},'Era'),h('span',{class:'val',style:'font-size:15px;color:var(--accent)'},ERA_NAMES[gs.era])),
+      h('div',{class:'hgold'},h('i',{class:'fa-solid fa-coins',style:'font-size:16px'}),fmtNum(gs.gold),' g')
+    ),
+
+    // MAIN
+    h('main',{class:'main'},
+      // ---- LEFT PANEL ----
+      h('aside',{class:'panel'},
+        h('div',{class:'nav-tabs'},
+          h('button',{class:`nav-tab ${tab==='mine'?'active':''}`,onClick:()=>setTab('mine')},'⛏ Mine'),
+          h('button',{class:`nav-tab ${tab==='stock'?'active':''}`,onClick:()=>setTab('stock')},'📦 Stock'),
+        ),
+        tab==='mine'&&h(MineTab,{gs,veins,onMine:mineVein,onBuyPickaxe:buyPickaxe}),
+        tab==='stock'&&h(StockTab,{gs}),
+      ),
+
+      // ---- CENTER ----
+      h('section',{class:'workshop'},
+        // SMELTERY
+        h('div',{class:'smeltery-section'},
+          h('div',{class:'smeltery-visual'},
+            h(CrucibleSVG,{crucible:gs.crucible,total:gs.crucibleTotal,capacity:cDef.capacity,temp:gs.temp,alloyResult,displayColor,crucibleLayers}),
+            h('div',{style:'font-size:12px;color:var(--text3);text-align:center;margin-top:2px;font-style:italic'},
+              cDef.name,' ',Math.floor(gs.crucibleTotal),'/',cDef.capacity
+            ),
+            // Smelt buttons
+            h('div',{style:'display:flex;flex-direction:column;gap:5px;margin-top:7px;width:140px'},
+              Object.entries(ORES).filter(([oid])=>{
+                const metal=Object.entries(METALS).find(([,m])=>m.oreKey===oid);
+                if(!metal)return false;
+                const [mid]=metal;
+                return gs.ores[oid]>0&&(mid==='iron'||gs.researched.has(mid)||gs.researched.has(oid));
+              }).map(([oid,ore])=>
+                h('button',{key:oid,class:'btn sm',style:`border-color:${ore.color}40;color:${ore.color};width:100%`,
+                  onClick:()=>addToFurnace(oid),
+                  disabled:gs.temp<(METALS[Object.entries(METALS).find(([,m])=>m.oreKey===oid)?.[0]]?.meltTemp||9999)-80
+                },
+                  h('i',{class:`fa-solid ${ore.icon}`,style:'font-size:12px'}),
+                  `Smelt ${ore.name} (${Math.floor(gs.ores[oid]||0)})`
+                )
+              )
+            ),
+          ),
+
+          h('div',{class:'smeltery-info'},
+            // TEMP
+            h('div',{class:'temp-section'},
+              h('div',{class:'row',style:'margin-bottom:5px'},
+                h('span',{class:'temp-readout',style:`color:${tempColor}`},Math.round(gs.temp)+'°C'),
+                h('span',{style:'font-size:var(--fs-xs);color:var(--text2);margin-left:4px'},fDef.name),
+                gs.temp>fDef.maxTemp*.9&&h('span',{class:'temp-danger',style:'margin-left:auto'},'⚠ OVERHEATING'),
+              ),
+              h('div',{class:'temp-bar-wrap'},
+                h('div',{class:'temp-bar',style:`width:${tempPct*100}%;background:${tempColor}`}),
+                // Metal temp markers
+                ...Object.entries(METALS).filter(([mid])=>gs.researched.has(mid)||mid==='iron').map(([mid,m])=>{
+                  const pct=(m.meltTemp/fDef.maxTemp)*100;
+                  if(pct>100)return null;
+                  return h('div',{key:mid,style:`position:absolute;left:${pct}%;top:0;bottom:0;width:1px;background:${m.color}80;pointer-events:none`});
+                })
+              ),
+              h('div',{style:'display:flex;flex-wrap:wrap;gap:6px;margin-top:5px'},
+                Object.entries(METALS).filter(([mid])=>gs.researched.has(mid)||mid==='iron').map(([mid,m])=>{
+                  const pct=(m.meltTemp/fDef.maxTemp)*100;
+                  return h('span',{key:mid,style:`font-size:10px;font-family:Share Tech Mono,monospace;color:${m.color}`},`${m.name}:${m.meltTemp}°`);
+                })
+              ),
+            ),
+            h('div',{class:'row furnace-btns',style:'margin-top:8px'},
+              h('button',{class:`btn primary`,onClick:toggleFurnace,
+                style:gs.furnaceOn?'border-color:#ff6600;color:#ff6600;background:rgba(255,102,0,.12)':''},
+                h('i',{class:gs.furnaceOn?'fa-solid fa-fire':'fa-solid fa-fire-flame-simple'}),
+                gs.furnaceOn?'Douse':'Light Furnace'
+              ),
+              h('button',{class:'btn',onClick:pumpBellows,disabled:!gs.furnaceOn||gs.bellowsCD>0},
+                h('i',{class:'fa-solid fa-wind'}),
+                gs.bellowsCD>0?`${Math.ceil(gs.bellowsCD/1000)}s`:`Bellows +${bDef.boost}°`
+              ),
+            ),
+            h('div',{style:'font-size:var(--fs-xs);color:var(--text3);margin-top:3px'},
+              `Fuel: ${(gs.ores.coal||0).toFixed(1)} coal${gs.furnaceOn?' — burning':''} · ${cDef.name}`
+            ),
+
+            // ALLOY INDICATOR
+            alloyResult&&h('div',{class:'alloy-indicator',style:'margin-top:10px'},
+              h('div',{class:'alloy-name'},`✓ ${METALS[alloyResult]?.name} alloy ready`),
+              h('div',{style:'font-size:var(--fs-xs);color:var(--text2);margin-top:2px'},
+                'Ratios are correct for casting.'
+              )
+            ),
+            crucibleMetal==='mixed'&&!alloyResult&&h('div',{class:'alloy-indicator',style:'margin-top:10px'},
+              h('div',{style:'color:var(--text2);font-size:var(--fs-sm)'},'Mixed metals in crucible'),
+              Object.entries(METALS).filter(([mid,m])=>m.alloy&&gs.researched.has(mid)).map(([mid,m])=>{
+                const total=gs.crucibleTotal;
+                const segments=Object.entries(m.alloy).map(([comp,ratio])=>{
+                  const have=(gs.crucible[comp]||0)/Math.max(1,total);
+                  return{comp,need:ratio,have,color:METALS[comp]?.color||'#888'};
+                });
+                return h('div',{key:mid,class:'alloy-row',style:'margin-top:8px'},
+                  h('span',{style:`font-size:var(--fs-xs);min-width:60px;color:${METALS[mid]?.color}`},m.name),
+                  h('div',{class:'alloy-bar-wrap'},
+                    segments.map((seg,i)=>{
+                      const startX=segments.slice(0,i).reduce((a,s)=>a+s.need*100,0);
+                      return h('div',{key:seg.comp,class:'alloy-segment',
+                        style:`left:${startX}%;width:${seg.need*100}%;background:${seg.color}60;border:1px solid ${seg.color}`});
+                    }),
+                    // actual marker
+                    h('div',{style:`position:absolute;left:${(gs.crucible[Object.keys(m.alloy)[0]]||0)/Math.max(1,total)*100}%;top:0;bottom:0;width:2px;background:white;opacity:.6`})
+                  ),
+                  h('span',{class:`alloy-check ${Math.abs((gs.crucible[Object.keys(m.alloy)[0]]||0)/Math.max(1,total)-Object.values(m.alloy)[0])<m.tolerance?'ok':'no'}`},
+                    Math.abs((gs.crucible[Object.keys(m.alloy)[0]]||0)/Math.max(1,total)-Object.values(m.alloy)[0])<m.tolerance?'OK':'OFF'
+                  )
+                );
+              })
+            ),
+          ),
+        ),
+
+        // MOLD SELECT
+        h('div',{class:'mold-section'},
+          h('div',{class:'ptitle',style:'position:static;padding:0 0 8px'},'Select Mold & Cast'),
+          h('div',{class:'mold-grid'},
+            availMolds.map(([id,mold])=>
+              h('button',{key:id,class:`mold-btn ${gs.selectedMold===id?'active':''}`,
+                onClick:()=>setGs(s=>({...s,selectedMold:id}))},
+                h('i',{class:`fa-solid ${mold.icon}`}),
+                mold.name,
+                h('span',{class:'mold-cost'},`${mold.baseMetal} metal`),
+                displayMetal&&h('span',{class:'mold-value'},`~${fmtNum(itemVal(id,displayMetal,3,gs.researched))}g`),
+              )
+            )
+          ),
+          h('button',{class:'btn primary full',
+            disabled:!displayMetal||gs.crucibleTotal<(MOLDS[gs.selectedMold]?.baseMetal||99)||gs.queue.length>=6,
+            onClick:castMold},
+            h('i',{class:'fa-solid fa-faucet'}),
+            `Pour into ${MOLDS[gs.selectedMold]?.name||'Mold'}`
+          ),
+        ),
+
+        // CAST QUEUE
+        h('div',{class:'cast-queue'},
+          h('div',{class:'ptitle',style:'position:static;padding:0 0 8px'},`Cooling Station (${gs.queue.length}/6)`),
+          gs.queue.length===0
+            ? h('span',{class:'empty'},'No active castings.')
+            : h('div',{class:'queue-list'},
+              gs.queue.map(ci=>
+                h('div',{key:ci.id,class:'qi'},
+                  h('i',{class:`fa-solid ${MOLDS[ci.moldId]?.icon}`,style:`color:${METALS[ci.metalId]?.color};font-size:14px`}),
+                  h('span',{style:'font-size:var(--fs-sm)'},`${METALS[ci.metalId]?.name} ${MOLDS[ci.moldId]?.name}`),
+                  h('span',{style:'font-size:11px;color:var(--text3)'},`Q${ci.quality}`),
+                  h('div',{class:'qi-prog'},h('div',{class:'qi-prog-bar',style:`width:${((ci.totalTime-ci.timeLeft)/ci.totalTime)*100}%`})),
+                  h('span',{style:'font-size:11px;color:var(--text3);min-width:22px'},`${Math.ceil(ci.timeLeft)}s`)
+                )
+              )
+            )
+        ),
+
+        // INVENTORY / SELL
+        h('div',{class:'inventory-section'},
+          h('div',{class:'ptitle',style:'position:static;padding:0 0 8px'},`Workshop Output — ${inventoryEntries.length} types`),
+          inventoryEntries.length===0
+            ? h('span',{class:'empty'},'Cast and cool metals to produce goods.')
+            : h('div',{class:'inv-grid'},
+              inventoryEntries.flatMap(([key,entries])=>
+                entries.filter(e=>e.qty>0).map((entry,i)=>{
+                  const parts=key.split('_');
+                  const metalId=parts[0]==='gold'&&parts[1]==='m'?'gold_m':parts[0];
+                  const moldId=key.slice(metalId.length+1);
+                  const metal=METALS[metalId];const mold=MOLDS[moldId];
+                  const val=itemVal(moldId,metalId,entry.quality,gs.researched);
+                  return h('div',{key:key+i,class:'inv-row'},
+                    h('i',{class:`fa-solid ${mold?.icon||'fa-box'} inv-icon`,style:`color:${metal?.color||'#aaa'}`}),
+                    h('span',{class:'inv-name'},fmtItem(key)),
+                    h('span',{style:'font-size:10px;color:var(--gold);margin-right:2px'},`Q${entry.quality}`+' ★'.repeat(entry.quality)),
+                    h('span',{class:'inv-qty'},`×${entry.qty}`),
+                    h('span',{class:'inv-val'},`${val}g`),
+                    h('button',{class:'sell-btn',onClick:()=>sellItem(key,entry.quality,1),disabled:entry.qty<1},'Sell'),
+                    h('button',{class:'sell-all-btn',onClick:()=>sellAllKey(key),disabled:entry.qty<1},'All'),
+                  );
+                })
+              )
+            )
+        ),
+
+        h('div',{style:'padding:10px 20px;color:var(--text3);font-size:var(--fs-sm);font-style:italic;border-top:1px solid var(--border)'},
+          gs.log[0]
+        ),
+      ),
+
+      // ---- RIGHT PANEL ----
+      h('aside',{class:'right-panel'},
+        h('div',{class:'right-tabs'},
+          [['upgrades','fa-arrow-up','Upgrades'],['research','fa-flask','Research'],['contracts','fa-scroll','Contracts']].map(([tid,icon,lbl])=>
+            h('button',{key:tid,class:`rt ${rtab===tid?'active':''}`,onClick:()=>setRtab(tid)},
+              h('i',{class:`fa-solid ${icon}`}),lbl
+            )
+          )
+        ),
+        h('div',{class:'rpanel'},
+          rtab==='upgrades'&&h(UpgradeTab,{gs,onUpgrade:doUpgrade}),
+          rtab==='research'&&h(ResearchTab,{gs,onResearch:doResearch}),
+          rtab==='contracts'&&h(ContractsTab,{gs,onActivate:activateContract,onFulfill:fulfillContract}),
+        )
+      ),
+    ),
+
+    // FOOTER LOG
+    h('footer',{class:'footer'},
+      h('span',{class:'log-lbl'},'Log'),
+      h('span',{class:`log-msg ${gs.log[0]?.includes('!')||gs.log[0]?.includes('Master')?'hi':''}`},gs.log[0]||'—')
+    )
+  );
+}
+
+// =====================================================================
+// CRUCIBLE SVG
+// =====================================================================
+function CrucibleSVG({crucible,total,capacity,temp,alloyResult,displayColor,crucibleLayers}){
+  const W=140,H=160;
+  const fillPct=total/Math.max(1,capacity);
+  const BASIN_TOP=55,BASIN_H=90;
+  const liquidH=Math.max(0,BASIN_H*fillPct);
+  const liquidY=BASIN_TOP+BASIN_H-liquidH;
+  const tempColor=temp<100?'#330d00':temp<350?'#8a2200':temp<600?'#e05000':temp<900?'#ffa000':'#ffe060';
+
+  // Sort layers by amount for stable coloring
+  const sortedLayers=[...crucibleLayers].sort((a,b)=>b.amount-a.amount);
+  let layerAccum=0;
+
+  return h('svg',{width:W,height:H,viewBox:`0 0 ${W} ${H}`,style:'overflow:visible'},
+    h('defs',null,
+      h('clipPath',{id:'crucible-clip'},
+        h('path',{d:'M 30 55 L 20 145 Q 70 155 120 145 L 110 55 Z'})
+      ),
+      // glow filter
+      h('filter',{id:'heat-glow'},
+        h('feGaussianBlur',{stdDeviation:'3',result:'blur'}),
+        h('feMerge',null,h('feMergeNode',{in:'blur'}),h('feMergeNode',{in:'SourceGraphic'}))
+      )
+    ),
+    // Outer body
+    h('path',{d:'M 25 50 L 10 148 Q 70 162 130 148 L 115 50 Z',fill:'#1c1510',stroke:'#3a2a1a','stroke-width':2}),
+    // Inner walls
+    h('path',{d:'M 30 55 L 20 143 Q 70 154 120 143 L 110 55 Z',fill:'#0d0a07'}),
+    // Liquid layers
+    h('g',{clipPath:'url(#crucible-clip)'},
+      sortedLayers.map((layer)=>{
+        const layerH=(layer.amount/Math.max(1,total))*liquidH;
+        const layerY=liquidY+BASIN_H*(1-layerAccum/Math.max(1,total))-layerH;
+        layerAccum+=layer.amount;
+        return h('rect',{key:layer.metal,x:20,y:layerY,width:100,height:layerH+2,fill:layer.color,opacity:.85});
+      }),
+      // Surface shimmer
+      total>0&&h('ellipse',{cx:70,cy:liquidY,rx:48,ry:5,fill:displayColor||'#888',opacity:.6}),
+      // Bubbles if hot
+      temp>300&&total>0&&[1,2,3].map(i=>
+        h('circle',{key:i,cx:35+i*20,cy:liquidY-5-i*3,r:2,fill:'white',opacity:.3,
+          style:`animation:bubble-rise ${.8+i*.3}s ease-out infinite;animation-delay:${i*.4}s`})
+      ),
+    ),
+    // Crucible rim
+    h('path',{d:'M 22 55 Q 70 48 118 55',fill:'none',stroke:'#5a4030','stroke-width':2}),
+    h('path',{d:'M 25 50 Q 70 43 115 50',fill:'none',stroke:'#3a2a1a','stroke-width':1.5}),
+    // Handles
+    h('path',{d:'M 10 148 Q 0 130 8 110',fill:'none',stroke:'#3a2a1a','stroke-width':3,'stroke-linecap':'round'}),
+    h('path',{d:'M 130 148 Q 140 130 132 110',fill:'none',stroke:'#3a2a1a','stroke-width':3,'stroke-linecap':'round'}),
+    // Glow at base if temp high
+    temp>400&&h('ellipse',{cx:70,cy:155,rx:40,ry:6,fill:tempColor,opacity:Math.min(.6,(temp-400)/800),'filter':'url(#heat-glow)'}),
+    // Alloy check badge
+    alloyResult&&h('g',null,
+      h('rect',{x:2,y:2,width:136,height:22,rx:4,fill:METALS[alloyResult]?.color,opacity:.3}),
+      h('text',{x:70,y:16,textAnchor:'middle',fill:METALS[alloyResult]?.color,'font-size':11,'font-family':'Cinzel,serif'},
+        `✓ ${METALS[alloyResult]?.name}`
+      )
+    ),
+    // Empty label
+    total===0&&h('text',{x:70,y:105,textAnchor:'middle',fill:'#3a2a1a','font-size':13,'font-family':'Crimson Pro,serif','font-style':'italic'},'empty'),
+  );
+}
+
+// =====================================================================
+// MINE TAB
+// =====================================================================
+function MineTab({gs,veins,onMine,onBuyPickaxe}){
+  const pick=PICKAXES.find(p=>p.id===gs.pickaxe)||PICKAXES[0];
+  const pickIdx=PICKAXES.findIndex(p=>p.id===gs.pickaxe);
+  const nextPick=PICKAXES[pickIdx+1];
+
+  return h('div',{class:'mine-panel'},
+    h('div',{style:'font-size:var(--fs-xs);color:var(--text2);padding:4px 0'},
+      `Using: `,h('span',{style:'color:var(--accent)'},pick.name),` · +${pick.yield} ore/click`
+    ),
+    h('div',{class:'vein-grid'},
+      veins.map(vein=>{
+        const ore=ORES[vein.oreId];
+        const depleted=vein.hp<=0;
+        return h('div',{key:vein.id,class:`vein-node ${depleted?'depleted':''}`,
+          onClick:(e)=>!depleted&&onMine(vein,e),
+          style:`border-color:${depleted?'var(--border)':ore.color+'50'}`
+        },
+          h('i',{class:`fa-solid ${ore.icon}`,style:`color:${depleted?'#555':ore.color}`}),
+          h('span',{class:'ore-yield',style:`color:${depleted?'#555':ore.color}`},ore.name.replace(' Ore','').replace(' Flux','')),
+          depleted
+            ? h('div',{class:'vein-regen'},`${vein.regenTimer}s`)
+            : h('div',{class:'vein-hp',style:`width:${(vein.hp/vein.maxHp)*100}%;background:${ore.color}`}),
+        );
+      })
+    ),
+    h('div',{class:'div'}),
+    h('div',{class:'pickaxe-shop'},
+      h('h4',null,'Pickaxe Workshop'),
+      PICKAXES.map(p=>{
+        const isCurrent=p.id===gs.pickaxe;
+        const canBuy=p.costIngots&&Object.entries(p.costIngots).every(([key,need])=>
+          (gs.inventory[key]||[]).reduce((a,e)=>a+e.qty,0)>=need
+        );
+        return h('div',{key:p.id,class:'pickaxe-row'},
+          h('i',{class:`fa-solid ${p.icon}`,style:`font-size:16px;color:${isCurrent?'var(--accent)':'var(--text3)'};width:20px;text-align:center`}),
+          h('span',{class:'pickaxe-name',style:isCurrent?'color:var(--accent)':''},p.name),
+          h('span',{class:'pickaxe-yield'},`+${p.yield}/click`),
+          isCurrent
+            ? h('span',{style:'font-size:var(--fs-xs);color:var(--green);min-width:70px'},'EQUIPPED')
+            : p.costIngots
+              ? h('button',{class:`btn sm ${canBuy?'primary':''}`,
+                  onClick:()=>onBuyPickaxe(p),disabled:!canBuy},
+                  p.costDisplay
+                )
+              : null
+        );
+      })
+    ),
+  );
+}
+
+// =====================================================================
+// STOCK TAB
+// =====================================================================
+function StockTab({gs}){
+  const oreList=Object.entries(gs.ores).filter(([,v])=>v>0);
+  const stDef=STORAGE_LEVELS[gs.sLv];
+  return h('div',{style:'padding:12px;display:flex;flex-direction:column;gap:6px'},
+    h('div',{class:'ptitle',style:'position:static;padding:0 0 8px'},'Ore Storage'),
+    oreList.length===0&&h('span',{class:'empty'},'No ore in storage.'),
+    oreList.map(([oreId,qty])=>{
+      const ore=ORES[oreId];
+      const isCoal=oreId==='coal'||oreId==='coal_flux';
+      const cap=isCoal?stDef.coalMax:stDef.oreMax;
+      return h('div',{key:oreId,style:'display:flex;flex-direction:column;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:9px 12px'},
+        h('div',{style:'display:flex;align-items:center;gap:8px'},
+          h('i',{class:`fa-solid ${ore.icon}`,style:`color:${ore.color};font-size:16px;width:20px;text-align:center`}),
+          h('span',{style:'flex:1;font-size:var(--fs-sm)'},ore.name),
+          h('span',{style:'font-family:Share Tech Mono,monospace;font-size:var(--fs-sm)'},Math.floor(qty)),
+          h('span',{style:'font-size:var(--fs-xs);color:var(--text3)'},'/'+cap),
+        ),
+        h('div',{style:'height:4px;background:var(--bg4);border-radius:2px;overflow:hidden'},
+          h('div',{style:`height:100%;width:${(qty/cap)*100}%;background:${ore.color};border-radius:2px;transition:width .3s`})
+        )
+      );
+    }),
+    h('div',{class:'div'}),
+    h('div',{class:'ptitle',style:'position:static;padding:0 0 6px'},'Furnace Coal'),
+    h('div',{style:'font-size:var(--fs-sm);color:var(--text2);font-style:italic'},
+      'Coal is consumed by the furnace. Mine from surface veins.'
+    ),
+  );
+}
+
+// =====================================================================
+// UPGRADE TAB
+// =====================================================================
+function UpgradeTab({gs,onUpgrade}){
+  return h('div',null,
+    UPGRADE_DEFS.map(def=>{
+      const lv=gs[def.lvKey]||0;
+      const maxed=lv>=def.levels.length-1;
+      const cost=maxed?0:upgCost(def,lv);
+      const canAff=gs.gold>=cost;
+      return h('div',{key:def.id,class:`upg-card ${maxed?'maxed':''}`,onClick:()=>!maxed&&onUpgrade(def)},
+        h('div',{class:'upg-head'},
+          h('i',{class:`fa-solid ${def.icon} upg-icon`,style:`color:${maxed?'var(--gold)':'var(--accent)'}`}),
+          h('span',{class:'upg-name'},def.name),
+          h('span',{class:'upg-lv'},`${lv+1}/${def.levels.length}`)
+        ),
+        h('div',{class:'upg-cur'},def.levels[lv].name),
+        !maxed&&h('div',{class:`upg-cost ${canAff?'':'no'}`},h('i',{class:'fa-solid fa-coins',style:'font-size:12px'}),cost+'g'),
+        !maxed&&h('div',{class:'upg-eff'},`→ ${def.levels[lv+1].name}: ${
+          def.id==='furnace'?`${def.levels[lv+1].maxTemp}°C max`:
+          def.id==='bellows'?`+${def.levels[lv+1].boost}° boost`:
+          def.id==='crucible'?`${def.levels[lv+1].capacity} cap`:
+          `${def.levels[lv+1].oreMax} ore max`
+        }`),
+        maxed&&h('div',{class:'upg-eff'},'✓ Maximum level'),
+      );
+    })
+  );
+}
+
+// =====================================================================
+// RESEARCH TAB
+// =====================================================================
+function ResearchTab({gs,onResearch}){
+  const byEra=[[],[],[],[]];
+  for(const r of RESEARCH_DEFS)byEra[r.era]=[...byEra[r.era],r];
+  return h('div',null,
+    byEra.map((group,era)=>
+      h('div',{key:era,style:'margin-bottom:14px'},
+        h('div',{class:'ptitle',style:`position:static;padding:0 0 8px;color:var(--accent${era>=2?'':'2'})`},
+          h('span',{class:'badge badge-era'},ERA_NAMES[era])
+        ),
+        group.map(res=>{
+          const done=gs.researched.has(res.id);
+          const prereqOk=res.prereqs.every(p=>gs.researched.has(p));
+          const canAff=gs.gold>=res.cost;
+          const status=done?'done':prereqOk?'avail':'locked';
+          return h('div',{key:res.id,class:`res-card ${status}`,onClick:()=>status==='avail'&&onResearch(res)},
+            h('div',{class:'res-name'},res.name,
+              done&&h('span',{class:'badge badge-done'},'DONE'),
+              status==='locked'&&h('span',{class:'badge badge-locked'},'LOCKED'),
+            ),
+            h('div',{class:'res-desc'},res.effect),
+            !done&&prereqOk&&h('div',{class:'res-cost',style:canAff?'':'color:var(--red)'},
+              h('i',{class:'fa-solid fa-coins',style:'font-size:11px;margin-right:4px'}),res.cost,'g'
+            ),
+            !done&&!prereqOk&&h('div',{class:'req-txt'},'Requires: ',res.prereqs.map(p=>RESEARCH_DEFS.find(r=>r.id===p)?.name).join(', ')),
+          );
+        })
+      )
+    )
+  );
+}
+
+// =====================================================================
+// CONTRACTS TAB
+// =====================================================================
+function ContractsTab({gs,onActivate,onFulfill}){
+  return h('div',null,
+    CONTRACTS.map(con=>{
+      const done=gs.completedContracts.has(con.id);
+      const prereqOk=!con.prereq||gs.completedContracts.has(con.prereq);
+      const isActive=gs.activeContract===con.id;
+      const progress=con.reqs.map(req=>{
+        const entries=gs.inventory[req.item]||[];
+        const have=entries.reduce((a,e)=>a+e.qty,0);
+        const qualOk=entries.some(e=>e.quality>=req.qmin&&e.qty>0);
+        return{...req,have,qualOk,allDone:have>=req.qty&&qualOk};
+      });
+      const canFulfill=progress.every(p=>p.allDone);
+
+      if(done)return h('div',{key:con.id,class:'con-card done-c'},
+        h('div',{class:'con-name'},'✓ '+con.name),
+        h('div',{class:'con-desc',style:'font-size:var(--fs-xs)'},'Fulfilled')
+      );
+
+      if(!prereqOk)return h('div',{key:con.id,class:'con-card',style:'opacity:.3'},
+        h('div',{class:'con-name'},con.name),
+        h('div',{class:'con-locked'},'Complete previous contract to unlock')
+      );
+
+      return h('div',{key:con.id,class:`con-card ${isActive?'active':''}`},
+        h('div',{class:'con-name'},con.name),
+        h('div',{class:'con-desc'},con.desc),
+        h('div',{class:'con-reqs',style:'margin-bottom:8px'},
+          progress.map(req=>
+            h('div',{key:req.item,class:`con-req ${req.allDone?'done-r':''}`},
+              h('span',{style:'font-size:var(--fs-xs);min-width:130px'},fmtItem(req.item)+' Q≥'+req.qmin),
+              h('div',{class:'con-req-bar'},h('div',{class:'con-req-fill',style:`width:${Math.min(100,(req.have/req.qty)*100)}%`})),
+              h('span',{class:'con-req-count'},`${req.have}/${req.qty}`),
+            )
+          )
+        ),
+        h('div',{class:'con-reward'},
+          h('i',{class:'fa-solid fa-coins',style:'margin-right:5px'}),
+          `${fmtNum(con.reward.gold)}g + ${fmtNum(con.reward.rating)} rating`,
+        ),
+        !isActive
+          ? h('button',{class:'con-btn',onClick:()=>onActivate(con.id)},'Track Contract')
+          : h('button',{class:'con-btn',onClick:()=>onFulfill(con),disabled:!canFulfill},
+              canFulfill?'Fulfill Contract →':'Requirements Incomplete'
+            )
+      );
+    })
+  );
+}
+
+render(h(App,null),document.getElementById('app'));
+</script>
+</body>
+</html>

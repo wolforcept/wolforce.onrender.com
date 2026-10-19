@@ -1,0 +1,2557 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRONWORKS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/preact/10.19.3/preact.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/preact/10.19.3/hooks.umd.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg: #0e0b07;
+            --bg2: #17120d;
+            --bg3: #201710;
+            --bg4: #2a1f13;
+            --border: #3d2d1a;
+            --border2: #5a4028;
+            --text: #e0c8a8;
+            --text2: #b89070;
+            --text3: #8a6848;
+            --accent: #e08030;
+            --accent2: #c06820;
+            --gold: #f0c040;
+            --green: #60c070;
+            --red: #d05050;
+            --iron: #8898b0;
+            --copper: #c88040;
+            --tin: #90a0a8;
+            --bronze: #d08832;
+            --steel: #b0c0d0;
+            --silver: #d0d8e0;
+            --void: #9060c0;
+            --mithril: #80c0e0;
+            --titan: #70d8c0;
+            --fs: 17px;
+            --fsm: 15px;
+            --fss: 13px;
+            --fsx: 11px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Crimson Pro', serif;
+            height: 100vh;
+            overflow: hidden;
+            font-size: var(--fs);
+            line-height: 1.5;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9999;
+            opacity: .5;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: 'Cinzel', serif;
+            letter-spacing: .06em;
+        }
+
+        .mono {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* LAYOUT */
+        .app {
+            display: grid;
+            grid-template-rows: 54px 1fr 40px;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(to bottom, #0a0705, var(--bg2));
+            border-bottom: 1px solid var(--border);
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .h1 {
+            font-size: 22px;
+            color: var(--accent);
+            text-shadow: 0 0 20px rgba(224, 128, 48, .5);
+            letter-spacing: .15em;
+        }
+
+        .hstat {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 4px;
+        }
+
+        .hstat .lbl {
+            font-size: var(--fsx);
+            color: var(--text2);
+            font-family: 'Share Tech Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+
+        .hstat .val {
+            font-family: 'Cinzel', serif;
+            font-size: 17px;
+            color: var(--gold);
+        }
+
+        .hrank {
+            font-size: var(--fss);
+            color: var(--text2);
+            font-style: italic;
+        }
+
+        .hgold {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 18px;
+            color: var(--gold);
+            margin-left: auto;
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: 250px 1fr 270px;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: var(--bg2);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .panel::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 2px;
+        }
+
+        .ptitle {
+            font-family: 'Cinzel', serif;
+            font-size: var(--fsx);
+            letter-spacing: .18em;
+            color: var(--text2);
+            text-transform: uppercase;
+            padding: 9px 14px 7px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .footer {
+            background: var(--bg2);
+            border-top: 1px solid var(--border);
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .log-lbl {
+            font-size: var(--fsx);
+            color: var(--text2);
+            letter-spacing: .1em;
+            font-family: 'Cinzel', serif;
+            white-space: nowrap;
+        }
+
+        .log-msg {
+            font-size: var(--fss);
+            color: var(--text);
+            font-style: italic;
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .log-msg.hi {
+            color: var(--accent);
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+            flex-shrink: 0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 9px 4px;
+            font-size: var(--fsx);
+            letter-spacing: .07em;
+            color: var(--text2);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-family: 'Cinzel', serif;
+            text-transform: uppercase;
+            text-align: center;
+            transition: all .15s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.on {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab:hover:not(.on) {
+            color: var(--text);
+        }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 13px;
+            border: 1px solid var(--border);
+            background: var(--bg3);
+            color: var(--text);
+            cursor: pointer;
+            font-family: 'Crimson Pro', serif;
+            font-size: var(--fsm);
+            border-radius: 4px;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+
+        .btn:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--bg4);
+        }
+
+        .btn:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
+        .btn.pri {
+            background: rgba(224, 128, 48, .14);
+            border-color: var(--accent2);
+            color: var(--accent);
+        }
+
+        .btn.pri:hover:not(:disabled) {
+            background: rgba(224, 128, 48, .26);
+            box-shadow: 0 0 12px rgba(224, 128, 48, .25);
+        }
+
+        .btn.sm {
+            padding: 4px 9px;
+            font-size: var(--fss);
+        }
+
+        .btn.full {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn.danger {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .btn.danger:hover:not(:disabled) {
+            background: rgba(208, 80, 80, .1);
+        }
+
+        .btn.active-b {
+            border-color: var(--accent);
+            background: rgba(224, 128, 48, .18);
+            color: var(--accent);
+        }
+
+        /* TOASTS */
+        .toasts {
+            position: fixed;
+            bottom: 48px;
+            right: 16px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            pointer-events: none;
+            align-items: flex-end;
+        }
+
+        @keyframes tin {
+            from {
+                transform: translateX(110%);
+                opacity: 0
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1
+            }
+        }
+
+        .toast {
+            background: var(--bg3);
+            border: 1px solid var(--border2);
+            border-left: 3px solid var(--accent);
+            color: var(--text);
+            padding: 8px 13px;
+            border-radius: 4px;
+            font-size: var(--fss);
+            animation: tin .22s ease;
+            max-width: 270px;
+        }
+
+        .toast.good {
+            border-left-color: var(--green);
+        }
+
+        .toast.bad {
+            border-left-color: var(--red);
+        }
+
+        /* SPARKS */
+        @keyframes spk {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1
+            }
+
+            100% {
+                transform: translate(var(--dx), var(--dy)) scale(0);
+                opacity: 0
+            }
+        }
+
+        .spark {
+            position: fixed;
+            pointer-events: none;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #ffa000;
+            animation: spk .5s ease-out forwards;
+            z-index: 8000;
+        }
+
+        @keyframes opop {
+            0% {
+                transform: translateY(0);
+                opacity: 1
+            }
+
+            100% {
+                transform: translateY(-22px);
+                opacity: 0
+            }
+        }
+
+        .opop {
+            position: fixed;
+            pointer-events: none;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--fss);
+            font-weight: bold;
+            animation: opop .75s ease-out forwards;
+            z-index: 7000;
+        }
+
+        /* MINE */
+        .mine-wrap {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .vein-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 7px;
+        }
+
+        .vn {
+            aspect-ratio: 1;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            transition: all .12s;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg3);
+            font-size: var(--fsx);
+            color: var(--text2);
+        }
+
+        .vn:hover:not(.dep) {
+            transform: scale(1.05);
+            background: var(--bg4);
+        }
+
+        .vn.dep {
+            opacity: .3;
+            cursor: not-allowed;
+        }
+
+        .vn i {
+            font-size: 20px;
+        }
+
+        .vn-nm {
+            font-size: 10px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .vn-hp {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            transition: width .15s;
+        }
+
+        .vn-cd {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--fss);
+            color: var(--text2);
+        }
+
+        /* PICK SHOP */
+        .pick-shop {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 11px;
+        }
+
+        .pick-shop h4 {
+            font-size: var(--fsm);
+            color: var(--text);
+            margin-bottom: 8px;
+            font-family: 'Cinzel', serif;
+        }
+
+        .pick-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .pick-row:last-child {
+            border-bottom: none;
+        }
+
+        .pick-nm {
+            flex: 1;
+            font-size: var(--fsm);
+        }
+
+        .pick-yd {
+            font-size: var(--fss);
+            color: var(--green);
+            min-width: 60px;
+        }
+
+        /* STOCK */
+        .stock-item {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+        }
+
+        .si-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .si-bar {
+            height: 4px;
+            background: var(--bg4);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 3px;
+        }
+
+        .si-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width .3s;
+        }
+
+        /* CENTER */
+        .workshop {
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .workshop::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .workshop::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        /* SMELTERY */
+        .smelt-sec {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .smelt-left {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0;
+            width: 200px;
+        }
+
+        .smelt-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* CRUCIBLE DISPLAY */
+        .crucible-box {
+            background: var(--bg3);
+            border: 1px solid var(--border2);
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 80px;
+        }
+
+        .cruc-title {
+            font-size: var(--fsx);
+            color: var(--text2);
+            font-family: 'Cinzel', serif;
+            letter-spacing: .1em;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cruc-layers {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .cruc-layer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 6px;
+            background: var(--bg4);
+            border-radius: 3px;
+            border-left: 3px solid;
+        }
+
+        .cruc-layer-name {
+            font-size: var(--fsm);
+            flex: 1;
+        }
+
+        .cruc-layer-amt {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--fsm);
+            min-width: 36px;
+            text-align: right;
+        }
+
+        .cruc-layer-pct {
+            font-size: var(--fsx);
+            color: var(--text2);
+            min-width: 36px;
+            text-align: right;
+        }
+
+        .cruc-total {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 6px;
+            margin-top: 4px;
+            border-top: 1px solid var(--border);
+            font-size: var(--fsm);
+        }
+
+        .cruc-empty {
+            color: var(--text3);
+            font-style: italic;
+            font-size: var(--fsm);
+            padding: 6px 0;
+            text-align: center;
+        }
+
+        /* ALLOY INDICATOR */
+        .alloy-box {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 9px;
+        }
+
+        .alloy-name {
+            font-family: 'Cinzel', serif;
+            font-size: var(--fsm);
+            margin-bottom: 6px;
+        }
+
+        .alloy-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 5px;
+        }
+
+        .alloy-comp {
+            font-size: var(--fss);
+            min-width: 80px;
+        }
+
+        .alloy-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--bg4);
+            border-radius: 4px;
+            position: relative;
+            overflow: visible;
+        }
+
+        .alloy-target {
+            position: absolute;
+            top: -2px;
+            bottom: -2px;
+            width: 2px;
+            background: white;
+            border-radius: 1px;
+            opacity: .7;
+        }
+
+        .alloy-actual {
+            height: 100%;
+            border-radius: 4px;
+            transition: width .3s;
+        }
+
+        .alloy-ok {
+            color: var(--green);
+        }
+
+        .alloy-off {
+            color: var(--red);
+        }
+
+        .dump-warn {
+            background: rgba(208, 80, 80, .12);
+            border: 1px solid rgba(208, 80, 80, .4);
+            border-radius: 4px;
+            padding: 7px 10px;
+            font-size: var(--fss);
+            color: var(--red);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        /* TEMP */
+        .temp-sec {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .temp-num {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 22px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .temp-bar-bg {
+            height: 10px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .temp-bar-fg {
+            height: 100%;
+            border-radius: 3px;
+            transition: width .3s, background .5s;
+        }
+
+        .temp-refs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 3px;
+        }
+
+        .temp-ref {
+            font-size: 10px;
+            font-family: 'Share Tech Mono', monospace;
+            padding: 1px 5px;
+            border-radius: 2px;
+            background: var(--bg3);
+        }
+
+        /* BELLOWS boost indicator */
+        .bellows-boost {
+            height: 4px;
+            background: var(--bg3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 3px;
+        }
+
+        .bellows-boost-bar {
+            height: 100%;
+            background: var(--accent);
+            transition: width .2s;
+        }
+
+        /* FURNACE BTNS */
+        .furnace-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+
+        /* SMELT BUTTONS */
+        .smelt-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* MOLD SECTION */
+        .mold-sec {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mold-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+            gap: 5px;
+            margin: 8px 0;
+        }
+
+        .mb {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Crimson Pro', serif;
+            font-size: var(--fss);
+            text-align: center;
+            transition: all .15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .mb:hover:not(:disabled) {
+            border-color: var(--accent);
+            background: var(--bg4);
+            color: var(--accent);
+        }
+
+        .mb:disabled {
+            opacity: .3;
+            cursor: not-allowed;
+        }
+
+        .mb.on {
+            border-color: var(--accent);
+            background: rgba(224, 128, 48, .1);
+        }
+
+        .mb i {
+            font-size: 16px;
+        }
+
+        .mb-c {
+            font-size: 10px;
+            color: var(--text3);
+        }
+
+        .mb-v {
+            font-size: 10px;
+            color: var(--gold);
+        }
+
+        /* QUEUE */
+        .queue-sec {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .qi-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 7px;
+        }
+
+        .qi {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 5px 9px;
+            font-size: var(--fss);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .qi-pb {
+            width: 48px;
+            height: 4px;
+            background: var(--bg4);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .qi-pf {
+            height: 100%;
+            background: var(--accent);
+            transition: width .2s;
+        }
+
+        /* INVENTORY */
+        .inv-sec {
+            padding: 12px 16px;
+        }
+
+        .inv-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 7px;
+        }
+
+        .ir {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 7px 11px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ir-icon {
+            font-size: 15px;
+            width: 18px;
+            text-align: center;
+        }
+
+        .ir-name {
+            flex: 1;
+            font-size: var(--fsm);
+        }
+
+        .ir-q {
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 2px;
+            background: var(--bg4);
+            color: var(--gold);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .ir-qty {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: var(--fsm);
+            min-width: 28px;
+            text-align: right;
+        }
+
+        .ir-val {
+            font-size: var(--fss);
+            color: var(--gold);
+            font-family: 'Share Tech Mono', monospace;
+            min-width: 52px;
+            text-align: right;
+        }
+
+        .sb {
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text2);
+            padding: 3px 9px;
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: var(--fsx);
+            font-family: 'Crimson Pro', serif;
+            transition: all .15s;
+        }
+
+        .sb:hover:not(:disabled) {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .sb:disabled {
+            opacity: .3;
+            cursor: not-allowed;
+        }
+
+        .sba {
+            border: 1px solid var(--border2);
+            background: transparent;
+            color: var(--accent);
+            padding: 3px 9px;
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: var(--fsx);
+            font-family: 'Crimson Pro', serif;
+            transition: all .15s;
+        }
+
+        .sba:hover:not(:disabled) {
+            background: rgba(224, 128, 48, .1);
+        }
+
+        /* RIGHT PANEL */
+        .rpanel-wrap {
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .rp {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .rp::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .rp::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        /* UPGRADE CARD */
+        .uc {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 11px;
+            margin-bottom: 9px;
+            cursor: pointer;
+            transition: all .14s;
+        }
+
+        .uc:hover:not(.maxed) {
+            border-color: var(--accent2);
+            background: var(--bg4);
+        }
+
+        .uc.maxed {
+            border-color: var(--gold);
+            opacity: .6;
+            cursor: default;
+        }
+
+        .uc-h {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 4px;
+        }
+
+        .uc-i {
+            font-size: 17px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .uc-n {
+            font-family: 'Cinzel', serif;
+            font-size: var(--fsm);
+            flex: 1;
+        }
+
+        .uc-lv {
+            font-size: var(--fsx);
+            color: var(--text2);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .uc-cur {
+            font-size: var(--fss);
+            color: var(--text2);
+            font-style: italic;
+            margin-bottom: 4px;
+        }
+
+        .uc-cost {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: var(--fsm);
+            color: var(--gold);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .uc-cost.no {
+            color: var(--red);
+        }
+
+        .uc-eff {
+            font-size: var(--fss);
+            color: var(--green);
+            margin-top: 3px;
+        }
+
+        /* RESEARCH */
+        .era-head {
+            font-family: 'Cinzel', serif;
+            font-size: var(--fsx);
+            letter-spacing: .15em;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin: 12px 0 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .rc {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 7px;
+            transition: all .14s;
+        }
+
+        .rc.av {
+            cursor: pointer;
+        }
+
+        .rc.av:hover {
+            border-color: var(--accent2);
+            background: var(--bg4);
+        }
+
+        .rc.dn {
+            opacity: .5;
+            border-color: var(--border2);
+        }
+
+        .rc.lk {
+            opacity: .28;
+            cursor: not-allowed;
+        }
+
+        .rc-n {
+            font-family: 'Cinzel', serif;
+            font-size: var(--fsm);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 2px;
+        }
+
+        .rc-d {
+            font-size: var(--fss);
+            color: var(--text2);
+            font-style: italic;
+            margin-bottom: 4px;
+        }
+
+        .rc-cost {
+            font-size: var(--fss);
+            color: var(--gold);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .rc-req {
+            font-size: 10px;
+            color: var(--text2);
+            margin-top: 2px;
+        }
+
+        .badge {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 2px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .bd {
+            background: rgba(96, 192, 112, .2);
+            color: var(--green);
+        }
+
+        .bl {
+            background: rgba(90, 64, 48, .3);
+            color: var(--text2);
+        }
+
+        .be {
+            background: rgba(224, 128, 48, .15);
+            color: var(--accent2);
+            font-size: var(--fsx);
+            padding: 2px 7px;
+        }
+
+        /* CONTRACT */
+        .cc {
+            background: var(--bg3);
+            border: 1px solid var(--border2);
+            border-radius: 5px;
+            padding: 12px;
+            margin-bottom: 9px;
+        }
+
+        .cc.act {
+            border-color: var(--accent);
+        }
+
+        .cc.dn-c {
+            opacity: .38;
+        }
+
+        .cc-n {
+            font-family: 'Cinzel', serif;
+            font-size: var(--fsm);
+            color: var(--accent);
+            margin-bottom: 3px;
+        }
+
+        .cc-d {
+            font-size: var(--fss);
+            color: var(--text2);
+            font-style: italic;
+            margin-bottom: 7px;
+        }
+
+        .cc-req {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: var(--fss);
+            margin-bottom: 4px;
+        }
+
+        .cc-bar {
+            flex: 1;
+            height: 5px;
+            background: var(--bg4);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .cc-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            transition: width .3s;
+        }
+
+        .cc-req.ok-r .cc-fill {
+            background: var(--green);
+        }
+
+        .cc-cnt {
+            font-size: var(--fsx);
+            color: var(--text2);
+            font-family: 'Share Tech Mono', monospace;
+            min-width: 38px;
+            text-align: right;
+        }
+
+        .cc-rwd {
+            font-size: var(--fss);
+            color: var(--gold);
+            margin-bottom: 6px;
+        }
+
+        .cc-btn {
+            width: 100%;
+            padding: 7px;
+            background: rgba(224, 128, 48, .1);
+            border: 1px solid var(--accent2);
+            color: var(--accent);
+            font-family: 'Cinzel', serif;
+            font-size: var(--fsm);
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all .15s;
+            letter-spacing: .04em;
+        }
+
+        .cc-btn:hover:not(:disabled) {
+            background: rgba(224, 128, 48, .25);
+        }
+
+        .cc-btn:disabled {
+            opacity: .38;
+            cursor: not-allowed;
+        }
+
+        .cc-lk {
+            font-size: var(--fss);
+            color: var(--text2);
+            font-style: italic;
+            padding: 3px 0;
+        }
+
+        .div {
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--border), transparent);
+            margin: 8px 0;
+        }
+
+        .empty {
+            color: var(--text2);
+            font-style: italic;
+            font-size: var(--fsm);
+            padding: 6px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app"></div>
+    <script>
+        const { h, render } = preact;
+        const { useState, useEffect, useRef } = preactHooks;
+
+        // ──────────────────────────────────────────────
+        // DATA
+        // ──────────────────────────────────────────────
+        const ERA = ['Iron Age', 'Bronze Age', 'Steel Era', 'Mythic Age', 'Cosmic Age'];
+
+        const METALS = {
+            iron: { name: 'Iron', color: '#8898b0', meltTemp: 400, maxTemp: 760, oreKey: 'iron', era: 0 },
+            copper: { name: 'Copper', color: '#c88040', meltTemp: 380, maxTemp: 700, oreKey: 'copper', era: 0 },
+            tin: { name: 'Tin', color: '#90a0a8', meltTemp: 280, maxTemp: 560, oreKey: 'tin', era: 0 },
+            zinc: { name: 'Zinc', color: '#a0a898', meltTemp: 320, maxTemp: 580, oreKey: 'zinc', era: 1 },
+            lead: { name: 'Lead', color: '#788090', meltTemp: 260, maxTemp: 520, oreKey: 'lead', era: 1 },
+            bronze: { name: 'Bronze', color: '#d08832', meltTemp: 450, maxTemp: 820, oreKey: null, era: 1, alloy: { copper: .67, tin: .33 }, tol: .12 },
+            brass: { name: 'Brass', color: '#c8a840', meltTemp: 480, maxTemp: 840, oreKey: null, era: 1, alloy: { copper: .67, zinc: .33 }, tol: .12 },
+            pewter: { name: 'Pewter', color: '#9aaab4', meltTemp: 300, maxTemp: 580, oreKey: null, era: 1, alloy: { tin: .85, lead: .15 }, tol: .1 },
+            steel: { name: 'Steel', color: '#b0c0d0', meltTemp: 600, maxTemp: 1100, oreKey: null, era: 2, alloy: { iron: .75, coal_flux: .25 }, tol: .1 },
+            silver: { name: 'Silver', color: '#d0d8e0', meltTemp: 490, maxTemp: 760, oreKey: 'silver', era: 2 },
+            gold_m: { name: 'Gold', color: '#e8c050', meltTemp: 620, maxTemp: 900, oreKey: 'gold_ore', era: 2 },
+            electrum: { name: 'Electrum', color: '#d4c060', meltTemp: 550, maxTemp: 820, oreKey: null, era: 2, alloy: { gold_m: .5, silver: .5 }, tol: .12 },
+            mithril: { name: 'Mithril', color: '#80c0e0', meltTemp: 820, maxTemp: 1400, oreKey: 'mithril', era: 3 },
+            adamant: { name: 'Adamant', color: '#c0b060', meltTemp: 900, maxTemp: 1600, oreKey: 'adamant', era: 3 },
+            void_steel: { name: 'Void Steel', color: '#9060c0', meltTemp: 960, maxTemp: 1700, oreKey: null, era: 3, alloy: { steel: .6, mithril: .4 }, tol: .08, unstable: true },
+            titanium: { name: 'Titanium', color: '#70d8c0', meltTemp: 1100, maxTemp: 1900, oreKey: 'titanium', era: 4 },
+            orichalcum: { name: 'Orichalcum', color: '#e09040', meltTemp: 980, maxTemp: 1800, oreKey: null, era: 4, alloy: { adamant: .5, mithril: .3, gold_m: .2 }, tol: .07 },
+        };
+
+        const ORES = {
+            iron: { name: 'Iron Ore', color: '#8898b0', icon: 'fa-cube', biome: 0 },
+            copper: { name: 'Copper Ore', color: '#c88040', icon: 'fa-circle', biome: 0 },
+            tin: { name: 'Tin Ore', color: '#90a0a8', icon: 'fa-droplet', biome: 0 },
+            coal: { name: 'Coal', color: '#667', icon: 'fa-fire-flame-simple', biome: 0 },
+            zinc: { name: 'Zinc Ore', color: '#a0a898', icon: 'fa-atom', biome: 1 },
+            lead: { name: 'Lead Ore', color: '#788090', icon: 'fa-weight-hanging', biome: 1 },
+            coal_flux: { name: 'Coal Flux', color: '#557', icon: 'fa-fire', biome: 1 },
+            silver: { name: 'Silver Ore', color: '#d0d8e0', icon: 'fa-star', biome: 2 },
+            gold_ore: { name: 'Gold Ore', color: '#e8c050', icon: 'fa-sun', biome: 2 },
+            mithril: { name: 'Mithril Ore', color: '#80c0e0', icon: 'fa-wand-sparkles', biome: 3 },
+            adamant: { name: 'Adamant Ore', color: '#c0b060', icon: 'fa-shield', biome: 3 },
+            titanium: { name: 'Titanium Ore', color: '#70d8c0', icon: 'fa-bolt', biome: 4 },
+        };
+
+        const MOLDS = {
+            ingot: { name: 'Ingot', icon: 'fa-rectangle-list', m: 1, t: 5, v: 12, always: true, desc: 'Standard bar' },
+            arrowhead: { name: 'Arrowhead', icon: 'fa-location-arrow', m: 1, t: 4, v: 9, unlock: 'mArrow', desc: 'Lightweight point' },
+            horseshoe: { name: 'Horseshoe', icon: 'fa-horse-head', m: 2, t: 6, v: 20, unlock: 'mHorse', desc: 'Farrier piece' },
+            coin: { name: 'Coin', icon: 'fa-coins', m: 2, t: 7, v: 34, unlock: 'mCoin', desc: 'Currency disc' },
+            hook: { name: 'Hook', icon: 'fa-anchor', m: 2, t: 7, v: 28, unlock: 'mHook', desc: 'Rigging hook' },
+            tool: { name: 'Tool', icon: 'fa-wrench', m: 3, t: 12, v: 70, unlock: 'mTool', desc: 'Hammer or chisel' },
+            spring: { name: 'Spring', icon: 'fa-compress', m: 3, t: 11, v: 65, unlock: 'mSpring', desc: 'Coil spring' },
+            lock: { name: 'Lock & Key', icon: 'fa-lock', m: 3, t: 13, v: 80, unlock: 'mLock', desc: 'Security mechanism' },
+            axle: { name: 'Axle', icon: 'fa-rotate', m: 4, t: 14, v: 90, unlock: 'mAxle', desc: 'Shaft component' },
+            pipe: { name: 'Pipe', icon: 'fa-grip-lines', m: 4, t: 14, v: 110, unlock: 'mPipe', desc: 'Structural conduit' },
+            gear: { name: 'Gear', icon: 'fa-gear', m: 4, t: 18, v: 140, unlock: 'mGear', desc: 'Toothed wheel' },
+            bearing: { name: 'Bearing', icon: 'fa-circle-dot', m: 4, t: 16, v: 125, unlock: 'mBearing', desc: 'Rolling element' },
+            weapon: { name: 'Weapon', icon: 'fa-khanda', m: 5, t: 26, v: 260, unlock: 'mWeapon', desc: 'Blade or spear' },
+            valve: { name: 'Valve', icon: 'fa-faucet-drip', m: 5, t: 20, v: 200, unlock: 'mValve', desc: 'Flow control' },
+            armor: { name: 'Armor Plate', icon: 'fa-shield-halved', m: 6, t: 28, v: 300, unlock: 'mArmor', desc: 'Protective plate' },
+            lens_frame: { name: 'Lens Frame', icon: 'fa-glasses', m: 5, t: 22, v: 240, unlock: 'mLens', desc: 'Optical mount' },
+            art: { name: 'Art Piece', icon: 'fa-trophy', m: 6, t: 36, v: 560, unlock: 'mArt', desc: 'Decorative master' },
+            engine_p: { name: 'Engine Part', icon: 'fa-cog', m: 8, t: 45, v: 1400, unlock: 'mEngine', desc: 'Steam component' },
+            rune_plate: { name: 'Rune Plate', icon: 'fa-star-of-david', m: 8, t: 50, v: 2000, unlock: 'mRune', desc: 'Inscribed arcane metal' },
+            circuit: { name: 'Circuit', icon: 'fa-microchip', m: 10, t: 60, v: 5000, unlock: 'mCircuit', desc: 'Arcane circuit' },
+        };
+
+        const FURNACE_LV = [
+            { name: 'Pit Furnace', maxT: 700, hR: 12, cR: 22, fU: 1.0, cap: 40 },
+            { name: 'Bloomery', maxT: 950, hR: 20, cR: 20, fU: 0.9, cap: 70 },
+            { name: 'Charcoal Kiln', maxT: 1150, hR: 28, cR: 18, fU: .80, cap: 100 },
+            { name: 'Reverb Furnace', maxT: 1400, hR: 36, cR: 15, fU: .70, cap: 150 },
+            { name: 'Blast Furnace', maxT: 1700, hR: 50, cR: 12, fU: .55, cap: 220 },
+            { name: 'Arc Furnace', maxT: 2000, hR: 70, cR: 10, fU: .40, cap: 350 },
+        ];
+        const BELLOWS_LV = [
+            { name: 'Hand Bellows', boost: 60, cd: 3500, dur: 3 },
+            { name: 'Foot Bellows', boost: 120, cd: 2600, dur: 4 },
+            { name: 'Lever Bellows', boost: 200, cd: 1800, dur: 5 },
+            { name: 'Water Wheel', boost: 360, cd: 1200, dur: 6 },
+            { name: 'Steam Bellows', boost: 600, cd: 700, dur: 8 },
+        ];
+        const CRUCIBLE_LV = [
+            { name: 'Clay Crucible', cap: 40 },
+            { name: 'Iron Crucible', cap: 80 },
+            { name: 'Fireclay Pot', cap: 130 },
+            { name: 'Steel Crucible', cap: 200 },
+            { name: 'Graphite Pot', cap: 320 },
+            { name: 'Mithril Vessel', cap: 500 },
+        ];
+        const STORAGE_LV = [
+            { name: 'Dirt Floor', oMax: 120, cMax: 80 },
+            { name: 'Wood Shelves', oMax: 250, cMax: 160 },
+            { name: 'Stone Vault', oMax: 450, cMax: 280 },
+            { name: 'Iron Depot', oMax: 800, cMax: 500 },
+            { name: 'Steel Warehouse', oMax: 1500, cMax: 900 },
+            { name: 'Magic Stockroom', oMax: 3000, cMax: 1800 },
+        ];
+        const QUENCH_LV = [
+            { name: 'No Quench', qBonus: 0, cFast: 1.0 },
+            { name: 'Water Trough', qBonus: .5, cFast: 1.4 },
+            { name: 'Brine Tank', qBonus: 1, cFast: 1.8 },
+            { name: 'Oil Bath', qBonus: 1, cFast: 2.2 },
+            { name: 'Cryogenic', qBonus: 2, cFast: 3.0 },
+        ];
+        const MOLD_RACK_LV = [
+            { name: 'No Rack', slots: 4 },
+            { name: 'Iron Rack', slots: 6 },
+            { name: 'Steel Rack', slots: 8 },
+            { name: 'Master Rack', slots: 12 },
+        ];
+        const TRADE_LV = [
+            { name: 'Local Peddling', bonus: 1.0 },
+            { name: 'Market Stall', bonus: 1.25 },
+            { name: 'Guild Member', bonus: 1.55 },
+            { name: 'Royal Supplier', bonus: 2.0 },
+            { name: 'Imperial Trader', bonus: 2.8 },
+        ];
+
+        const UPGRADES = [
+            { id: 'furnace', name: 'Furnace', icon: 'fa-fire', lvs: FURNACE_LV, lk: 'fLv', cb: 200, cm: 7, eff: l => `${FURNACE_LV[l].maxT}°C, ${FURNACE_LV[l].cap} cap` },
+            { id: 'bellows', name: 'Bellows', icon: 'fa-wind', lvs: BELLOWS_LV, lk: 'bLv', cb: 130, cm: 5.5, eff: l => `+${BELLOWS_LV[l].boost}° burst, ${BELLOWS_LV[l].dur}s` },
+            { id: 'crucible', name: 'Crucible', icon: 'fa-flask', lvs: CRUCIBLE_LV, lk: 'cLv', cb: 170, cm: 5, eff: l => `${CRUCIBLE_LV[l].cap} capacity` },
+            { id: 'storage', name: 'Storage', icon: 'fa-warehouse', lvs: STORAGE_LV, lk: 'sLv', cb: 100, cm: 4, eff: l => `${STORAGE_LV[l].oMax} ore max` },
+            { id: 'quench', name: 'Quench Tank', icon: 'fa-temperature-arrow-down', lvs: QUENCH_LV, lk: 'qLv', cb: 250, cm: 5.5, eff: l => `+${QUENCH_LV[l].qBonus} quality, ${QUENCH_LV[l].cFast}x cool speed` },
+            { id: 'mold_rack', name: 'Mold Rack', icon: 'fa-layer-group', lvs: MOLD_RACK_LV, lk: 'mrLv', cb: 200, cm: 5, eff: l => `${MOLD_RACK_LV[l].slots} queue slots` },
+            { id: 'trade', name: 'Trade Post', icon: 'fa-shop', lvs: TRADE_LV, lk: 'trLv', cb: 300, cm: 6, eff: l => `${TRADE_LV[l].bonus}x sell price` },
+        ];
+
+        const RESEARCH = [
+            // Era 0
+            { id: 'rCopper', name: 'Copper Mining', cost: 150, era: 0, pre: [], eff: 'Unlock Copper ore', ul: 'copper' },
+            { id: 'rTin', name: 'Tin Mining', cost: 120, era: 0, pre: [], eff: 'Unlock Tin ore', ul: 'tin' },
+            { id: 'mArrow', name: 'Arrowheads', cost: 80, era: 0, pre: [], eff: 'Unlock Arrowhead mold', ul: 'mArrow' },
+            { id: 'mHorse', name: 'Farriery', cost: 100, era: 0, pre: [], eff: 'Unlock Horseshoe mold', ul: 'mHorse' },
+            { id: 'mHook', name: 'Rigging Craft', cost: 90, era: 0, pre: [], eff: 'Unlock Hook mold', ul: 'mHook' },
+            { id: 'mCoin', name: 'Coin Minting', cost: 120, era: 0, pre: [], eff: 'Unlock Coin mold', ul: 'mCoin' },
+            { id: 'mTool', name: 'Tool Casting', cost: 200, era: 0, pre: ['mCoin'], eff: 'Unlock Tool mold', ul: 'mTool' },
+            // Era 1
+            { id: 'rZinc', name: 'Zinc Mining', cost: 380, era: 1, pre: ['rCopper'], eff: 'Unlock Zinc ore & Coal Flux', ul: 'zinc' },
+            { id: 'rLead', name: 'Lead Mining', cost: 300, era: 1, pre: ['rTin'], eff: 'Unlock Lead ore', ul: 'lead' },
+            { id: 'rBronze', name: 'Bronze Alloy', cost: 600, era: 1, pre: ['rCopper', 'rTin'], eff: 'Bronze = Cu 67% + Sn 33%', ul: 'bronze' },
+            { id: 'rBrass', name: 'Brass Alloy', cost: 700, era: 1, pre: ['rZinc'], eff: 'Brass = Cu 67% + Zn 33%', ul: 'brass' },
+            { id: 'rPewter', name: 'Pewter Alloy', cost: 450, era: 1, pre: ['rLead', 'rTin'], eff: 'Pewter = Sn 85% + Pb 15%', ul: 'pewter' },
+            { id: 'mSpring', name: 'Spring Work', cost: 350, era: 1, pre: ['mTool'], eff: 'Unlock Spring mold', ul: 'mSpring' },
+            { id: 'mLock', name: 'Lock Making', cost: 400, era: 1, pre: ['mTool'], eff: 'Unlock Lock & Key mold', ul: 'mLock' },
+            { id: 'mAxle', name: 'Axle Forging', cost: 420, era: 1, pre: ['mTool'], eff: 'Unlock Axle mold', ul: 'mAxle' },
+            { id: 'mPipe', name: 'Pipe Drawing', cost: 380, era: 1, pre: ['mTool'], eff: 'Unlock Pipe mold', ul: 'mPipe' },
+            { id: 'quenching', name: 'Quenching', cost: 350, era: 1, pre: ['mTool'], eff: '+1 quality on all castings', ul: 'quenching' },
+            { id: 'autoFuel', name: 'Auto-Stoker', cost: 700, era: 1, pre: ['mPipe'], eff: 'Furnace auto-consumes coal', ul: 'autoFuel' },
+            // Era 2
+            { id: 'rSteel', name: 'Steel Smelting', cost: 1400, era: 2, pre: ['rBronze', 'rZinc'], eff: 'Steel = Fe 75% + Coal Flux 25%', ul: 'steel' },
+            { id: 'rSilver', name: 'Silver Lode', cost: 1000, era: 2, pre: ['rZinc'], eff: 'Unlock Silver ore', ul: 'silver' },
+            { id: 'rGold', name: 'Gold Prospecting', cost: 1600, era: 2, pre: ['rSilver'], eff: 'Unlock Gold ore', ul: 'gold_m' },
+            { id: 'rElectrum', name: 'Electrum Alloy', cost: 2000, era: 2, pre: ['rGold'], eff: 'Electrum = Au 50% + Ag 50%', ul: 'electrum' },
+            { id: 'mGear', name: 'Gear Works', cost: 1200, era: 2, pre: ['mAxle'], eff: 'Unlock Gear mold', ul: 'mGear' },
+            { id: 'mBearing', name: 'Bearings', cost: 1000, era: 2, pre: ['mGear'], eff: 'Unlock Bearing mold', ul: 'mBearing' },
+            { id: 'mWeapon', name: 'Weapon Forging', cost: 1400, era: 2, pre: ['mGear'], eff: 'Unlock Weapon mold', ul: 'mWeapon' },
+            { id: 'mValve', name: 'Valve Casting', cost: 1300, era: 2, pre: ['mPipe'], eff: 'Unlock Valve mold', ul: 'mValve' },
+            { id: 'mArmor', name: 'Armor Plates', cost: 1600, era: 2, pre: ['mWeapon'], eff: 'Unlock Armor Plate mold', ul: 'mArmor' },
+            { id: 'mLens', name: 'Optical Mounts', cost: 1500, era: 2, pre: ['mBearing'], eff: 'Unlock Lens Frame mold', ul: 'mLens' },
+            { id: 'pyrometer', name: 'Pyrometer', cost: 2000, era: 2, pre: ['rSteel'], eff: '+40% quality at perfect temp', ul: 'pyrometer' },
+            { id: 'autoMold', name: 'Auto-Casting', cost: 2800, era: 2, pre: ['autoFuel'], eff: 'Auto-cast selected mold', ul: 'autoMold' },
+            { id: 'autoMine', name: 'Mine Shaft', cost: 3500, era: 2, pre: ['autoFuel'], eff: 'Auto-mine ore over time', ul: 'autoMine' },
+            { id: 'mArt', name: 'Fine Casting', cost: 3000, era: 2, pre: ['quenching', 'mArmor'], eff: 'Unlock Art Piece mold', ul: 'mArt' },
+            // Era 3
+            { id: 'rMithril', name: 'Mithril Vein', cost: 10000, era: 3, pre: ['rGold', 'autoMine'], eff: 'Unlock Mithril ore', ul: 'mithril' },
+            { id: 'rAdamant', name: 'Adamant Ore', cost: 12000, era: 3, pre: ['rMithril'], eff: 'Unlock Adamant ore', ul: 'adamant' },
+            { id: 'rVoid', name: 'Void Metallurgy', cost: 18000, era: 3, pre: ['rAdamant'], eff: 'Void Steel = Steel 60% + Mithril 40%', ul: 'void_steel' },
+            { id: 'mEngine', name: 'Engine Parts', cost: 8000, era: 3, pre: ['mValve', 'mBearing'], eff: 'Unlock Engine Part mold', ul: 'mEngine' },
+            { id: 'mRune', name: 'Rune Engraving', cost: 14000, era: 3, pre: ['mArt'], eff: 'Unlock Rune Plate mold', ul: 'mRune' },
+            { id: 'masterForge', name: 'Master Forge', cost: 20000, era: 3, pre: ['rVoid', 'mRune'], eff: '+70% all production value', ul: 'masterForge' },
+            // Era 4
+            { id: 'rTitanium', name: 'Titanium Mining', cost: 50000, era: 4, pre: ['rAdamant', 'autoMine'], eff: 'Unlock Titanium ore', ul: 'titanium' },
+            { id: 'rOrichalcum', name: 'Orichalcum', cost: 80000, era: 4, pre: ['rMithril', 'rGold', 'rAdamant'], eff: 'Orichalcum = Ad50%+Mi30%+Au20%', ul: 'orichalcum' },
+            { id: 'mCircuit', name: 'Arcane Circuits', cost: 60000, era: 4, pre: ['mEngine', 'pyrometer'], eff: 'Unlock Circuit mold', ul: 'mCircuit' },
+            { id: 'grandForge', name: 'Grand Forge', cost: 150000, era: 4, pre: ['masterForge', 'mCircuit', 'rOrichalcum'], eff: '+100% all value, unlock endgame', ul: 'grandForge' },
+        ];
+
+        const PICKAXES = [
+            { id: 'hands', name: 'Bare Hands', yield: 1, cost: null, icon: 'fa-hand' },
+            { id: 'iron', name: 'Iron Pickaxe', yield: 3, cost: { iron_ingot: 5 }, icon: 'fa-pickaxe' },
+            { id: 'bronze', name: 'Bronze Pickaxe', yield: 6, cost: { bronze_ingot: 6 }, icon: 'fa-pickaxe' },
+            { id: 'steel', name: 'Steel Pickaxe', yield: 12, cost: { steel_ingot: 8 }, icon: 'fa-pickaxe' },
+            { id: 'mithril', name: 'Mithril Pickaxe', yield: 28, cost: { mithril_ingot: 5 }, icon: 'fa-wand-sparkles' },
+            { id: 'void', name: 'Void Pickaxe', yield: 70, cost: { void_steel_ingot: 4 }, icon: 'fa-skull' },
+        ];
+
+        const CONTRACTS = [
+            {
+                id: 'c1', name: 'Village Commission', era: 0, pre: null,
+                desc: 'The village needs ironwork before winter sets in.',
+                reqs: [{ i: 'iron_ingot', q: 10, qm: 1 }, { i: 'iron_coin', q: 6, qm: 1 }],
+                rwd: { g: 400, r: 200 }, story: 'The village chief smiles and pays in full.'
+            },
+            {
+                id: 'c2', name: "Hunter's Guild", era: 0, pre: 'c1',
+                desc: 'Skilled hunters need reliable gear for the season.',
+                reqs: [{ i: 'iron_tool', q: 5, qm: 2 }, { i: 'copper_ingot', q: 8, qm: 1 }],
+                rwd: { g: 900, r: 500 }, story: 'Guild master awards you a silver-leaf badge.'
+            },
+            {
+                id: 'c3', name: 'Farrier Contract', era: 0, pre: 'c1',
+                desc: 'The stable master needs horseshoes before the fair.',
+                reqs: [{ i: 'iron_horseshoe', q: 12, qm: 1 }, { i: 'iron_hook', q: 6, qm: 1 }],
+                rwd: { g: 700, r: 350 }, story: 'Your horseshoes win praise at the regional fair.'
+            },
+            {
+                id: 'c4', name: 'Merchant Caravan', era: 1, pre: 'c2',
+                desc: 'A trading caravan needs quality goods for distant markets.',
+                reqs: [{ i: 'bronze_ingot', q: 8, qm: 2 }, { i: 'bronze_tool', q: 4, qm: 3 }, { i: 'copper_coin', q: 12, qm: 1 }],
+                rwd: { g: 2800, r: 1200 }, story: 'Word of your craft spreads across three kingdoms.'
+            },
+            {
+                id: 'c5', name: 'Clockmaker Order', era: 1, pre: 'c3',
+                desc: 'A guild of clockmakers needs fine mechanical parts.',
+                reqs: [{ i: 'bronze_spring', q: 8, qm: 2 }, { i: 'bronze_gear', q: 4, qm: 3 }, { i: 'brass_axle', q: 6, qm: 2 }],
+                rwd: { g: 3500, r: 1500 }, story: 'The clockmakers guild commissions you as official supplier.'
+            },
+            {
+                id: 'c6', name: 'Locksmith Academy', era: 1, pre: 'c4',
+                desc: 'The academy needs master-crafted locks for their vaults.',
+                reqs: [{ i: 'bronze_lock', q: 6, qm: 3 }, { i: 'brass_tool', q: 5, qm: 2 }, { i: 'pewter_coin', q: 10, qm: 2 }],
+                rwd: { g: 4000, r: 1800 }, story: 'The academy names a lock after your design.'
+            },
+            {
+                id: 'c7', name: 'Artificers Guild', era: 2, pre: 'c5',
+                desc: 'The guild demands precision components for their devices.',
+                reqs: [{ i: 'steel_gear', q: 6, qm: 3 }, { i: 'steel_pipe', q: 8, qm: 2 }, { i: 'steel_valve', q: 4, qm: 3 }],
+                rwd: { g: 8000, r: 3000 }, story: 'You are inducted as an Associate of the Artificers Guild.'
+            },
+            {
+                id: 'c8', name: 'Cathedral Commission', era: 2, pre: 'c6',
+                desc: 'The great cathedral needs ornate metalwork.',
+                reqs: [{ i: 'silver_art', q: 3, qm: 4 }, { i: 'gold_m_coin', q: 8, qm: 3 }, { i: 'electrum_lens_frame', q: 4, qm: 3 }],
+                rwd: { g: 12000, r: 5000 }, story: 'Your work adorns the Cathedral for centuries.'
+            },
+            {
+                id: 'c9', name: 'Siege Engineers', era: 2, pre: 'c7',
+                desc: 'The army requires structural components for siege engines.',
+                reqs: [{ i: 'steel_axle', q: 10, qm: 3 }, { i: 'steel_bearing', q: 12, qm: 3 }, { i: 'steel_armor', q: 6, qm: 3 }],
+                rwd: { g: 18000, r: 7000 }, story: "The general calls your ironworks the backbone of the siege."
+            },
+            {
+                id: 'c10', name: 'Royal Armory', era: 2, pre: 'c8',
+                desc: "The king demands arms worthy of his royal guard.",
+                reqs: [{ i: 'steel_weapon', q: 8, qm: 4 }, { i: 'steel_armor', q: 6, qm: 4 }, { i: 'gold_m_art', q: 2, qm: 4 }],
+                rwd: { g: 30000, r: 12000 }, story: "You are named Royal Blacksmith. Your crest hangs above the armory gate."
+            },
+            {
+                id: 'c11', name: 'Naval Foundry', era: 2, pre: 'c9',
+                desc: 'The navy needs structural components for their flagship.',
+                reqs: [{ i: 'steel_engine_p', q: 6, qm: 3 }, { i: 'steel_valve', q: 10, qm: 4 }, { i: 'silver_lens_frame', q: 4, qm: 4 }],
+                rwd: { g: 50000, r: 18000 }, story: 'The flagship sets sail with your metalwork.'
+            },
+            {
+                id: 'c12', name: 'Arcane Order', era: 3, pre: 'c10',
+                desc: 'Ancient mages seek rare metals for their instruments.',
+                reqs: [{ i: 'mithril_ingot', q: 10, qm: 3 }, { i: 'mithril_art', q: 4, qm: 4 }, { i: 'void_steel_weapon', q: 4, qm: 4 }],
+                rwd: { g: 150000, r: 35000 }, story: 'The Arcane Order inscribes your name in the Book of Masters.'
+            },
+            {
+                id: 'c13', name: 'Dwarven Consortium', era: 3, pre: 'c11',
+                desc: 'Ancient dwarves demand masterwork from the surface.',
+                reqs: [{ i: 'adamant_gear', q: 8, qm: 4 }, { i: 'adamant_armor', q: 6, qm: 5 }, { i: 'mithril_rune_plate', q: 4, qm: 4 }],
+                rwd: { g: 250000, r: 60000 }, story: 'The dwarves carve your name into the Hall of Masters.'
+            },
+            {
+                id: 'c14', name: 'Imperial Commission', era: 3, pre: 'c12',
+                desc: 'The Emperor demands weapons beyond mortal craft.',
+                reqs: [{ i: 'void_steel_weapon', q: 6, qm: 5 }, { i: 'void_steel_armor', q: 4, qm: 5 }, { i: 'mithril_circuit', q: 3, qm: 4 }],
+                rwd: { g: 600000, r: 120000 }, story: 'You are declared Grand Master Smith of the Empire.'
+            },
+            {
+                id: 'c15', name: 'Cosmic Forge Order', era: 4, pre: 'c13',
+                desc: 'A celestial order requires the rarest alloys.',
+                reqs: [{ i: 'titanium_engine_p', q: 6, qm: 4 }, { i: 'orichalcum_art', q: 4, qm: 5 }, { i: 'orichalcum_circuit', q: 2, qm: 5 }],
+                rwd: { g: 2000000, r: 400000 }, story: 'The stars themselves seem to shine brighter from your forge.'
+            },
+            {
+                id: 'c16', name: 'The Eternal Forge', era: 4, pre: 'c14',
+                desc: 'An ancient deity asks for one perfect weapon.',
+                reqs: [{ i: 'orichalcum_weapon', q: 1, qm: 5 }, { i: 'titanium_armor', q: 2, qm: 5 }, { i: 'orichalcum_circuit', q: 4, qm: 5 }],
+                rwd: { g: 10000000, r: 1000000 }, story: 'Legend. Your name echoes across the ages.'
+            },
+        ];
+
+        // ──────────────────────────────────────────────
+        // HELPERS
+        // ──────────────────────────────────────────────
+        function upgCost(def, lv) { return Math.floor(def.cb * Math.pow(def.cm, lv)); }
+        function getQ(temp, metalId, researched, qLv) {
+            const m = METALS[metalId]; if (!m) return 1;
+            const diff = Math.abs(temp - m.meltTemp);
+            let q = diff < 15 ? 5 : diff < 40 ? 4 : diff < 90 ? 3 : diff < 150 ? 2 : 1;
+            if (researched.has('quenching') && q < 5) q = Math.min(5, q + 1);
+            if (researched.has('pyrometer') && diff < 25) q = 5;
+            q = Math.min(5, q + (QUENCH_LV[qLv || 0].qBonus | 0));
+            return q;
+        }
+        function qMult(q) { return [0, .5, .75, 1, 1.5, 2.2][q] || 1; }
+        function metalMult(m) {
+            return {
+                iron: 1, copper: 1.6, tin: 1.2, zinc: 1.1, lead: .9, bronze: 2.4, brass: 2.2, pewter: 1.8,
+                steel: 4, silver: 5, gold_m: 9, electrum: 7, mithril: 20, adamant: 18, void_steel: 40,
+                titanium: 35, orichalcum: 80
+            }[m] || 1;
+        }
+        function itemVal(moldId, metalId, q, res) {
+            const mo = MOLDS[moldId]; if (!mo) return 0;
+            const trLv = 0; // passed in
+            const masterBonus = res.has('masterForge') ? 1.7 : 1;
+            const grandBonus = res.has('grandForge') ? 2 : 1;
+            return Math.round(mo.v * metalMult(metalId) * qMult(q) * masterBonus * grandBonus);
+        }
+        function itemValFull(moldId, metalId, q, res, trLv) {
+            const base = itemVal(moldId, metalId, q, res);
+            return Math.round(base * (TRADE_LV[trLv || 0].bonus));
+        }
+        function fmtN(n) {
+            if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+            if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+            return Math.floor(n) + '';
+        }
+        function getRank(r) {
+            if (r >= 500000) return 'Legendary Grandmaster';
+            if (r >= 120000) return 'Grand Master Smith';
+            if (r >= 35000) return 'Master Smith';
+            if (r >= 7000) return 'Journeyman Smith';
+            if (r >= 2000) return 'Craftsman';
+            if (r >= 500) return 'Apprentice';
+            if (r >= 150) return 'Novice';
+            return 'Greenhand';
+        }
+        function getEra(res) {
+            if (res.has('rOrichalcum')) return 4;
+            if (res.has('rVoid')) return 3;
+            if (res.has('rSteel')) return 2;
+            if (res.has('rBronze')) return 1;
+            return 0;
+        }
+        function fmtItem(key) {
+            for (const mid of Object.keys(METALS)) {
+                if (key.startsWith(mid + '_')) {
+                    const moldId = key.slice(mid.length + 1);
+                    const mo = MOLDS[moldId];
+                    return `${METALS[mid].name} ${mo ? mo.name : moldId}`;
+                }
+            }
+            return key;
+        }
+        function getCruMetal(cruc) {
+            const ks = Object.keys(cruc).filter(k => cruc[k] > 0);
+            if (!ks.length) return null;
+            if (ks.length === 1) return ks[0];
+            return 'mixed';
+        }
+        function getAlloy(cruc, res) {
+            const total = Object.values(cruc).reduce((a, b) => a + b, 0);
+            if (total < 0.5) return null;
+            for (const [mid, m] of Object.entries(METALS)) {
+                if (!m.alloy || !res.has(mid)) continue;
+                const comps = Object.keys(m.alloy);
+                const present = Object.keys(cruc).filter(k => cruc[k] > 0.01);
+                if (present.some(k => !comps.includes(k))) continue;
+                let ok = true;
+                for (const [comp, ratio] of Object.entries(m.alloy)) {
+                    if (Math.abs((cruc[comp] || 0) / total - ratio) > m.tol) { ok = false; break; }
+                }
+                if (ok) return mid;
+            }
+            return null;
+        }
+
+        function genVeins(res, era) {
+            const add = (oreId, n) => {
+                const ore = ORES[oreId]; if (!ore) return [];
+                return Array.from({ length: n }, (_, i) => {
+                    const mxHp = 10 + Math.floor(Math.random() * 8);
+                    return { id: oreId + '_' + i, oreId, hp: mxHp, maxHp: mxHp, regenTimer: 0 };
+                });
+            };
+            let v = [...add('iron', 4), ...add('coal', 3)];
+            if (res.has('copper')) v = [...v, ...add('copper', 3)];
+            if (res.has('tin')) v = [...v, ...add('tin', 3)];
+            if (res.has('zinc')) v = [...v, ...add('zinc', 2)];
+            if (res.has('lead')) v = [...v, ...add('lead', 2)];
+            if (res.has('coal_flux')) v = [...v, ...add('coal_flux', 2)];
+            if (res.has('silver')) v = [...v, ...add('silver', 2)];
+            if (res.has('gold_m')) v = [...v, ...add('gold_ore', 2)];
+            if (res.has('mithril')) v = [...v, ...add('mithril', 2)];
+            if (res.has('adamant')) v = [...v, ...add('adamant', 2)];
+            if (res.has('titanium')) v = [...v, ...add('titanium', 2)];
+            return v;
+        }
+
+        // ──────────────────────────────────────────────
+        // INITIAL STATE
+        // ──────────────────────────────────────────────
+        function initGs() {
+            return {
+                gold: 50, ores: { iron: 40, coal: 30 },
+                fLv: 0, bLv: 0, cLv: 0, sLv: 0, qLv: 0, mrLv: 0, trLv: 0,
+                temp: 0, furnaceOn: false,
+                bellowsTimer: 0, // seconds of boost remaining
+                crucible: {}, crucibleTotal: 0,
+                queue: [], selectedMold: 'ingot',
+                inventory: {}, // key -> [{qty,quality}]
+                pickaxe: 'hands',
+                researched: new Set(),
+                completedContracts: new Set(),
+                activeContract: null,
+                rating: 0, totalGold: 0,
+                log: ['Welcome to Ironworks. Start by mining ore and lighting the furnace.'],
+                tick: 0,
+            };
+        }
+
+        // ──────────────────────────────────────────────
+        // APP
+        // ──────────────────────────────────────────────
+        function App() {
+            const [gs, setGs] = useState(initGs);
+            const [ltab, setLtab] = useState('mine');
+            const [rtab, setRtab] = useState('upgrades');
+            const [toasts, setToasts] = useState([]);
+            const [sparks, setSparks] = useState([]);
+            const [opops, setOpops] = useState([]);
+            const [veins, setVeins] = useState(() => genVeins(new Set(), 0));
+            const resRef = useRef(gs.researched);
+
+            function toast(msg, type = '') {
+                const id = Date.now() + Math.random();
+                setToasts(t => [...t.slice(-4), { id, msg, type }]);
+                setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3000);
+            }
+            function addLog(msg) { setGs(s => ({ ...s, log: [msg, ...s.log.slice(0, 40)] })) }
+            function spk(e) {
+                if (!e?.currentTarget) return;
+                const r = e.currentTarget.getBoundingClientRect();
+                const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+                const ns = Array.from({ length: 6 }, (_, i) => ({ id: Date.now() + i, dx: (Math.random() - .5) * 55, dy: -(Math.random() * 45 + 12), x: cx, y: cy }));
+                setSparks(s => [...s, ...ns]);
+                setTimeout(() => setSparks(s => s.filter(x => !ns.some(n => n.id === x.id))), 600);
+            }
+            function opop(x, y, txt, color) {
+                const id = Date.now() + Math.random();
+                setOpops(p => [...p, { id, x, y, txt, color }]);
+                setTimeout(() => setOpops(p => p.filter(q => q.id !== id)), 900);
+            }
+
+            // MAIN TICK
+            useEffect(() => {
+                const INT = 200, DT = .2;
+                const t = setInterval(() => {
+                    setGs(prev => {
+                        const s = { ...prev, tick: (prev.tick || 0) + 1 };
+                        const fD = FURNACE_LV[s.fLv];
+                        const cD = CRUCIBLE_LV[s.cLv];
+                        const stD = STORAGE_LV[s.sLv];
+                        const qD = QUENCH_LV[s.qLv];
+                        const mrD = MOLD_RACK_LV[s.mrLv];
+                        s.oreMax = stD.oMax; s.coalMax = stD.cMax;
+
+                        // TEMP
+                        if (s.furnaceOn && s.ores.coal > 0) {
+                            let hR = fD.hR;
+                            // Bellows boost: boost timer drives extra heat rate
+                            if (s.bellowsTimer > 0) {
+                                const bD = BELLOWS_LV[s.bLv];
+                                hR += bD.boost * (s.bellowsTimer / bD.dur);
+                                s.bellowsTimer = Math.max(0, s.bellowsTimer - DT);
+                            }
+                            s.temp = Math.min(fD.maxT, s.temp + hR * DT * .5);
+                            let fC = fD.fU * DT * (s.temp > fD.maxT * .88 ? 2.5 : 1);
+                            const ores = { ...s.ores };
+                            ores.coal = Math.max(0, ores.coal - fC);
+                            s.ores = ores;
+                            if (s.ores.coal <= 0) s.furnaceOn = false;
+                        } else {
+                            s.bellowsTimer = 0;
+                            s.temp = Math.max(0, s.temp - fD.cR * DT * .1);
+                        }
+
+                        // OVERHEAT: burn molten metal above maxT
+                        if (s.crucibleTotal > 0) {
+                            const cm = getCruMetal(s.crucible);
+                            if (cm && cm !== 'mixed') {
+                                const metal = METALS[cm];
+                                if (metal && s.temp > metal.maxTemp) {
+                                    const burn = s.crucibleTotal * .004 * DT;
+                                    const ratio = Math.max(0, (s.crucibleTotal - burn) / s.crucibleTotal);
+                                    const nc = {}; let nt = 0;
+                                    for (const [k, v] of Object.entries(s.crucible)) { nc[k] = v * ratio; nt += v * ratio; }
+                                    s.crucible = nc; s.crucibleTotal = nt;
+                                }
+                            }
+                            // Void instability
+                            if (cm === 'mixed' && s.researched.has('void_steel') && s.tick % 10 === 0) {
+                                s.temp = Math.max(0, Math.min(fD.maxT, s.temp + (Math.random() - .5) * 50));
+                            }
+                        }
+
+                        // BELLOWS CD
+                        if (s.bellowsCD > 0) s.bellowsCD = Math.max(0, s.bellowsCD - INT);
+
+                        // AUTO-MINE
+                        if (s.researched.has('autoMine') && s.tick % 25 === 0) {
+                            const pick = PICKAXES.find(p => p.id === s.pickaxe) || PICKAXES[0];
+                            const ores2 = { ...s.ores };
+                            for (const oid of Object.keys(ORES)) {
+                                if (!['iron', 'coal'].includes(oid) && !s.researched.has(oid) && !s.researched.has(oid.replace('_ore', '').replace('_m', '')) && !s.researched.has('r' + oid.charAt(0).toUpperCase() + oid.slice(1))) continue;
+                                const isC = oid === 'coal' || oid === 'coal_flux';
+                                const cap2 = isC ? s.coalMax : s.oreMax;
+                                const cur = ores2[oid] || 0;
+                                if (cur < cap2) ores2[oid] = Math.min(cap2, cur + Math.ceil(pick.yield / 3));
+                            }
+                            s.ores = ores2;
+                        }
+
+                        // AUTO-CAST
+                        if (s.researched.has('autoMold') && s.tick % 10 === 0) {
+                            const mold = MOLDS[s.selectedMold];
+                            const alloyR = getAlloy(s.crucible, s.researched);
+                            const cm2 = getCruMetal(s.crucible);
+                            const mid = alloyR || (cm2 === 'mixed' ? null : cm2);
+                            if (mold && mid && mid !== 'mixed' && s.crucibleTotal >= mold.m && s.queue.length < mrD.slots) {
+                                const q = getQ(s.temp, mid, s.researched, s.qLv);
+                                const ratio2 = (s.crucibleTotal - mold.m) / Math.max(.001, s.crucibleTotal);
+                                const nc2 = {}; let nt2 = 0;
+                                for (const [k, v] of Object.entries(s.crucible)) { nc2[k] = v * ratio2; nt2 += v * ratio2; }
+                                s.crucible = nc2; s.crucibleTotal = nt2;
+                                s.queue = [...s.queue, { id: Math.random().toString(36).slice(2), moldId: s.selectedMold, metalId: mid, quality: q, timeLeft: mold.t / qD.cFast, totalTime: mold.t / qD.cFast }];
+                            }
+                        }
+
+                        // QUEUE
+                        if (s.queue.length > 0) {
+                            const q2 = s.queue.map(ci => ({ ...ci, timeLeft: ci.timeLeft - DT }));
+                            const done = q2.filter(ci => ci.timeLeft <= 0);
+                            s.queue = q2.filter(ci => ci.timeLeft > 0);
+                            if (done.length > 0) {
+                                const inv = { ...s.inventory };
+                                for (const ci of done) {
+                                    const key = ci.metalId + '_' + ci.moldId;
+                                    if (!inv[key]) inv[key] = [];
+                                    const existing = inv[key].find(e => e.quality === ci.quality);
+                                    if (existing) existing.qty++;
+                                    else inv[key].push({ qty: 1, quality: ci.quality });
+                                    s.rating += Math.ceil(itemValFull(ci.moldId, ci.metalId, ci.quality, s.researched, s.trLv) * .03);
+                                }
+                                s.inventory = inv;
+                            }
+                        }
+                        return s;
+                    });
+                }, INT);
+                return () => clearInterval(t);
+            }, []);
+
+            // refresh veins on research change
+            const resSize = gs.researched.size;
+            useEffect(() => {
+                setVeins(genVeins(gs.researched, getEra(gs.researched)));
+            }, [resSize]);
+
+            // ACTIONS
+            function toggleFurnace() {
+                setGs(s => {
+                    if (!s.furnaceOn && (s.ores.coal || 0) <= 0) { toast('No coal! Mine coal first.', 'bad'); return s; }
+                    return { ...s, furnaceOn: !s.furnaceOn };
+                });
+            }
+
+            function pumpBellows(e) {
+                spk(e);
+                setGs(s => {
+                    if (s.bellowsCD > 0) return s;
+                    if (!s.furnaceOn) { toast('Light the furnace first!', 'bad'); return s; }
+                    const bD = BELLOWS_LV[s.bLv];
+                    return { ...s, bellowsTimer: bD.dur, bellowsCD: bD.cd };
+                });
+            }
+
+            function mineVein(vein, e) {
+                if (vein.hp <= 0) return;
+                const pick = PICKAXES.find(p => p.id === gs.pickaxe) || PICKAXES[0];
+                const oreId = vein.oreId;
+                const ore = ORES[oreId];
+                if (e) {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    const cx = r.left + r.width / 2, cy = r.top;
+                    const ns = Array.from({ length: 4 }, (_, i) => ({ id: Date.now() + i, dx: (Math.random() - .5) * 40, dy: -(Math.random() * 28 + 8), x: cx, y: cy }));
+                    setSparks(s => [...s, ...ns]);
+                    setTimeout(() => setSparks(s => s.filter(x => !ns.some(n => n.id === x.id))), 550);
+                    opop(cx, cy, '+' + pick.yield, ore.color);
+                }
+                setVeins(vs => vs.map(v => {
+                    if (v.id !== vein.id) return v;
+                    const nh = Math.max(0, v.hp - 1);
+                    return { ...v, hp: nh, regenTimer: nh === 0 ? 14 : v.regenTimer };
+                }));
+                setGs(s => {
+                    const ores = { ...s.ores };
+                    const isC = oreId === 'coal' || oreId === 'coal_flux';
+                    const cap = isC ? s.coalMax : s.oreMax;
+                    const cur = ores[oreId] || 0;
+                    const add = Math.min(pick.yield, cap - cur);
+                    if (add <= 0) { toast(`${ore.name} storage full!`, 'bad'); return s; }
+                    ores[oreId] = cur + add;
+                    return { ...s, ores };
+                });
+            }
+
+            useEffect(() => {
+                const t = setInterval(() => {
+                    setVeins(vs => vs.map(v => {
+                        if (v.hp > 0) return v;
+                        const rt = v.regenTimer - 1;
+                        if (rt <= 0) return { ...v, hp: v.maxHp, regenTimer: 0 };
+                        return { ...v, regenTimer: rt };
+                    }));
+                }, 1000);
+                return () => clearInterval(t);
+            }, []);
+
+            function smeltOre(oreId) {
+                setGs(s => {
+                    const metal = Object.entries(METALS).find(([, m]) => m.oreKey === oreId);
+                    if (!metal) { toast('Cannot smelt this directly.', 'bad'); return s; }
+                    const [metalId, mDef] = metal;
+                    if (s.temp < mDef.meltTemp - 80) { toast(`Need ~${mDef.meltTemp}°C. At ${Math.round(s.temp)}°C`, 'bad'); return s; }
+                    const have = s.ores[oreId] || 0;
+                    if (have < 1) { toast(`No ${ORES[oreId]?.name} in storage!`, 'bad'); return s; }
+                    const cDef = CRUCIBLE_LV[s.cLv];
+                    const space = cDef.cap - s.crucibleTotal;
+                    if (space < 1) { toast('Crucible is full!', 'bad'); return s; }
+                    const amt = Math.min(have, 8, space);
+                    const ores = { ...s.ores, [oreId]: have - amt };
+                    const cruc = { ...s.crucible, [metalId]: (s.crucible[metalId] || 0) + amt };
+                    return { ...s, ores, crucible: cruc, crucibleTotal: s.crucibleTotal + amt };
+                });
+            }
+
+            function dumpCrucible() {
+                setGs(s => {
+                    toast('Crucible dumped — metal wasted.', 'bad');
+                    addLog('Crucible contents dumped.');
+                    return { ...s, crucible: {}, crucibleTotal: 0 };
+                });
+            }
+
+            function castMold() {
+                setGs(s => {
+                    const mold = MOLDS[s.selectedMold];
+                    if (!mold) return s;
+                    const alloyR = getAlloy(s.crucible, s.researched);
+                    const cm = getCruMetal(s.crucible);
+                    const metalId = alloyR || (cm === 'mixed' ? null : cm);
+                    if (!metalId) {
+                        toast(cm === 'mixed' ? 'Bad alloy ratio — check indicator.' : 'Crucible empty.', 'bad');
+                        return s;
+                    }
+                    const mrD = MOLD_RACK_LV[s.mrLv];
+                    if (s.queue.length >= mrD.slots) { toast('Queue is full!', 'bad'); return s; }
+                    if (s.crucibleTotal < mold.m) { toast(`Need ${mold.m} metal, have ${Math.floor(s.crucibleTotal)}.`, 'bad'); return s; }
+                    const q = getQ(s.temp, metalId, s.researched, s.qLv);
+                    const qD = QUENCH_LV[s.qLv];
+                    const ratio = (s.crucibleTotal - mold.m) / Math.max(.001, s.crucibleTotal);
+                    const nc = {}; let nt = 0;
+                    for (const [k, v] of Object.entries(s.crucible)) { nc[k] = v * ratio; nt += v * ratio; }
+                    return {
+                        ...s, crucible: nc, crucibleTotal: nt,
+                        queue: [...s.queue, { id: Math.random().toString(36).slice(2), moldId: s.selectedMold, metalId, quality: q, timeLeft: mold.t / qD.cFast, totalTime: mold.t / qD.cFast }]
+                    };
+                });
+            }
+
+            function sellOne(key, quality) {
+                setGs(s => {
+                    const inv = { ...s.inventory };
+                    if (!inv[key]) return s;
+                    const parts = extractMetal(key);
+                    if (!parts) return s;
+                    const val = itemValFull(parts.moldId, parts.metalId, quality, s.researched, s.trLv);
+                    let found = false;
+                    inv[key] = inv[key].map(e => {
+                        if (found || e.quality !== quality) return e;
+                        found = true; return { ...e, qty: e.qty - 1 };
+                    }).filter(e => e.qty > 0);
+                    if (!inv[key].length) delete inv[key];
+                    toast(`Sold 1x ${fmtItem(key)} Q${quality} for ${fmtN(val)}g`, 'good');
+                    return { ...s, inventory: inv, gold: s.gold + val, totalGold: s.totalGold + val, rating: s.rating + Math.ceil(val * .08) };
+                });
+            }
+
+            function sellAll(key) {
+                setGs(s => {
+                    const inv = { ...s.inventory };
+                    if (!inv[key]) return s;
+                    const parts = extractMetal(key);
+                    if (!parts) return s;
+                    let total = 0; let qty = 0;
+                    for (const e of inv[key]) { total += itemValFull(parts.moldId, parts.metalId, e.quality, s.researched, s.trLv) * e.qty; qty += e.qty; }
+                    delete inv[key];
+                    toast(`Sold all ${fmtItem(key)} for ${fmtN(total)}g`, 'good');
+                    return { ...s, inventory: inv, gold: s.gold + total, totalGold: s.totalGold + total, rating: s.rating + Math.ceil(total * .08) };
+                });
+            }
+
+            function extractMetal(key) {
+                for (const mid of Object.keys(METALS)) {
+                    if (key.startsWith(mid + '_')) {
+                        return { metalId: mid, moldId: key.slice(mid.length + 1) };
+                    }
+                }
+                return null;
+            }
+
+            function doUpgrade(def) {
+                setGs(s => {
+                    const lv = s[def.lk] || 0;
+                    if (lv >= def.lvs.length - 1) { toast('Already maxed!', 'bad'); return s; }
+                    const cost = upgCost(def, lv);
+                    if (s.gold < cost) { toast('Not enough gold!', 'bad'); return s; }
+                    addLog(`Upgraded ${def.name} → ${def.lvs[lv + 1].name}`);
+                    toast(`${def.name} upgraded!`, 'good');
+                    return { ...s, gold: s.gold - cost, [def.lk]: lv + 1 };
+                });
+            }
+
+            function doResearch(res) {
+                setGs(s => {
+                    if (s.researched.has(res.id)) return s;
+                    if (res.pre.some(p => !s.researched.has(p))) { toast('Prerequisites not met!', 'bad'); return s; }
+                    if (s.gold < res.cost) { toast('Not enough gold!', 'bad'); return s; }
+                    const nr = new Set(s.researched); nr.add(res.id); if (res.ul) nr.add(res.ul);
+                    addLog(`Discovered: ${res.name}`);
+                    toast(`Research: ${res.name}!`, 'good');
+                    setTimeout(() => setVeins(genVeins(nr, getEra(nr))), 50);
+                    return { ...s, gold: s.gold - res.cost, researched: nr };
+                });
+            }
+
+            function buyPickaxe(pick) {
+                if (!pick.cost) return;
+                setGs(s => {
+                    const inv = { ...s.inventory };
+                    for (const [k, need] of Object.entries(pick.cost)) {
+                        const have = (inv[k] || []).reduce((a, e) => a + e.qty, 0);
+                        if (have < need) { toast(`Need ${need}x ${fmtItem(k)} to craft.`, 'bad'); return s; }
+                    }
+                    for (const [k, need] of Object.entries(pick.cost)) {
+                        let rem = need;
+                        inv[k] = (inv[k] || []).map(e => {
+                            if (rem <= 0) return e;
+                            const take = Math.min(e.qty, rem); rem -= take;
+                            return { ...e, qty: e.qty - take };
+                        }).filter(e => e.qty > 0);
+                        if (!inv[k]?.length) delete inv[k];
+                    }
+                    addLog(`Crafted ${pick.name}`);
+                    toast(`Crafted ${pick.name}!`, 'good');
+                    return { ...s, inventory: inv, pickaxe: pick.id };
+                });
+            }
+
+            function activateContract(id) { setGs(s => ({ ...s, activeContract: id })); }
+
+            function fulfillContract(con) {
+                setGs(s => {
+                    const inv = { ...s.inventory };
+                    for (const req of con.reqs) {
+                        const entries = inv[req.i] || [];
+                        const haveQ = entries.filter(e => e.quality >= req.qm).reduce((a, e) => a + e.qty, 0);
+                        if (haveQ < req.q) { toast('Requirements not met (check quality)!', 'bad'); return s; }
+                    }
+                    for (const req of con.reqs) {
+                        let rem = req.q;
+                        inv[req.i] = (inv[req.i] || []).map(e => {
+                            if (rem <= 0 || e.quality < req.qm) return e;
+                            const take = Math.min(e.qty, rem); rem -= take;
+                            return { ...e, qty: e.qty - take };
+                        }).filter(e => e.qty > 0);
+                        if (!inv[req.i]?.length) delete inv[req.i];
+                    }
+                    const nc = new Set(s.completedContracts); nc.add(con.id);
+                    addLog(con.story);
+                    toast(`Fulfilled: ${con.name}! +${fmtN(con.rwd.g)}g`, 'good');
+                    return { ...s, inventory: inv, gold: s.gold + con.rwd.g, totalGold: s.totalGold + con.rwd.g, rating: s.rating + con.rwd.r, completedContracts: nc, activeContract: null };
+                });
+            }
+
+            // DERIVED
+            const fD = FURNACE_LV[gs.fLv], bD = BELLOWS_LV[gs.bLv], cD = CRUCIBLE_LV[gs.cLv];
+            const mrD = MOLD_RACK_LV[gs.mrLv];
+            const tempPct = gs.temp / fD.maxT;
+            const tempColor = gs.temp < 80 ? '#441400' : gs.temp < 350 ? '#8a2200' : gs.temp < 600 ? '#e05000' : gs.temp < 900 ? '#ffa000' : '#ffe060';
+            const alloyR = getAlloy(gs.crucible, gs.researched);
+            const cm = getCruMetal(gs.crucible);
+            const displayMetal = alloyR || (cm === 'mixed' ? null : cm);
+            const era = getEra(gs.researched);
+            const isBadMix = cm === 'mixed' && !alloyR;
+            const availMolds = Object.entries(MOLDS).filter(([id, m]) => m.always || gs.researched.has(m.unlock));
+            const invEntries = Object.entries(gs.inventory).filter(([, v]) => v?.some(e => e.qty > 0));
+            const smeltOres = Object.entries(ORES).filter(([oid]) => {
+                const metal = Object.entries(METALS).find(([, m]) => m.oreKey === oid);
+                if (!metal) return false;
+                const [mid] = metal;
+                return (gs.ores[oid] || 0) > 0 && (mid === 'iron' || gs.researched.has(mid) || gs.researched.has('r' + mid.charAt(0).toUpperCase() + mid.slice(1)));
+            });
+
+            return h('div', { class: 'app' },
+                sparks.map(sp => h('div', { key: sp.id, class: 'spark', style: { left: sp.x + 'px', top: sp.y + 'px', '--dx': sp.dx + 'px', '--dy': sp.dy + 'px' } })),
+                opops.map(p => h('div', { key: p.id, class: 'opop', style: { left: p.x + 'px', top: p.y + 'px', color: p.color } }, p.txt)),
+                h('div', { class: 'toasts' }, toasts.map(t => h('div', { key: t.id, class: `toast ${t.type}` }, t.msg))),
+
+                h('header', { class: 'header' },
+                    h('span', { class: 'h1' }, '⚒ IRONWORKS'),
+                    h('div', { class: 'hstat' }, h('span', { class: 'lbl' }, 'Rating'), h('span', { class: 'val' }, fmtN(gs.rating))),
+                    h('span', { class: 'hrank' }, getRank(gs.rating)),
+                    h('div', { class: 'hstat' }, h('span', { class: 'lbl' }, 'Era'), h('span', { class: 'val', style: 'font-size:14px;color:var(--accent)' }, ERA[era])),
+                    h('div', { class: 'hgold' }, h('i', { class: 'fa-solid fa-coins', style: 'font-size:15px' }), fmtN(gs.gold), ' g')
+                ),
+
+                h('main', { class: 'main' },
+                    // LEFT
+                    h('aside', { class: 'panel' },
+                        h('div', { class: 'tabs' },
+                            h('button', { class: `tab ${ltab === 'mine' ? 'on' : ''}`, onClick: () => setLtab('mine') }, '⛏ Mine'),
+                            h('button', { class: `tab ${ltab === 'stock' ? 'on' : ''}`, onClick: () => setLtab('stock') }, '📦 Stock'),
+                        ),
+                        ltab === 'mine' && h(MineTab, { gs, veins, onMine: mineVein, onBuy: buyPickaxe }),
+                        ltab === 'stock' && h(StockTab, { gs }),
+                    ),
+
+                    // CENTER
+                    h('section', { class: 'workshop' },
+                        // SMELTERY
+                        h('div', { class: 'smelt-sec' },
+                            // LEFT of smeltery: crucible display + smelt buttons
+                            h('div', { class: 'smelt-left' },
+                                h(CrucibleDisplay, { gs, alloyR, displayMetal, isBadMix, onDump: dumpCrucible }),
+                                h('div', { class: 'smelt-btns', style: 'margin-top:7px' },
+                                    smeltOres.length === 0
+                                        ? h('span', { class: 'empty', style: 'font-size:var(--fss)' }, 'Mine ore to smelt')
+                                        : smeltOres.map(([oid, ore]) => {
+                                            const metal = Object.entries(METALS).find(([, m]) => m.oreKey === oid);
+                                            const [mid, mDef] = metal || ['?', { meltTemp: 9999 }];
+                                            const canSmelt = gs.temp >= mDef.meltTemp - 80;
+                                            return h('button', {
+                                                key: oid, class: 'btn sm full',
+                                                style: `border-color:${ore.color}50;color:${ore.color};`,
+                                                onClick: () => smeltOre(oid), disabled: !canSmelt
+                                            },
+                                                h('i', { class: `fa-solid ${ore.icon}`, style: 'font-size:12px' }),
+                                                `Smelt ${METALS[mid]?.name || mid} (${Math.floor(gs.ores[oid] || 0)})`
+                                            );
+                                        })
+                                ),
+                            ),
+                            // RIGHT of smeltery: temp + furnace controls
+                            h('div', { class: 'smelt-right' },
+                                h('div', { class: 'temp-sec' },
+                                    h('div', { style: 'display:flex;align-items:baseline;gap:10px' },
+                                        h('span', { class: 'temp-num', style: `color:${tempColor}` }, Math.round(gs.temp) + '°C'),
+                                        h('span', { style: 'font-size:var(--fss);color:var(--text2)' }, fD.name),
+                                        gs.temp > fD.maxT * .88 && h('span', { style: 'font-size:var(--fss);color:var(--red);animation:blink-r 1s infinite' }, '⚠ OVERHEAT'),
+                                    ),
+                                    h('div', { class: 'temp-bar-bg', style: 'margin-top:6px' },
+                                        h('div', { class: 'temp-bar-fg', style: `width:${tempPct * 100}%;background:${tempColor}` }),
+                                    ),
+                                    h('div', { class: 'temp-refs' },
+                                        Object.entries(METALS).filter(([mid]) => mid === 'iron' || gs.researched.has(mid) || gs.researched.has('r' + mid.charAt(0).toUpperCase() + mid.slice(1))).map(([mid, m]) => {
+                                            const pct = Math.min(100, (m.meltTemp / fD.maxT) * 100);
+                                            return h('span', { key: mid, class: 'temp-ref', style: `color:${m.color};border:1px solid ${m.color}40` }, `${m.name}:${m.meltTemp}°`);
+                                        })
+                                    ),
+                                    // Bellows boost bar
+                                    gs.bellowsTimer > 0 && h('div', null,
+                                        h('div', { style: 'font-size:var(--fss);color:var(--accent);margin-top:4px' },
+                                            `Bellows boosting: ${gs.bellowsTimer.toFixed(1)}s`
+                                        ),
+                                        h('div', { class: 'bellows-boost' },
+                                            h('div', { class: 'bellows-boost-bar', style: `width:${(gs.bellowsTimer / bD.dur) * 100}%` })
+                                        )
+                                    ),
+                                ),
+                                h('div', { class: 'furnace-btns', style: 'margin-top:10px' },
+                                    h('button', {
+                                        class: `btn pri`, onClick: toggleFurnace,
+                                        style: gs.furnaceOn ? 'border-color:#ff6600;color:#ff6600;background:rgba(255,102,0,.12)' : ''
+                                    },
+                                        h('i', { class: gs.furnaceOn ? 'fa-solid fa-fire' : 'fa-solid fa-fire-flame-simple' }),
+                                        gs.furnaceOn ? 'Douse' : 'Light Furnace'
+                                    ),
+                                    h('button', {
+                                        class: `btn ${gs.bellowsTimer > 0 ? 'active-b' : ''}`, onClick: pumpBellows,
+                                        disabled: !gs.furnaceOn || gs.bellowsCD > 0
+                                    },
+                                        h('i', { class: 'fa-solid fa-wind' }),
+                                        gs.bellowsCD > 0 ? `CD ${Math.ceil(gs.bellowsCD / 1000)}s` : `Bellows +${bD.boost}° / ${bD.dur}s`
+                                    ),
+                                ),
+                                h('div', { style: 'font-size:var(--fss);color:var(--text2);margin-top:5px' },
+                                    `Coal: ${(gs.ores.coal || 0).toFixed(1)} · Crucible: ${Math.floor(gs.crucibleTotal)}/${cD.cap}`
+                                ),
+                            ),
+                        ),
+
+                        // MOLDS
+                        h('div', { class: 'mold-sec' },
+                            h('div', { class: 'ptitle', style: 'position:static;padding:0 0 8px' }, 'Select Mold & Cast'),
+                            h('div', { class: 'mold-grid' },
+                                availMolds.map(([id, mo]) =>
+                                    h('button', { key: id, class: `mb ${gs.selectedMold === id ? 'on' : ''}`, onClick: () => setGs(s => ({ ...s, selectedMold: id })) },
+                                        h('i', { class: `fa-solid ${mo.icon}` }),
+                                        mo.name,
+                                        h('span', { class: 'mb-c' }, mo.m + ' metal'),
+                                        displayMetal && h('span', { class: 'mb-v' }, '~' + fmtN(itemValFull(id, displayMetal, 3, gs.researched, gs.trLv)) + 'g'),
+                                    )
+                                )
+                            ),
+                            h('div', { style: 'display:flex;gap:8px' },
+                                h('button', {
+                                    class: 'btn pri', style: 'flex:1;justify-content:center',
+                                    disabled: !displayMetal || gs.crucibleTotal < (MOLDS[gs.selectedMold]?.m || 99) || gs.queue.length >= mrD.slots,
+                                    onClick: castMold
+                                },
+                                    h('i', { class: 'fa-solid fa-faucet' }),
+                                    `Pour ${MOLDS[gs.selectedMold]?.name || 'Mold'}`
+                                ),
+                            )
+                        ),
+
+                        // QUEUE
+                        h('div', { class: 'queue-sec' },
+                            h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:7px' },
+                                h('span', { style: 'font-family:Cinzel,serif;font-size:var(--fsx);letter-spacing:.15em;color:var(--text2);text-transform:uppercase' }, `Cooling — ${gs.queue.length}/${mrD.slots}`),
+                            ),
+                            gs.queue.length === 0
+                                ? h('span', { class: 'empty' }, 'No active castings.')
+                                : h('div', { class: 'qi-list' },
+                                    gs.queue.map(ci =>
+                                        h('div', { key: ci.id, class: 'qi' },
+                                            h('i', { class: `fa-solid ${MOLDS[ci.moldId]?.icon}`, style: `color:${METALS[ci.metalId]?.color || '#aaa'};font-size:13px` }),
+                                            METALS[ci.metalId]?.name, ' ', MOLDS[ci.moldId]?.name,
+                                            h('span', { style: 'font-size:10px;color:var(--text2);margin-left:3px' }, 'Q' + ci.quality),
+                                            h('div', { class: 'qi-pb' }, h('div', { class: 'qi-pf', style: `width:${((ci.totalTime - ci.timeLeft) / ci.totalTime) * 100}%` })),
+                                            h('span', { style: 'font-size:10px;color:var(--text2);min-width:20px' }, Math.ceil(ci.timeLeft) + 's')
+                                        )
+                                    )
+                                )
+                        ),
+
+                        // INVENTORY
+                        h('div', { class: 'inv-sec' },
+                            h('div', { style: 'font-family:Cinzel,serif;font-size:var(--fsx);letter-spacing:.15em;color:var(--text2);text-transform:uppercase;margin-bottom:7px' }, `Workshop Output — ${invEntries.length} types`),
+                            invEntries.length === 0
+                                ? h('span', { class: 'empty' }, 'Cast metal to produce goods.')
+                                : h('div', { class: 'inv-list' },
+                                    invEntries.flatMap(([key, entries]) =>
+                                        entries.filter(e => e.qty > 0).map((entry, i) => {
+                                            const p = extractMetal(key);
+                                            if (!p) return null;
+                                            const metal = METALS[p.metalId]; const mo = MOLDS[p.moldId];
+                                            const val = itemValFull(p.moldId, p.metalId, entry.quality, gs.researched, gs.trLv);
+                                            return h('div', { key: key + i, class: 'ir' },
+                                                h('i', { class: `fa-solid ${mo?.icon || 'fa-box'} ir-icon`, style: `color:${metal?.color || '#aaa'}` }),
+                                                h('span', { class: 'ir-name' }, fmtItem(key)),
+                                                h('span', { class: 'ir-q' }, 'Q' + entry.quality),
+                                                h('span', { class: 'ir-qty' }, '×' + entry.qty),
+                                                h('span', { class: 'ir-val' }, fmtN(val) + 'g'),
+                                                h('button', { class: 'sb', onClick: () => sellOne(key, entry.quality), disabled: entry.qty < 1 }, 'Sell'),
+                                                h('button', { class: 'sba', onClick: () => sellAll(key), disabled: entry.qty < 1 }, 'All'),
+                                            );
+                                        }).filter(Boolean)
+                                    )
+                                )
+                        ),
+                        h('div', { style: 'padding:9px 16px;color:var(--text2);font-size:var(--fss);font-style:italic;border-top:1px solid var(--border)' }, gs.log[0]),
+                    ),
+
+                    // RIGHT
+                    h('aside', { class: 'rpanel-wrap' },
+                        h('div', { class: 'tabs' },
+                            [['upgrades', 'fa-arrow-up', 'Upgrades'], ['research', 'fa-flask', 'Research'], ['contracts', 'fa-scroll', 'Contracts']].map(([tid, ic, lb]) =>
+                                h('button', { key: tid, class: `tab ${rtab === tid ? 'on' : ''}`, onClick: () => setRtab(tid) },
+                                    h('i', { class: `fa-solid ${ic}`, style: 'display:block;font-size:13px;margin-bottom:1px' }), lb
+                                )
+                            )
+                        ),
+                        h('div', { class: 'rp' },
+                            rtab === 'upgrades' && h(UpgradeTab, { gs, onUpgrade: doUpgrade }),
+                            rtab === 'research' && h(ResearchTab, { gs, onResearch: doResearch }),
+                            rtab === 'contracts' && h(ContractsTab, { gs, onActivate: activateContract, onFulfill: fulfillContract }),
+                        )
+                    ),
+                ),
+
+                h('footer', { class: 'footer' },
+                    h('span', { class: 'log-lbl' }, 'Log'),
+                    h('span', { class: `log-msg ${gs.log[0]?.includes('!') || gs.log[0]?.includes('Master') ? 'hi' : ''}` }, gs.log[0] || '—')
+                )
+            );
+        }
+
+        // ──────────────────────────────────────────────
+        // CRUCIBLE DISPLAY COMPONENT
+        // ──────────────────────────────────────────────
+        function CrucibleDisplay({ gs, alloyR, displayMetal, isBadMix, onDump }) {
+            const cD = CRUCIBLE_LV[gs.cLv];
+            const total = gs.crucibleTotal;
+            const layers = Object.entries(gs.crucible).filter(([, v]) => v > 0.1).sort((a, b) => b[1] - a[1]);
+
+            return h('div', { class: 'crucible-box' },
+                h('div', { class: 'cruc-title' },
+                    alloyR
+                        ? h('span', { style: `color:${METALS[alloyR]?.color}` }, '✓ ' + METALS[alloyR]?.name + ' Alloy')
+                        : total > 0
+                            ? h('span', { style: 'color:var(--text)' }, 'Crucible Contents')
+                            : h('span', { style: 'color:var(--text3)' }, 'Crucible — Empty'),
+                    total > 0 && h('span', { style: 'font-family:Share Tech Mono,monospace;font-size:var(--fsx);color:var(--text2);margin-left:auto' },
+                        Math.floor(total) + '/' + cD.cap
+                    )
+                ),
+                total === 0
+                    ? h('div', { class: 'cruc-empty' }, 'No molten metal')
+                    : h('div', { class: 'cruc-layers' },
+                        layers.map(([mid, amt]) => {
+                            const metal = METALS[mid];
+                            const pct = Math.round(amt / total * 100);
+                            return h('div', { key: mid, class: 'cruc-layer', style: `border-color:${metal?.color || '#888'}` },
+                                h('span', { class: 'cruc-layer-name', style: `color:${metal?.color || '#ccc'}` }, metal?.name || mid),
+                                h('span', { class: 'cruc-layer-amt', style: 'color:var(--text)' }, Math.floor(amt)),
+                                h('span', { class: 'cruc-layer-pct' }, pct + '%'),
+                            );
+                        }),
+                        layers.length > 1 && h('div', { class: 'cruc-total' },
+                            h('span', { style: 'color:var(--text2)' }, 'Total'),
+                            h('span', { style: 'font-family:Share Tech Mono,monospace;color:var(--text)' }, Math.floor(total) + 'u')
+                        )
+                    ),
+                // Alloy indicator for mixed
+                isBadMix && h(AlloyIndicator, { gs, crucible: gs.crucible, total }),
+                // Dump button + warning
+                total > 0 && h('div', { style: 'margin-top:8px;display:flex;align-items:center;gap:7px' },
+                    isBadMix && h('span', { style: 'font-size:var(--fss);color:var(--red);flex:1' }, '⚠ Bad mix'),
+                    h('button', { class: 'btn danger sm', onClick: onDump, style: 'margin-left:auto' }, 'Dump All'),
+                )
+            );
+        }
+
+        function AlloyIndicator({ gs, crucible, total }) {
+            const known = Object.entries(METALS).filter(([mid, m]) => m.alloy && gs.researched.has(mid));
+            if (!known.length) return null;
+            return h('div', { style: 'margin-top:8px' },
+                h('div', { style: 'font-size:var(--fsx);color:var(--text2);margin-bottom:4px;font-family:Cinzel,serif;letter-spacing:.1em' }, 'ALLOY TARGETS'),
+                known.map(([mid, m]) => {
+                    const comps = Object.entries(m.alloy);
+                    return h('div', { key: mid, class: 'alloy-box', style: 'margin-bottom:5px' },
+                        h('div', { class: 'alloy-name', style: `color:${m.color}` }, m.name),
+                        comps.map(([comp, ratio]) => {
+                            const actual = (crucible[comp] || 0) / Math.max(1, total);
+                            const ok = Math.abs(actual - ratio) < m.tol;
+                            const pct = Math.min(100, actual * 100);
+                            const targetPct = ratio * 100;
+                            return h('div', { key: comp, class: 'alloy-row' },
+                                h('span', { class: 'alloy-comp', style: `color:${METALS[comp]?.color || '#ccc'}` }, METALS[comp]?.name || comp),
+                                h('div', { class: 'alloy-bar' },
+                                    h('div', { class: 'alloy-actual', style: `width:${pct}%;background:${METALS[comp]?.color || '#888'};opacity:.7` }),
+                                    h('div', { class: 'alloy-target', style: `left:${targetPct}%` }),
+                                ),
+                                h('span', { class: ok ? 'alloy-ok' : 'alloy-off', style: 'font-size:var(--fss);min-width:36px;text-align:right' },
+                                    Math.round(actual * 100) + '% ' + (ok ? '✓' : '✗')
+                                )
+                            );
+                        })
+                    );
+                })
+            );
+        }
+
+        // ──────────────────────────────────────────────
+        // MINE TAB
+        // ──────────────────────────────────────────────
+        function MineTab({ gs, veins, onMine, onBuy }) {
+            const pick = PICKAXES.find(p => p.id === gs.pickaxe) || PICKAXES[0];
+            const pickIdx = PICKAXES.findIndex(p => p.id === gs.pickaxe);
+            return h('div', { class: 'mine-wrap' },
+                h('div', { style: 'font-size:var(--fss);color:var(--text2)' },
+                    'Using: ', h('span', { style: 'color:var(--accent)' }, pick.name), ' · ', h('span', { style: 'color:var(--green)' }, '+' + pick.yield), ' ore/click'
+                ),
+                h('div', { class: 'vein-grid' },
+                    veins.map(vein => {
+                        const ore = ORES[vein.oreId];
+                        const dep = vein.hp <= 0;
+                        return h('div', {
+                            key: vein.id, class: `vn ${dep ? 'dep' : ''}`,
+                            onClick: e => !dep && onMine(vein, e),
+                            style: `border-color:${dep ? 'var(--border)' : ore.color + '40'}`
+                        },
+                            h('i', { class: `fa-solid ${ore.icon}`, style: `color:${dep ? '#555' : ore.color}` }),
+                            h('span', { class: 'vn-nm', style: `color:${dep ? 'var(--text3)' : ore.color}` }, ore.name.replace(' Ore', '').replace(' Flux', '')),
+                            dep
+                                ? h('span', { class: 'vn-cd' }, vein.regenTimer + 's')
+                                : h('div', { class: 'vn-hp', style: `width:${(vein.hp / vein.maxHp) * 100}%;background:${ore.color}` })
+                        );
+                    })
+                ),
+                h('div', { class: 'div' }),
+                h('div', { class: 'pick-shop' },
+                    h('h4', null, 'Pickaxe Workshop'),
+                    PICKAXES.map((p, i) => {
+                        const isCur = p.id === gs.pickaxe;
+                        const canBuy = p.cost && Object.entries(p.cost).every(([k, n]) => (gs.inventory[k] || []).reduce((a, e) => a + e.qty, 0) >= n);
+                        return h('div', { key: p.id, class: 'pick-row' },
+                            h('i', { class: `fa-solid ${p.icon}`, style: `color:${isCur ? 'var(--accent)' : 'var(--text2)'};width:18px;font-size:15px` }),
+                            h('span', { class: 'pick-nm', style: `color:${isCur ? 'var(--accent)' : 'var(--text)'}` }, p.name),
+                            h('span', { class: 'pick-yd' }, '+' + p.yield + '/click'),
+                            isCur
+                                ? h('span', { style: 'font-size:var(--fss);color:var(--green)' }, 'equipped')
+                                : p.cost
+                                    ? h('button', { class: `btn sm ${canBuy ? 'pri' : ''}`, onClick: () => onBuy(p), disabled: !canBuy },
+                                        Object.entries(p.cost).map(([k, n]) => `${n}x ${fmtItem(k)}`).join(', ')
+                                    )
+                                    : null
+                        );
+                    })
+                )
+            );
+        }
+
+        // ──────────────────────────────────────────────
+        // STOCK TAB
+        // ──────────────────────────────────────────────
+        function StockTab({ gs }) {
+            const stD = STORAGE_LV[gs.sLv];
+            const ores = Object.entries(gs.ores).filter(([, v]) => v > 0.01);
+            return h('div', { style: 'padding:12px;overflow-y:auto;' },
+                h('div', { class: 'ptitle', style: 'position:static;padding:0 0 8px' }, 'Ore & Fuel Storage'),
+                ores.length === 0 && h('span', { class: 'empty' }, 'No resources.'),
+                ores.map(([oid, qty]) => {
+                    const ore = ORES[oid];
+                    const isC = oid === 'coal' || oid === 'coal_flux';
+                    const cap = isC ? stD.cMax : stD.oMax;
+                    return h('div', { key: oid, class: 'stock-item' },
+                        h('div', { class: 'si-row' },
+                            h('i', { class: `fa-solid ${ore.icon}`, style: `color:${ore.color};font-size:15px;width:18px;text-align:center` }),
+                            h('span', { style: 'flex:1;font-size:var(--fsm)' }, ore.name),
+                            h('span', { style: 'font-family:Share Tech Mono,monospace;font-size:var(--fsm)' }, Math.floor(qty)),
+                            h('span', { style: 'font-size:var(--fss);color:var(--text2)' }, '/' + cap),
+                        ),
+                        h('div', { class: 'si-bar' }, h('div', { class: 'si-fill', style: `width:${(qty / cap) * 100}%;background:${ore.color}` }))
+                    );
+                })
+            );
+        }
+
+        // ──────────────────────────────────────────────
+        // UPGRADE TAB
+        // ──────────────────────────────────────────────
+        function UpgradeTab({ gs, onUpgrade }) {
+            return h('div', null,
+                UPGRADES.map(def => {
+                    const lv = gs[def.lk] || 0;
+                    const maxed = lv >= def.lvs.length - 1;
+                    const cost = maxed ? 0 : upgCost(def, lv);
+                    const canAff = gs.gold >= cost;
+                    return h('div', { key: def.id, class: `uc ${maxed ? 'maxed' : ''}`, onClick: () => !maxed && onUpgrade(def) },
+                        h('div', { class: 'uc-h' },
+                            h('i', { class: `fa-solid ${def.icon} uc-i`, style: `color:${maxed ? 'var(--gold)' : 'var(--accent)'}` }),
+                            h('span', { class: 'uc-n' }, def.name),
+                            h('span', { class: 'uc-lv' }, `${lv + 1}/${def.lvs.length}`)
+                        ),
+                        h('div', { class: 'uc-cur' }, def.lvs[lv].name),
+                        !maxed && h('div', { class: `uc-cost ${canAff ? '' : 'no'}` }, h('i', { class: 'fa-solid fa-coins', style: 'font-size:12px' }), fmtN(cost) + 'g'),
+                        !maxed && h('div', { class: 'uc-eff' }, '→ ' + def.lvs[lv + 1].name + ': ' + def.eff(lv + 1)),
+                        maxed && h('div', { class: 'uc-eff' }, '✓ Maximum level'),
+                    );
+                })
+            );
+        }
+
+        // ──────────────────────────────────────────────
+        // RESEARCH TAB
+        // ──────────────────────────────────────────────
+        function ResearchTab({ gs, onResearch }) {
+            const byEra = [[], [], [], [], []];
+            for (const r of RESEARCH) byEra[r.era].push(r);
+            return h('div', null,
+                byEra.map((grp, era) =>
+                    grp.length === 0 ? null : h('div', { key: era, style: 'margin-bottom:14px' },
+                        h('div', { class: 'era-head' }, h('span', { class: 'be' }, ERA[era])),
+                        grp.map(res => {
+                            const done = gs.researched.has(res.id);
+                            const preOk = res.pre.every(p => gs.researched.has(p));
+                            const canAff = gs.gold >= res.cost;
+                            const status = done ? 'dn' : preOk ? 'av' : 'lk';
+                            return h('div', { key: res.id, class: `rc ${status}`, onClick: () => status === 'av' && onResearch(res) },
+                                h('div', { class: 'rc-n' }, res.name,
+                                    done && h('span', { class: 'badge bd' }, 'DONE'),
+                                    status === 'lk' && h('span', { class: 'badge bl' }, 'LOCKED'),
+                                ),
+                                h('div', { class: 'rc-d' }, res.eff),
+                                !done && preOk && h('div', { class: 'rc-cost', style: canAff ? '' : 'color:var(--red)' },
+                                    h('i', { class: 'fa-solid fa-coins', style: 'font-size:11px;margin-right:3px' }), fmtN(res.cost) + 'g'
+                                ),
+                                !done && !preOk && h('div', { class: 'rc-req' }, 'Needs: ' + res.pre.map(p => RESEARCH.find(r => r.id === p)?.name || p).join(', ')),
+                            );
+                        })
+                    )
+                )
+            );
+        }
+
+        // ──────────────────────────────────────────────
+        // CONTRACTS TAB
+        // ──────────────────────────────────────────────
+        function ContractsTab({ gs, onActivate, onFulfill }) {
+            return h('div', null,
+                CONTRACTS.map(con => {
+                    const done = gs.completedContracts.has(con.id);
+                    const preOk = !con.pre || gs.completedContracts.has(con.pre);
+                    const isAct = gs.activeContract === con.id;
+                    const prog = con.reqs.map(req => {
+                        const entries = gs.inventory[req.i] || [];
+                        const haveQ = entries.filter(e => e.quality >= req.qm).reduce((a, e) => a + e.qty, 0);
+                        return { ...req, have: haveQ, allDone: haveQ >= req.q };
+                    });
+                    const canFul = prog.every(p => p.allDone);
+                    if (done) return h('div', { key: con.id, class: 'cc dn-c' }, h('div', { class: 'cc-n' }, '✓ ' + con.name), h('div', { class: 'cc-d' }, 'Fulfilled'));
+                    if (!preOk) return h('div', { key: con.id, class: 'cc', style: 'opacity:.28' }, h('div', { class: 'cc-n' }, con.name), h('div', { class: 'cc-lk' }, 'Complete earlier contract first'));
+                    return h('div', { key: con.id, class: `cc ${isAct ? 'act' : ''}` },
+                        h('div', { class: 'cc-n' }, con.name),
+                        h('div', { class: 'cc-d' }, con.desc),
+                        con.reqs.map(req =>
+                            h('div', { key: req.i, class: `cc-req ${prog.find(p => p.i === req.i)?.allDone ? 'ok-r' : ''}` },
+                                h('span', { style: 'font-size:var(--fss);min-width:140px' }, fmtItem(req.i) + ' Q≥' + req.qm),
+                                h('div', { class: 'cc-bar' }, h('div', { class: 'cc-fill', style: `width:${Math.min(100, ((prog.find(p => p.i === req.i)?.have || 0) / req.q) * 100)}%` })),
+                                h('span', { class: 'cc-cnt' }, (prog.find(p => p.i === req.i)?.have || 0) + '/' + req.q)
+                            )
+                        ),
+                        h('div', { class: 'cc-rwd' }, h('i', { class: 'fa-solid fa-coins', style: 'margin-right:5px' }), fmtN(con.rwd.g) + 'g + ' + fmtN(con.rwd.r) + ' rating'),
+                        !isAct
+                            ? h('button', { class: 'cc-btn', onClick: () => onActivate(con.id) }, 'Track Contract')
+                            : h('button', { class: 'cc-btn', onClick: () => onFulfill(con), disabled: !canFul }, canFul ? 'Fulfill Contract →' : 'Requirements Incomplete')
+                    );
+                })
+            );
+        }
+
+        render(h(App, null), document.getElementById('app'));
+    </script>
+</body>
+
+</html>
