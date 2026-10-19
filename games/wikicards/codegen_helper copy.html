@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Wiki Promo Code Generator</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      max-width: 720px;
+      margin: 36px auto;
+      padding: 0 18px;
+      color: #111;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    textarea,
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+      margin-top: 6px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+
+    .result {
+      margin-top: 12px;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .code {
+      font-family: "Courier New", monospace;
+      letter-spacing: 1px;
+      background: #f6f6f6;
+      padding: 6px 8px;
+      display: inline-block;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Wiki Promo Code Generator</h1>
+
+  <section>
+    <h3>Encode Article Title to Code</h3>
+    <textarea id="titleInput" rows="2" placeholder="Indonesian_mass_killings_of_1965–66"></textarea>
+    <button id="encodeBtn">Generate Code</button>
+    <div class="result">Code: <span id="codeOutput" class="code">—</span></div>
+  </section>
+
+  <hr>
+
+  <section>
+    <h3>Decode Code to Article Title</h3>
+    <input id="codeInput" placeholder="XXXX-XXXX-XXXX-..." />
+    <button id="decodeBtn">Decode Code</button>
+    <div class="result">Title: <span id="titleOutput">—</span></div>
+  </section>
+
+  <script src="encoder.js"></script>
+  <script>
+
+    const titleInput = document.getElementById("titleInput");
+    const encodeBtn = document.getElementById("encodeBtn");
+    const codeOutput = document.getElementById("codeOutput");
+
+    const codeInput = document.getElementById("codeInput");
+    const decodeBtn = document.getElementById("decodeBtn");
+    const titleOutput = document.getElementById("titleOutput");
+
+    encodeBtn.addEventListener("click", () => {
+      const title = titleInput.value;
+      if (!title) {
+        codeOutput.textContent = "—";
+        return;
+      }
+      try {
+        const code = encodeTitleToCode(title);
+        codeOutput.textContent = code;
+      } catch (e) {
+        codeOutput.textContent = "Error: " + e.message;
+      }
+    });
+
+    decodeBtn.addEventListener("click", () => {
+      const code = codeInput.value.trim();
+      if (!code) {
+        titleOutput.textContent = "—";
+        return;
+      }
+      try {
+        const title = decodeCodeToTitle(code);
+        titleOutput.textContent = title;
+      } catch (e) {
+        titleOutput.textContent = "Invalid code";
+      }
+    });
+
+  </script>
+</body>
+
+</html>
