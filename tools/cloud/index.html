@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Icon Manager</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- Auth overlay -->
+  <div id="auth-overlay" class="hidden">
+    <div id="auth-dialog">
+      <div class="auth-logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#6C63FF"/>
+          <path d="M8 24L16 8L24 24" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M11 19H21" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span>Icon Manager</span>
+      </div>
+      <h2>Connect to Cloudinary</h2>
+      <p class="auth-sub">Your credentials are stored locally and never sent anywhere except Cloudinary.</p>
+      <div class="field-group">
+        <label for="input-cloud-name">Cloud Name</label>
+        <input type="text" id="input-cloud-name" placeholder="e.g. dxyz1234" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="field-group">
+        <label for="input-api-key">API Key</label>
+        <input type="text" id="input-api-key" placeholder="Your Cloudinary API key" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="field-group">
+        <label for="input-api-secret">API Secret</label>
+        <input type="password" id="input-api-secret" placeholder="Your Cloudinary API secret" autocomplete="off" />
+      </div>
+      <div class="field-group">
+        <label for="input-upload-preset">Upload Preset <span class="label-hint">(unsigned)</span></label>
+        <input type="text" id="input-upload-preset" placeholder="e.g. icons_unsigned" autocomplete="off" spellcheck="false" />
+      </div>
+      <div id="auth-error" class="error-msg hidden"></div>
+      <button id="btn-auth-submit" class="btn-primary">Connect</button>
+    </div>
+  </div>
+
+  <!-- Main app shell -->
+  <div id="app" class="hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-brand">
+        <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#6C63FF"/>
+          <path d="M8 24L16 8L24 24" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M11 19H21" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span>Icon Manager</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-filter="all">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          All Icons
+          <span class="nav-badge" id="badge-all">0</span>
+        </a>
+        <a href="#" class="nav-item" data-filter="recent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Recent
+        </a>
+      </nav>
+
+      <div class="sidebar-section-title">Tags</div>
+      <div id="tag-list" class="tag-list"></div>
+
+      <div class="sidebar-footer">
+        <button id="btn-logout" class="btn-ghost btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main id="main">
+
+      <!-- Toolbar -->
+      <header id="toolbar">
+        <div class="toolbar-left">
+          <div class="search-wrap">
+            <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="search-input" placeholder="Search icons…" />
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <select id="sort-select">
+            <option value="created_at-desc">Newest first</option>
+            <option value="created_at-asc">Oldest first</option>
+            <option value="public_id-asc">Name A–Z</option>
+            <option value="public_id-desc">Name Z–A</option>
+            <option value="bytes-desc">Largest first</option>
+            <option value="bytes-asc">Smallest first</option>
+          </select>
+          <select id="format-filter">
+            <option value="">All formats</option>
+            <option value="svg">SVG</option>
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+            <option value="webp">WebP</option>
+            <option value="ico">ICO</option>
+          </select>
+          <button id="btn-rebuild-index" class="btn-ghost btn-sm" title="Re-save index after uploading via Cloudinary dashboard">Rebuild index</button>
+          <button id="btn-refresh" class="btn-icon" title="Refresh">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+          <button id="btn-upload" class="btn-primary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            Upload
+          </button>
+        </div>
+      </header>
+
+      <!-- Drop zone overlay (shown during drag) -->
+      <div id="drop-overlay" class="hidden">
+        <div class="drop-message">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          <span>Drop icons to upload</span>
+        </div>
+      </div>
+
+      <!-- Hidden file input -->
+      <input type="file" id="file-input" multiple accept="image/*,.svg,.ico" class="hidden" />
+
+      <!-- Stats bar -->
+      <div id="stats-bar">
+        <span id="stats-text">Loading…</span>
+        <div class="view-toggle">
+          <button class="view-btn active" data-view="grid" title="Grid view">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+          <button class="view-btn" data-view="list" title="List view">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Icon grid -->
+      <div id="icon-grid" class="view-grid"></div>
+
+      <!-- Load more -->
+      <div id="load-more-wrap" class="hidden">
+        <button id="btn-load-more" class="btn-ghost">Load more</button>
+      </div>
+
+      <!-- Empty state -->
+      <div id="empty-state" class="hidden">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <p class="empty-title">No icons found</p>
+        <p class="empty-sub">Try a different search or upload some icons.</p>
+      </div>
+
+      <!-- Loading state -->
+      <div id="loading-state" class="hidden">
+        <div class="spinner"></div>
+        <p>Loading icons…</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Upload progress panel -->
+  <div id="upload-panel" class="hidden">
+    <div class="upload-panel-header">
+      <span>Uploading</span>
+      <button id="btn-close-upload-panel" class="btn-icon-sm">✕</button>
+    </div>
+    <div id="upload-items"></div>
+  </div>
+
+  <!-- Asset detail modal -->
+  <div id="modal-overlay" class="hidden">
+    <div id="modal">
+      <div id="modal-header">
+        <div id="modal-title-wrap">
+          <span id="modal-filename"></span>
+          <span id="modal-meta"></span>
+        </div>
+        <button id="btn-close-modal" class="btn-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div id="modal-body">
+        <!-- Preview pane -->
+        <div id="preview-pane">
+          <div id="preview-bg" class="preview-bg-checkered">
+            <img id="preview-img" src="" alt="Preview" />
+          </div>
+          <div class="preview-bg-controls">
+            <button class="bg-btn active" data-bg="checkered" title="Transparent">
+              <svg width="12" height="12" viewBox="0 0 12 12"><rect width="6" height="6" fill="#ccc"/><rect x="6" y="6" width="6" height="6" fill="#ccc"/><rect x="6" y="0" width="6" height="6" fill="#fff"/><rect x="0" y="6" width="6" height="6" fill="#fff"/></svg>
+            </button>
+            <button class="bg-btn" data-bg="white" title="White">W</button>
+            <button class="bg-btn" data-bg="black" title="Black">B</button>
+            <button class="bg-btn" data-bg="gray" title="Gray">G</button>
+          </div>
+          <div id="preview-url-bar">
+            <input type="text" id="preview-url" readonly />
+            <button id="btn-copy-url" class="btn-sm">Copy URL</button>
+          </div>
+        </div>
+
+        <!-- Editor pane -->
+        <div id="editor-pane">
+          <div class="editor-tabs">
+            <button class="tab-btn active" data-tab="transform">Transform</button>
+            <button class="tab-btn" data-tab="info">Info</button>
+          </div>
+
+          <!-- Transform tab -->
+          <div id="tab-transform" class="tab-content">
+
+            <div class="editor-section">
+              <div class="section-title">Dimensions</div>
+              <div class="input-row">
+                <div class="input-cell">
+                  <label>Width (px)</label>
+                  <input type="number" id="tf-width" placeholder="auto" min="1" max="4096" />
+                </div>
+                <button id="btn-lock-aspect" class="lock-btn active" title="Lock aspect ratio">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </button>
+                <div class="input-cell">
+                  <label>Height (px)</label>
+                  <input type="number" id="tf-height" placeholder="auto" min="1" max="4096" />
+                </div>
+              </div>
+            </div>
+
+            <div class="editor-section">
+              <div class="section-title">Format & Quality</div>
+              <div class="input-row">
+                <div class="input-cell">
+                  <label>Format</label>
+                  <select id="tf-format">
+                    <option value="">Original</option>
+                    <option value="png">PNG</option>
+                    <option value="jpg">JPG</option>
+                    <option value="webp">WebP</option>
+                    <option value="svg">SVG</option>
+                    <option value="ico">ICO</option>
+                  </select>
+                </div>
+                <div class="input-cell">
+                  <label>Quality: <span id="tf-quality-val">auto</span></label>
+                  <input type="range" id="tf-quality" min="1" max="100" value="100" />
+                </div>
+              </div>
+            </div>
+
+            <div class="editor-section">
+              <div class="section-title">Color Adjustments</div>
+              <div class="slider-row">
+                <label>Hue <span id="tf-hue-val">0°</span></label>
+                <input type="range" id="tf-hue" min="-100" max="100" value="0" />
+              </div>
+              <div class="slider-row">
+                <label>Saturation <span id="tf-sat-val">0</span></label>
+                <input type="range" id="tf-sat" min="-100" max="100" value="0" />
+              </div>
+              <div class="slider-row">
+                <label>Brightness <span id="tf-bright-val">0</span></label>
+                <input type="range" id="tf-bright" min="-99" max="100" value="0" />
+              </div>
+              <div class="slider-row">
+                <label>Contrast <span id="tf-contrast-val">0</span></label>
+                <input type="range" id="tf-contrast" min="-100" max="100" value="0" />
+              </div>
+            </div>
+
+            <div class="editor-section">
+              <div class="section-title">Effects</div>
+              <div class="toggle-row">
+                <label class="toggle-label">
+                  <input type="checkbox" id="tf-grayscale" />
+                  <span>Grayscale</span>
+                </label>
+                <label class="toggle-label">
+                  <input type="checkbox" id="tf-negate" />
+                  <span>Invert</span>
+                </label>
+                <label class="toggle-label">
+                  <input type="checkbox" id="tf-blackwhite" />
+                  <span>Black &amp; White</span>
+                </label>
+              </div>
+              <div class="slider-row">
+                <label>Blur <span id="tf-blur-val">0</span></label>
+                <input type="range" id="tf-blur" min="0" max="2000" value="0" />
+              </div>
+              <div class="slider-row">
+                <label>Sharpen <span id="tf-sharpen-val">0</span></label>
+                <input type="range" id="tf-sharpen" min="0" max="2000" value="0" />
+              </div>
+            </div>
+
+            <div class="editor-section">
+              <div class="section-title">Opacity</div>
+              <div class="slider-row">
+                <label>Opacity <span id="tf-opacity-val">100%</span></label>
+                <input type="range" id="tf-opacity" min="0" max="100" value="100" />
+              </div>
+            </div>
+
+            <div class="editor-actions">
+              <button id="btn-reset-transforms" class="btn-ghost btn-sm">Reset all</button>
+              <button id="btn-download" class="btn-primary btn-sm">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </button>
+            </div>
+          </div>
+
+          <!-- Info tab -->
+          <div id="tab-info" class="tab-content hidden">
+            <div class="info-grid" id="asset-info-grid"></div>
+            <div class="editor-section">
+              <div class="section-title">Tags</div>
+              <div id="asset-tags-edit"></div>
+              <div class="tag-input-row">
+                <input type="text" id="input-new-tag" placeholder="Add tag…" />
+                <button id="btn-add-tag" class="btn-ghost btn-sm">Add</button>
+              </div>
+            </div>
+            <div class="editor-section danger-zone">
+              <div class="section-title">Danger Zone</div>
+              <button id="btn-delete-asset" class="btn-danger btn-sm">Delete icon</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/cloudinary.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/uploader.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
