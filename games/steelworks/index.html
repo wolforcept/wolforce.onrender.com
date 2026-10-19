@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Depths & Forge</title>
+
+    <!-- Icon Font -->
+    <link rel="stylesheet" href="https://wolforcept.github.io/cdn/iconawesome/ia.css" />
+
+    <!-- Google Fonts: display + body pair -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Germania+One&family=Quicksand:wght@300..700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <!-- HTM (htm/3.1.1 - no build step template tags via tagged template literals) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/htm/3.1.1/htm.js"></script>
+
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- ═══════════════════════════════════════════
+       APP SHELL
+       ─ #bar-top    : fixed-height top bar
+       ─ #content    : scrollable page content
+       ─ #bar-bottom : fixed-height bottom navbar
+  ═══════════════════════════════════════════ -->
+
+    <div id="app">
+
+        <!-- TOP BAR ─────────────────────────────── -->
+        <header id="bar-top">
+            <div id="top-left">
+                <button class="icon-btn" id="btn-settings" title="Settings">
+                    <i class="ia ia-cog"></i>
+                </button>
+            </div>
+            <div id="top-middle">
+                <!-- Populated by each screen -->
+            </div>
+            <div id="top-right">
+                <!-- Populated by each screen -->
+            </div>
+        </header>
+
+        <!-- PAGE CONTENT ─────────────────────────── -->
+        <main id="content">
+            <!-- Screens render here -->
+        </main>
+
+        <!-- BOTTOM NAVBAR ───────────────────────── -->
+        <nav id="bar-bottom">
+            <button class="nav-btn" data-page="upgrades" title="Upgrades">
+                <i class="ia ia-book"></i>
+            </button>
+            <button class="nav-btn" data-page="mine" title="The Mine">
+                <i class="ia ia-pickaxe"></i>
+            </button>
+            <button class="nav-btn nav-btn--featured" data-page="forge" title="The Forge">
+                <i class="ia ia-fire"></i>
+            </button>
+            <button class="nav-btn" data-page="town" title="The Town">
+                <i class="ia ia-house"></i>
+            </button>
+            <button class="nav-btn" data-page="world" title="The World">
+                <i class="ia ia-world"></i>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- SETTINGS OVERLAY ─────────────────────── -->
+    <div id="overlay-settings" class="overlay hidden">
+        <div class="overlay-panel">
+            <div class="overlay-header">
+                <span>Settings</span>
+                <button class="icon-btn" id="btn-settings-close"><i class="ia ia-times"></i></button>
+            </div>
+            <div class="overlay-body" id="settings-body">
+                <!-- Populated by settings screen -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS ─────────────────────────────────
+       Load order matters:
+         1. game data + logic  (no DOM dependency)
+         2. individual screens (depend on logic)
+         3. app router         (wires everything)
+  ──────────────────────────────────────────── -->
+    <script src="js/game.js"></script>
+    <script src="js/screen-upgrades.js"></script>
+    <script src="js/screen-mine.js"></script>
+    <script src="js/screen-forge.js"></script>
+    <script src="js/screen-town.js"></script>
+    <script src="js/screen-world.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>

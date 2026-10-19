@@ -1,0 +1,802 @@
+/* ═══════════════════════════════════════════════════════════
+   DEPTHS & FORGE — style.css
+   Dark industrial / alchemical aesthetic.
+   Palette: deep charcoal, hammered gold, molten amber, ash.
+═══════════════════════════════════════════════════════════ */
+
+/* ── DESIGN TOKENS ──────────────────────────────────────── */
+:root {
+    /* Layout */
+    --bar-top-h: 52px;
+    --bar-bottom-h: 62px;
+    --content-h: calc(100dvh - var(--bar-top-h) - var(--bar-bottom-h));
+
+    /* Palette */
+    --c-bg: #222223;
+    --c-surface: #724826;
+    --c-surface-2: #000000;
+    --c-border: #46190e;
+    --c-gold: #f5bb5d;
+    --c-amber: #e07020;
+    --c-ash: #000000;
+    --c-text: #ffffff;
+    --c-text-muted: #ffe8b6;
+    --c-danger: #c04040;
+    --c-success: #5a9060;
+
+    /* Typography */
+    --font-display: 'Germania One';
+    --font-thin: 'Quicksand';
+    --font-body: 'Roboto';
+
+    /* Misc */
+    --radius: 6px;
+    --radius-lg: 10px;
+    --shadow: 0 2px 12px rgba(0, 0, 0, .6);
+    --glow-gold: 0 0 12px rgba(201, 145, 58, .35);
+
+    /* Nav featured icon scale */
+    --nav-featured-scale: 1.45;
+}
+
+/* ── RESET & BASE ───────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+    /* no page-level scroll — ever */
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+}
+
+ul,
+ol {
+    list-style: none;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* ── APP SHELL ──────────────────────────────────────────── */
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-width: 480px;
+    /* mobile-first; centered on desktop */
+    margin: 0 auto;
+    background: var(--c-bg);
+    position: relative;
+    box-shadow: 0 0 40px rgba(0, 0, 0, .9);
+}
+
+/* ── TOP BAR ────────────────────────────────────────────── */
+#bar-top {
+    height: var(--bar-top-h);
+    min-height: var(--bar-top-h);
+    display: flex;
+    align-items: center;
+    background: var(--c-surface);
+    border-bottom: 1px solid var(--c-border);
+    padding: 0 8px;
+    gap: 0;
+    flex-shrink: 0;
+}
+
+/* Left and right sections: same fixed width */
+#top-left,
+#top-right {
+    width: 80px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+#top-right {
+    justify-content: flex-end;
+}
+
+/* Middle: fills remaining space */
+#top-middle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* ── CONTENT AREA ───────────────────────────────────────── */
+#content {
+    height: var(--content-h);
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+    position: relative;
+
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--c-border) transparent;
+}
+
+#content::-webkit-scrollbar {
+    width: 4px;
+}
+
+#content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#content::-webkit-scrollbar-thumb {
+    background: var(--c-border);
+    border-radius: 2px;
+}
+
+/* ── BOTTOM NAVBAR ──────────────────────────────────────── */
+#bar-bottom {
+    height: var(--bar-bottom-h);
+    min-height: var(--bar-bottom-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: var(--c-surface);
+    border-top: 1px solid var(--c-border);
+    flex-shrink: 0;
+    padding: 0 4px;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius);
+    color: var(--c-ash);
+    font-size: 1.4rem;
+    transition: color .2s, transform .15s;
+    position: relative;
+}
+
+.nav-btn:hover {
+    color: var(--c-text);
+}
+
+.nav-btn.active {
+    color: var(--c-gold);
+}
+
+.nav-btn--featured {
+    font-size: calc(1.4rem * var(--nav-featured-scale));
+    /* color: var(--c-amber); */
+    margin-top: -8px;
+    border: 1px solid var(--c-text-muted);
+    border-radius: 100px;
+    /* lift it above the bar slightly */
+}
+
+.nav-btn--featured.active {
+    color: var(--c-gold);
+    border: 1px solid var(--c-gold);
+}
+
+/* Active indicator pip */
+/* .nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: var(--c-gold);
+    border-radius: 50%;
+} */
+
+/* ── ICON BUTTONS (top-bar, overlays) ───────────────────── */
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    font-size: 1.1rem;
+    color: var(--c-ash);
+    transition: color .2s, background .2s;
+}
+
+.icon-btn:hover {
+    color: var(--c-text);
+    background: var(--c-surface-2);
+}
+
+/* ── OVERLAYS ───────────────────────────────────────────── */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .7);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 60px;
+    z-index: 100;
+    transition: opacity .2s;
+}
+
+.overlay.hidden {
+    display: none;
+}
+
+.overlay-panel {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-lg);
+    width: min(360px, 92vw);
+    max-height: 70dvh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.overlay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--c-border);
+    font-family: var(--font-display);
+    font-size: 5rem;
+    letter-spacing: .12em;
+    color: var(--c-gold);
+    text-transform: uppercase;
+}
+
+.overlay-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* ── SHARED COMPONENT STYLES ────────────────────────────── */
+
+/* Page header shown in #top-middle */
+.page-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    letter-spacing: .05em;
+    color: var(--c-gold);
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Resource pill */
+.res-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: .85rem;
+    color: var(--c-text);
+    white-space: nowrap;
+}
+
+.res-pill i {
+    color: var(--c-gold);
+    font-size: .9rem;
+}
+
+/* Stat grid (used in top-right or screen headers) */
+.stat-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Section title within a page */
+.section-title {
+    font-family: var(--font-display);
+    font-size: .65rem;
+    letter-spacing: .2em;
+    color: var(--c-ash);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--c-border);
+}
+
+/* Divider */
+.divider {
+    height: 1px;
+    background: var(--c-border);
+    margin: 16px 0;
+}
+
+/* Generic card */
+.card {
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+}
+
+.card:last-child {
+    margin-bottom: 0;
+}
+
+/* Primary action button */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--c-gold);
+    color: #1a1409;
+    border-radius: var(--radius);
+    font-family: var(--font-display);
+    font-size: .6rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    transition: background .2s, box-shadow .2s, transform .1s;
+}
+
+.btn-primary:hover {
+    background: var(--c-gold);
+    box-shadow: var(--glow-gold);
+}
+
+.btn-primary:active {
+    transform: scale(.97);
+}
+
+.btn-primary:disabled {
+    background: var(--c-surface-2);
+    color: var(--c-text-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Secondary button */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    color: var(--c-text);
+    font-size: .9rem;
+    transition: border-color .2s, color .2s;
+}
+
+.btn-secondary:hover {
+    border-color: var(--c-gold);
+    color: var(--c-gold);
+}
+
+.btn-secondary:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+/* Scaffold / coming-soon placeholder */
+.scaffold-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    height: 100%;
+    min-height: 200px;
+    color: var(--c-text-muted);
+    text-align: center;
+    padding: 40px;
+}
+
+.scaffold-placeholder i {
+    font-size: 3rem;
+    color: var(--c-border);
+}
+
+.scaffold-placeholder h2 {
+    font-family: var(--font-display);
+    font-size: .8rem;
+    letter-spacing: .15em;
+    color: var(--c-ash);
+}
+
+.scaffold-placeholder p {
+    font-size: .95rem;
+    font-style: italic;
+    max-width: 260px;
+}
+
+/* ── PAGE-SPECIFIC STYLES ───────────────────────────────── */
+
+/* — UPGRADES ————————————————————————————————————————————— */
+
+#screen-upgrades {
+    padding: 16px;
+}
+
+.upgrade-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.upgrade-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 4px 12px;
+    align-items: center;
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    transition: border-color .2s;
+}
+
+.upgrade-card:hover {
+    border-color: var(--c-gold);
+}
+
+.upgrade-card.purchased {
+    opacity: .5;
+    pointer-events: none;
+    border-style: dashed;
+}
+
+.upgrade-card.unaffordable {
+    opacity: .65;
+}
+
+.upgrade-card.unaffordable .btn-primary {
+    background: var(--c-surface);
+    color: var(--c-text-muted);
+}
+
+.upgrade-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--c-text);
+}
+
+.upgrade-desc {
+    font-size: .85rem;
+    color: var(--c-text-muted);
+    font-style: italic;
+    grid-column: 1;
+}
+
+.upgrade-buy-btn {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+}
+
+.upgrade-cost {
+    font-size: .8rem;
+    color: var(--c-gold);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+/* Resources bar above upgrade list */
+.resources-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--c-border);
+}
+
+/* — MINE ————————————————————————————————————————————————— */
+
+#screen-mine {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    gap: 12px;
+    height: 100%;
+}
+
+.mine-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mine-depth-label {
+    font-family: var(--font-display);
+    font-size: .65rem;
+    letter-spacing: .15em;
+    color: var(--c-gold);
+    text-transform: uppercase;
+    padding: 0 8px;
+}
+
+/* The mine canvas wrapper — always a square */
+.mine-arena-wrapper {
+    position: relative;
+    width: 100%;
+    /* padding-bottom trick for 1:1 aspect ratio */
+    padding-bottom: min(100%, calc(var(--content-h) - 100px));
+    max-width: min(100%, calc(var(--content-h) - 100px));
+    flex-shrink: 0;
+}
+
+.mine-arena {
+    position: absolute;
+    inset: 0;
+    background: var(--c-surface-2);
+    border: 2px solid var(--c-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    /* Subtle stone texture via gradient */
+    background-image:
+        radial-gradient(ellipse at 20% 30%, rgba(60, 50, 35, .4) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 70%, rgba(40, 35, 25, .5) 0%, transparent 55%);
+}
+
+/* Individual mining nodes */
+.mine-node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform .1s, box-shadow .15s;
+    user-select: none;
+    touch-action: none;
+}
+
+.mine-node:hover {
+    transform: translate(-50%, -50%) scale(1.08);
+}
+
+.mine-node:active {
+    transform: translate(-50%, -50%) scale(.95);
+}
+
+.mine-node i {
+    pointer-events: none;
+}
+
+/* HP bar below each node */
+.mine-node-hp {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110%;
+    height: 4px;
+    background: var(--c-border);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.mine-node-hp-fill {
+    height: 100%;
+    background: var(--c-gold);
+    border-radius: 2px;
+    transition: width .2s;
+}
+
+/* Hit flash animation */
+@keyframes node-hit {
+    0% {
+        filter: brightness(1);
+    }
+
+    30% {
+        filter: brightness(2.5);
+    }
+
+    100% {
+        filter: brightness(1);
+    }
+}
+
+.mine-node.hit {
+    animation: node-hit .25s ease-out;
+}
+
+/* — FORGE ———————————————————————————————————————————————— */
+
+#screen-forge {
+    padding: 16px;
+    height: 100%;
+}
+
+.forge-slots {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.forge-slot {
+    background: var(--c-surface-2);
+    border: 1px dashed var(--c-border);
+    border-radius: var(--radius);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-height: 90px;
+    color: var(--c-text-muted);
+    font-size: .85rem;
+    font-style: italic;
+    text-align: center;
+}
+
+.forge-slot i {
+    font-size: 1.6rem;
+    color: var(--c-border);
+}
+
+.forge-queue {
+    margin-top: 16px;
+}
+
+/* — TOWN ————————————————————————————————————————————————— */
+
+#screen-town {
+    padding: 16px;
+    height: 100%;
+}
+
+.town-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.town-building {
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s;
+}
+
+.town-building:hover {
+    border-color: var(--c-gold);
+}
+
+.town-building i {
+    font-size: 2rem;
+    color: var(--c-ash);
+}
+
+.town-building span {
+    font-size: .85rem;
+    color: var(--c-text-muted);
+    font-style: italic;
+}
+
+/* — WORLD ———————————————————————————————————————————————— */
+
+#screen-world {
+    padding: 16px;
+    height: 100%;
+}
+
+/* ── SETTINGS SCREEN ────────────────────────────────────── */
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--c-border);
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+}
+
+.setting-label {
+    font-size: .95rem;
+    color: var(--c-text);
+}
+
+.setting-desc {
+    font-size: .8rem;
+    color: var(--c-text-muted);
+    font-style: italic;
+}
+
+/* ── MISC UTILITIES ─────────────────────────────────────── */
+
+.text-gold {
+    color: var(--c-gold);
+}
+
+.text-muted {
+    color: var(--c-text-muted);
+}
+
+.text-amber {
+    color: var(--c-amber);
+}
+
+.text-danger {
+    color: var(--c-danger);
+}
+
+.mt-8 {
+    margin-top: 8px;
+}
+
+.mt-12 {
+    margin-top: 12px;
+}
+
+.mt-16 {
+    margin-top: 16px;
+}
+
+/* Screen fade-in */
+@keyframes screen-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.screen-enter {
+    animation: screen-in .22s ease-out both;
+}
