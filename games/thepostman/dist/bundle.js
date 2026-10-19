@@ -5045,8 +5045,9 @@
       this.cutoffY = 32;
       this.cutoffW = 50;
       this.cutoffH = 50;
-      this.hoveredStreet = "Analog or WASD to move cursor";
+      this.hoveredStreet = "[move keys to move cursor]";
       this.currentTab = "Letters";
+      this.currentPage = 0;
     }
     update(g, dt) {
       if (!this.isOpen) return;
@@ -5069,7 +5070,7 @@
         this.cursor = zxc.clone();
         return;
       }
-      this.hoveredStreet = "Analog or WASD to move cursor";
+      this.hoveredStreet = "[move keys to move cursor]";
       this.x = Math.floor(g.width / 2 - this.w / 2);
       this.y = Math.floor(g.height / 2 - this.h / 2);
       ["Letters", "Inventory"].forEach((tab, i) => {
@@ -5099,8 +5100,8 @@
         this.drawRect(g, cursorView, hoveredStreet, true);
       this.drawPixel(g, cursorView);
       this.drawPixel(g, zxc, "player");
-      g.renderText(this.hoveredStreet, this.x + 30, this.y + this.h - 30, { color: WHITE, size: 30 });
-      g.renderText("< E or A >", this.x + 810, this.y + 40, { color: WHITE, size: 20 });
+      g.renderText(this.hoveredStreet, this.x + 30, this.y + this.h - 30, { color: WHITE, size: this.hoveredStreet == "[move keys to move cursor]" ? 20 : 30 });
+      g.renderText("[E or A]", this.x + 800, this.y + 40, { color: WHITE, size: 20 });
       if (this.currentTab === "Letters") this.renderLetters(g, this.x + 560, this.y + 80);
       if (this.currentTab === "Inventory") this.renderInventory(g, this.x + 560, this.y + 80);
     }
@@ -5142,11 +5143,16 @@
     }
     renderLetters(g, x, y) {
       if (!this.data.hasJob) return;
-      if (this.data.letters.length === 0) {
+      const all = this.data.letters;
+      if (all.length === 0) {
         g.renderText("All letters delivered for today.", x, y + 30, { color: WHITE, size: 30 });
         return;
       }
-      const letters = [...this.data.letters].slice(0, 3);
+      const PAGE_SIZE = 3;
+      const pageCount = Math.ceil(all.length / PAGE_SIZE);
+      this.currentPage = Math.min(this.currentPage, pageCount - 1);
+      const start = this.currentPage * PAGE_SIZE;
+      const letters = all.slice(start, start + PAGE_SIZE);
       let dy = 0;
       for (const { houseId, to, from } of letters) {
         g.renderImage("letter", x - 20, y + dy, { w: 7 * ZOOM, h: 11 * ZOOM });
@@ -5155,9 +5161,13 @@
         g.renderText("From: " + from + "\nTo: " + to + "\nat " + street + ", nr " + house.nr, x + 60, y + 28 + dy, { color: WHITE, size: 30 });
         dy += 140;
       }
-      const left = this.data.letters.length - 3;
-      if (left > 0)
-        g.renderText("And " + left + " more...", x - 20, y + 28 + dy, { color: WHITE, size: 30 });
+      if (pageCount > 1) {
+        g.renderText("Page " + (this.currentPage + 1) + " / " + pageCount, x + 450, y + 450, { color: WHITE, size: 30 });
+        g.renderText("[C or Y]", x + 320, y + 450, { color: WHITE, size: 20 });
+        if (Input.car()) {
+          this.currentPage = (this.currentPage + 1) % pageCount;
+        }
+      }
     }
   };
 
