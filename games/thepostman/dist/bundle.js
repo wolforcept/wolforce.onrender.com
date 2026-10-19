@@ -2972,11 +2972,14 @@
   var TILE_SIZE = 8;
   var ZOOM = 10;
   var WHITE = import_miglib2.Color.col(255, 255, 255);
-  var PLAYER_START = (0, import_miglib2.vec)(37, 239).scale(8);
+  var BLACK = import_miglib2.Color.col(0, 0, 0, 100);
+  var PLAYER_START = (0, import_miglib2.vec)(23, 227).scale(8);
   var DEBUG = false;
-  function toggleDebug() {
-    DEBUG = !DEBUG;
-  }
+  var SHOE_UPGRADE_OPTIONS = [
+    { name: "Genericus", price: 30 },
+    { name: "Speedsters", price: 80 },
+    { name: "Sportsmax", price: 250 }
+  ];
   var maleNames = [
     "Aaron",
     "Ace",
@@ -4029,7 +4032,7 @@
     // private onDone?: () => void;
     constructor() {
       this.charsPerSecond = 30;
-      this.width = 800;
+      this.width = 950;
       this.height = 150;
       this.padding = 24;
       this.textSize = 24;
@@ -4047,7 +4050,7 @@
     showEasy(text) {
       this.show([{ text: () => text }]);
     }
-    show(parts, onDone) {
+    show(parts) {
       if (this.hasParts) {
         this.parts.splice(this.partIndex + 1, 0, ...parts);
         return;
@@ -4059,11 +4062,10 @@
       this.interactCooldown = MAX_INTERACT_CD;
       this.lastOptionSelected = null;
     }
-    skipParts() {
-      while (this.hasParts && this.parts[this.partIndex].skip?.()) this.goNext();
-    }
+    // private skipParts(): void {
+    //     while (this.hasParts && this.parts[this.partIndex].skip?.()) this.goNext();
+    // }
     update(g, dt) {
-      this.skipParts();
       if (!this.hasParts) return;
       const part = this.parts[this.partIndex];
       const text = part.text();
@@ -4110,7 +4112,6 @@
       }
     }
     render(g) {
-      this.skipParts();
       if (!this.hasParts) return;
       const part = this.parts[this.partIndex];
       const w = this.width;
@@ -4805,24 +4806,6 @@
       pos: (0, import_miglib4.vec)(257, 94)
     }
   ];
-  function checkIds(items) {
-    const counts = /* @__PURE__ */ new Map();
-    for (const { id } of items) {
-      counts.set(id, (counts.get(id) ?? 0) + 1);
-    }
-    const ids = [...counts.keys()];
-    const min = Math.min(...ids);
-    const max = Math.max(...ids);
-    const missing = [];
-    for (let id = min; id <= max; id++) {
-      if (!counts.has(id)) missing.push(id);
-    }
-    const duplicated = [...counts.entries()].filter(([, n]) => n > 1).map(([id, n]) => `${id} (x${n})`);
-    console.log(`IDs from ${min} to ${max}`);
-    console.log("Missing:", missing.length ? missing.join(", ") : "none");
-    console.log("Duplicated:", duplicated.length ? duplicated.join(", ") : "none");
-  }
-  checkIds(HOUSES);
   var STREETS = {
     "Plinth Boulevard": {
       difficulty: 1,
@@ -4951,7 +4934,7 @@
     render(g, pos, isPlayerNearby) {
       const s = g.sketch;
       s.noStroke();
-      g.renderImage("interactibles/" + this.img, pos.x - 4, pos.y - 4);
+      g.renderImage(this.img, pos.x - 4, pos.y - 4);
       if (isPlayerNearby)
         g.renderImage("hovered", pos.x - 5, pos.y - 5);
       if (this.hasQuestMarker())
@@ -4960,7 +4943,7 @@
   };
   var InteractibleShop = class extends Interactible {
     constructor(id, tilePos, onInteract) {
-      super("door_gray2", tilePos, () => false, (self) => onInteract(self));
+      super("door", tilePos, () => false, (self) => onInteract(self));
       this.id = id;
     }
     render(g, pos, isPlayerNearby) {
@@ -4977,12 +4960,13 @@
     render(g, pos, isPlayerNearby) {
       super.render(g, pos, isPlayerNearby);
       const pos2 = (0, import_miglib5.vec)(-g.textWidth(this.id, { size: 5 }) / 2, -5);
+      g.renderText(this.id, pos.x + pos2.x + 0.25, pos.y + pos2.y + 0.25, { size: 5, color: BLACK });
       g.renderText(this.id, pos.x + pos2.x, pos.y + pos2.y, { size: 5, color: WHITE });
     }
   };
   var InteractibleDoor = class extends Interactible {
     constructor(data, id, nr, tilePos, onInteract) {
-      super("door_gray2", tilePos, () => {
+      super("door", tilePos, () => {
         const quest = this.getQuest();
         return quest !== null && !quest.accepted;
       }, onInteract);
@@ -5151,7 +5135,7 @@
       g.sketch.rect(this.x + px, this.y + py, ZOOM, ZOOM);
     }
     renderInventory(g, x, y) {
-      const text = "Wallet: " + this.data.money + " $\n\nItems:\n" + this.data.inventory.map((x2) => " > " + x2 + "\n").join("");
+      const text = "Wallet: " + this.data.money + " $\n\nItems:\n" + this.data.inventory.map((x2) => " > " + x2 + "\n").join("") + "\n\nUpgrades:\n" + this.data.upgrades.map((x2) => " > " + x2 + "\n").join("");
       g.renderText(text, x, y, { color: WHITE, size: 30 });
     }
     renderLetters(g, x, y) {
@@ -5439,14 +5423,14 @@
     [false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
     [false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
     [false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
-    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
-    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
-    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, false, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
-    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
-    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
-    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
-    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
-    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, false, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
     [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
     [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
     [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
@@ -5498,17 +5482,23 @@
       this.facing = "down";
       this.isInCar = false;
       this.pos = (0, import_miglib7.vec)(data.playerX, data.playerY);
+      this.lastHitbox = this.hitbox;
     }
     get hitbox() {
       return this.isInCar ? new import_miglib7.Rect(-4, -4, 14, 14) : new import_miglib7.Rect(-2, 0, 4, 4);
     }
     get speed() {
-      return this.isInCar ? 100 : 40;
+      if (this.isInCar) return 150;
+      if (this.data.upgrades.includes(SHOE_UPGRADE_OPTIONS[2].name)) return 80;
+      if (this.data.upgrades.includes(SHOE_UPGRADE_OPTIONS[1].name)) return 66;
+      if (this.data.upgrades.includes(SHOE_UPGRADE_OPTIONS[0].name)) return 50;
+      return 40;
     }
     update(dt, world) {
       if (Input.car() && this.data.upgrades.includes("car")) {
         this.isInCar = !this.isInCar;
       }
+      this.handleHitboxChange();
       const step = Input.move().scale(this.speed * dt);
       this.setDir(step);
       this.moveAxis(step.x, 0, world);
@@ -5563,6 +5553,43 @@
     }
     isBlocking(tx, ty) {
       return BLOCKING[ty]?.[tx] ?? true;
+    }
+    collidingTiles(x, y, box) {
+      const out = [];
+      const left = Math.floor((x + box.x) / TILE_SIZE);
+      const right = Math.ceil((x + box.x + box.w) / TILE_SIZE) - 1;
+      const top = Math.floor((y + box.y) / TILE_SIZE);
+      const bottom = Math.ceil((y + box.y + box.h) / TILE_SIZE) - 1;
+      for (let ty = top; ty <= bottom; ty++) {
+        for (let tx = left; tx <= right; tx++) {
+          if (!this.isBlocking(tx, ty)) continue;
+          const wx = tx * TILE_SIZE;
+          const wy = ty * TILE_SIZE;
+          const hit = x + box.x < wx + TILE_SIZE && x + box.x + box.w > wx && y + box.y < wy + TILE_SIZE && y + box.y + box.h > wy;
+          if (hit) out.push({ wx, wy });
+        }
+      }
+      return out;
+    }
+    handleHitboxChange() {
+      const box = this.hitbox;
+      const last = this.lastHitbox;
+      if (box.x === last.x && box.y === last.y && box.w === last.w && box.h === last.h) return;
+      this.lastHitbox = box;
+      this.pushOutOfWalls(box);
+    }
+    pushOutOfWalls(box) {
+      for (const { wx, wy } of this.collidingTiles(this.pos.x, this.pos.y, box)) {
+        const left = this.pos.x + box.x;
+        const top = this.pos.y + box.y;
+        const overlapX = Math.min(left + box.w, wx + TILE_SIZE) - Math.max(left, wx);
+        const overlapY = Math.min(top + box.h, wy + TILE_SIZE) - Math.max(top, wy);
+        if (overlapX <= 0 || overlapY <= 0) continue;
+        const dirX = left + box.w / 2 < wx + TILE_SIZE / 2 ? -1 : 1;
+        const dirY = top + box.h / 2 < wy + TILE_SIZE / 2 ? -1 : 1;
+        if (overlapX < overlapY) this.pos = new import_miglib7.Vec2(this.pos.x + dirX * overlapX, this.pos.y);
+        else this.pos = new import_miglib7.Vec2(this.pos.x, this.pos.y + dirY * overlapY);
+      }
     }
     moveAxis(dx, dy, world) {
       if (dx === 0 && dy === 0) return;
@@ -5831,18 +5858,19 @@
       g.sketch.textFont(FONT);
       g.sketch.frameRate(1e3);
       this.world.init(g);
-      this.world.add(new Interactible("door_gray2", (0, import_miglib8.vec)(39, 237), () => !this.data.hasJob, () => this.onPostDoor()));
+      this.world.add(new Interactible("door", (0, import_miglib8.vec)(39, 237), () => !this.data.hasJob, () => this.onPostDoor()));
       this.world.add(new InteractibleShop("Toy Shop", (0, import_miglib8.vec)(102, 252), (self) => this.onShop(self.id)));
       this.world.add(new InteractibleShop("Library", (0, import_miglib8.vec)(118, 247), (self) => this.onShop(self.id)));
       this.world.add(new InteractibleShop("Hardware store", (0, import_miglib8.vec)(49, 191), (self) => this.onShop(self.id)));
       this.world.add(new InteractibleShop("Bakery", (0, import_miglib8.vec)(86, 179), (self) => this.onShop(self.id)));
       this.world.add(new InteractibleShop("Groceries", (0, import_miglib8.vec)(68, 205), (self) => this.onShop(self.id)));
       this.world.add(new InteractibleUpgrader("Used Cars", "person2", (0, import_miglib8.vec)(79, 198), (self) => this.onUpgrader(self.id)));
+      this.world.add(new InteractibleUpgrader("Shoes", "person3", (0, import_miglib8.vec)(105, 224), (self) => this.onUpgrader(self.id)));
+      this.world.add(new InteractibleUpgrader("School", "person4", (0, import_miglib8.vec)(75, 265), (self) => this.onUpgrader(self.id)));
       for (const { id, amount, pos } of moneyss) {
         if (!this.data.caughtMoney.includes(id))
           this.world.add(new Interactible("money", pos, () => true, (self) => {
             this.data.caughtMoney.push(id);
-            console.log(this.data.caughtMoney.length, moneyss.length);
             if (this.data.caughtMoney.length < moneyss.length)
               this.dialog.showEasy("Found " + amount + "$");
             else
@@ -5868,20 +5896,63 @@
     save() {
       localStorage.setItem("postmangame", JSON.stringify(this.data));
     }
+    // load(): Data {
+    //     const loaded = this.tryLoad() as any;
+    //     const newData = {
+    //         money: 0,
+    //         knowledge: 0,
+    //         daysPassed: 0,
+    //         playerX: PLAYER_START.x,
+    //         playerY: PLAYER_START.y,
+    //         promotion: 0,
+    //         inventory: [],
+    //         caughtMoney: [],
+    //         letters: [],
+    //         quests: [],
+    //         upgrades: [],
+    //         hasJob: false,
+    //         learnedToday: false,
+    //     }
+    //     if (loaded.money &&         /**/ typeof loaded.money             /**/ === "number")  /**/ newData.money          /**/ = loaded.money
+    //     if (loaded.knowledge &&     /**/ typeof loaded.knowledge         /**/ === "number")  /**/ newData.knowledge      /**/ = loaded.knowledge
+    //     if (loaded.daysPassed &&    /**/ typeof loaded.daysPassed        /**/ === "number")  /**/ newData.daysPassed     /**/ = loaded.daysPassed
+    //     if (loaded.playerX &&       /**/ typeof loaded.playerX           /**/ === "number")  /**/ newData.playerX        /**/ = loaded.playerX
+    //     if (loaded.playerY &&       /**/ typeof loaded.playerY           /**/ === "number")  /**/ newData.playerY        /**/ = loaded.playerY
+    //     if (loaded.promotion &&     /**/ typeof loaded.promotion         /**/ === "number")  /**/ newData.promotion      /**/ = loaded.promotion
+    //     if (loaded.inventory && loaded.inventory.length)                                     /**/ newData.inventory      /**/ = loaded.inventory
+    //     if (loaded.caughtMoney && loaded.caughtMoney.length)                                 /**/ newData.caughtMoney    /**/ = loaded.caughtMoney
+    //     if (loaded.letters && loaded.letters.length)                                         /**/ newData.letters        /**/ = loaded.letters
+    //     if (loaded.quests && loaded.quests.length)                                           /**/ newData.quests         /**/ = loaded.quests
+    //     if (loaded.upgrades && loaded.upgrades.length)                                       /**/newData.upgrades       /**/ = loaded.upgrades
+    //     if (typeof loaded.hasJob === "boolean")                                              /**/ newData.hasJob         /**/ = loaded.hasJob
+    //     if (typeof loaded.learnedToday === "boolean")                                        /**/ newData.learnedToday   /**/ = loaded.learnedToday
+    //     return newData;
+    // }
     load() {
-      const loaded = this.tryLoad();
-      if (loaded) return loaded;
+      const init = this.makeInit(this.tryLoad());
       return {
-        money: 0,
-        inventory: [],
-        caughtMoney: [],
-        letters: [],
-        quests: [],
-        daysPassed: 0,
-        hasJob: false,
-        playerX: PLAYER_START.x,
-        playerY: PLAYER_START.y,
-        upgrades: []
+        money: init("money", 0),
+        career: init("career", 0),
+        knowledge: init("knowledge", 0),
+        daysPassed: init("daysPassed", 0),
+        playerX: init("playerX", PLAYER_START.x),
+        playerY: init("playerY", PLAYER_START.y),
+        promotion: init("promotion", 0),
+        inventory: init("inventory", []),
+        caughtMoney: init("caughtMoney", []),
+        letters: init("letters", []),
+        quests: init("quests", []),
+        upgrades: init("upgrades", []),
+        hasJob: init("hasJob", false),
+        learnedToday: init("learnedToday", false)
+      };
+    }
+    makeInit(saved) {
+      const src = saved && typeof saved === "object" ? saved : {};
+      return function init(key, fallback) {
+        const v = src[key];
+        const valid = Array.isArray(fallback) ? Array.isArray(v) : typeof fallback === "number" ? typeof v === "number" && Number.isFinite(v) : typeof v === typeof fallback;
+        return valid ? v : fallback;
       };
     }
     tryLoad() {
@@ -5939,6 +6010,57 @@
             }
           }]);
         }
+        case "Shoes": {
+          const opts = SHOE_UPGRADE_OPTIONS;
+          return dialog.show([{
+            text: () => "We have the best running shoes!",
+            options: ["cancel", ...opts.map((x) => x.name + " " + x.price + "$")],
+            callback: (_opt) => {
+              if (_opt === 0) return;
+              const opt = opts[_opt - 1];
+              if (this.data.upgrades.includes(opt.name))
+                dialog.showEasy("You already own this.");
+              else {
+                if (this.data.money >= opt.price) {
+                  dialog.showEasy("You purchased " + opt.name + " for " + opt.price + "$.");
+                  this.data.money -= opt.price;
+                  this.data.upgrades.push(opt.name);
+                } else {
+                  dialog.showEasy("Not enough money.");
+                }
+              }
+            }
+          }]);
+        }
+        case "School": {
+          if (this.data.learnedToday)
+            return dialog.showEasy("Only once per day!");
+          if (this.data.upgrades.includes("school")) {
+            this.data.learnedToday = true;
+            this.data.knowledge++;
+            return dialog.show([{ text: () => "Your knowledge increased to " + this.data.knowledge }]);
+          }
+          return dialog.show([{
+            text: () => "Would you like to sign up for our lessons? Only 100$. Each lesson increases your chance to be promoted!",
+            options: ["no", "yes"],
+            callback: (_opt) => {
+              if (_opt === 0) return;
+              if (this.data.money >= 100) {
+                this.data.knowledge++;
+                this.data.learnedToday = true;
+                dialog.show([
+                  { text: () => "You signed up for school lessons for 100$." },
+                  { text: () => "Your knowledge increased to " + this.data.knowledge },
+                  { text: () => "Come back every day to increase your knowledge" }
+                ]);
+                this.data.money -= 100;
+                this.data.upgrades.push("school");
+              } else {
+                dialog.showEasy("Not enough money.");
+              }
+            }
+          }]);
+        }
       }
     }
     onPostDoor() {
@@ -5957,28 +6079,23 @@
             }
           },
           { text: () => this.data.hasJob ? "Ok now i need to deliver all these letters. (press Q to view letters)" : "I really need a job..." }
-        ],
-        () => console.log("Dialog A done")
+        ]
       );
+      if (this.hasLetters)
+        return this.dialog.showEasy("I have not delivered all letters yet.");
       return this.dialog.show([
         {
-          skip: () => !this.hasLetters,
-          text: () => "I have not delivered all letters yet."
-        },
-        {
-          skip: () => this.hasLetters,
           text: () => "End work day?",
           options: ["yes", "not yet"],
           callback: (option) => {
             if (option !== 0) return;
             this.beginDay();
+            this.dialog.show([{
+              text: () => "Day " + this.data.daysPassed + "\nLetters to deliver: " + this.data.letters.length
+            }]);
           }
-        },
-        {
-          skip: () => this.dialog.lastOptionSelected !== 0 || !this.hasLetters,
-          text: () => "Day " + this.data.daysPassed + "\nLetters to deliver: " + this.data.letters.length
         }
-      ], () => console.log("test"));
+      ]);
     }
     deliver(_id) {
       const id = _id;
@@ -5988,7 +6105,6 @@
         if (_letter.houseId === id) letter = _letter;
       for (const _quest of this.data.quests)
         if (_quest.houseId === id) quest = _quest;
-      console.log(quest);
       if (letter === null && quest === null) {
         this.dialog.showEasy("I have nothing to deliver here...");
         return;
@@ -6019,10 +6135,19 @@
       }
     }
     beginDay() {
-      this.data.money += 25;
       this.data.daysPassed++;
       this.data.letters = this.letterGen.genLetters();
+      this.data.learnedToday = false;
       this.addRandomQuest();
+      if (this.data.knowledge > 0) {
+        const diff = this.data.knowledge - this.data.career;
+        if (diff > 0 && Math.random() < diff * 0.1) {
+          this.data.career++;
+          const newEarn = 25 + 10 * this.data.career;
+          this.dialog.showEasy("You have been promoted! You will now earn " + newEarn + "$ per day.");
+        }
+      }
+      this.data.money += 25 + 10 * this.data.career;
       this.save();
     }
     addRandomQuest() {
@@ -6033,7 +6158,6 @@
       const quest = genQuest(this.data);
       if (quest !== null)
         this.data.quests.push(quest);
-      console.log(this.data);
     }
     onUpdate(g) {
       const dt = Math.min(g.deltaTime / 1e3, 0.1);
@@ -6062,18 +6186,18 @@
         }
       }
       this.nearest = best;
-      if (this.nearest && Input.interactPressed()) {
+      if (!this.player.isInCar && this.nearest && Input.interactPressed()) {
         this.nearest.interact();
       }
     }
     onRender(g) {
-      if (import_miglib8.Keys.justPressed(import_miglib8.Keys.KEY_F10)) toggleDebug();
+      if (import_miglib8.Keys.justPressed(import_miglib8.Keys.KEY_F10)) this.player.pos.set(PLAYER_START.x, PLAYER_START.y);
       if (import_miglib8.Keys.justPressed(import_miglib8.Keys.KEY_F9)) this.clearSave();
       g.sketch.background(0);
       this.camera.begin(g);
       this.world.renderBackground(g, this.camera.visibleRect(g));
       for (const obj of this.world.interactibles) {
-        obj.render(g, obj.pos, obj === this.nearest);
+        obj.render(g, obj.pos, !this.player.isInCar && obj === this.nearest);
       }
       this.player.render(g);
       this.camera.end(g);
@@ -6093,15 +6217,7 @@
       "player",
       "patch",
       "hovered",
-      "quest_marker"
-    ].forEach((img) => assets.loadImage(img, img + ".png"));
-    [
-      "person2",
-      "money",
-      "post_door",
-      "door_gray2"
-    ].forEach((img) => assets.loadImage("interactibles/" + img, "interactibles/" + img + ".png"));
-    [
+      "quest_marker",
       "person1",
       "person2",
       "person3",
@@ -6111,8 +6227,10 @@
       "person7",
       "person8",
       "person9",
-      "person10"
-    ].forEach((img) => assets.loadImage(img, "persons/" + img + ".png"));
+      "person10",
+      "money",
+      "door"
+    ].forEach((img) => assets.loadImage(img, img + ".png"));
     return new GameScreen();
   });
   game.start();
