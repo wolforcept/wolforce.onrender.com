@@ -5135,8 +5135,10 @@
       g.sketch.rect(this.x + px, this.y + py, ZOOM, ZOOM);
     }
     renderInventory(g, x, y) {
-      const text = "Wallet: " + this.data.money + " $\n\nItems:\n" + this.data.inventory.map((x2) => " > " + x2 + "\n").join("") + "\n\nUpgrades:\n" + this.data.upgrades.map((x2) => " > " + x2 + "\n").join("");
+      const text = "Wallet: " + this.data.money + " $\n\nItems:\n" + this.data.inventory.map((x2) => " > " + x2 + "\n").join("");
+      const text2 = "Daily Pay: " + (25 + 10 * this.data.career) + " $\n\nUpgrades:\n" + this.data.upgrades.map((x2) => " > " + x2 + "\n").join("");
       g.renderText(text, x, y, { color: WHITE, size: 30 });
+      g.renderText(text2, x + 300, y, { color: WHITE, size: 30 });
     }
     renderLetters(g, x, y) {
       if (!this.data.hasJob) return;
