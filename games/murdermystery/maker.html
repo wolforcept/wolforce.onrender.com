@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Rect Selector</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            color: #eee;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #aaa;
+        }
+
+        #drop-zone {
+            border: 2px dashed #555;
+            border-radius: 8px;
+            padding: 30px 60px;
+            cursor: pointer;
+            color: #888;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+
+        #drop-zone:hover {
+            border-color: #aaa;
+            color: #ccc;
+        }
+
+        #canvas-wrap {
+            position: relative;
+            display: none;
+        }
+
+        #img-canvas {
+            display: block;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+
+        #output {
+            margin-top: 12px;
+            font-size: 15px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px 16px;
+            display: none;
+            min-width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>drag a rect on your image — coords log to console</h2>
+
+    <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+        click or drop image here
+        <input type="file" id="file-input" accept="image/*" style="display:none">
+    </div>
+
+    <div id="canvas-wrap">
+        <canvas id="img-canvas"></canvas>
+        <canvas id="overlay"></canvas>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const wrap = document.getElementById('canvas-wrap');
+        const imgCanvas = document.getElementById('img-canvas');
+        const overlay = document.getElementById('overlay');
+        const output = document.getElementById('output');
+        const ictx = imgCanvas.getContext('2d');
+        const octx = overlay.getContext('2d');
+
+        let img = new Image();
+        let scale = 1;
+        let dragging = false;
+        let startX, startY;
+
+        function loadImage(file) {
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                const maxW = Math.min(window.innerWidth - 40, img.naturalWidth);
+                scale = maxW / img.naturalWidth;
+                const w = Math.round(img.naturalWidth * scale);
+                const h = Math.round(img.naturalHeight * scale);
+                imgCanvas.width = overlay.width = w;
+                imgCanvas.height = overlay.height = h;
+                ictx.drawImage(img, 0, 0, w, h);
+                wrap.style.display = 'block';
+                dropZone.style.display = 'none';
+            };
+            img.src = url;
+        }
+
+        fileInput.onchange = e => e.target.files[0] && loadImage(e.target.files[0]);
+        dropZone.ondragover = e => { e.preventDefault(); dropZone.style.borderColor = '#aaa'; };
+        dropZone.ondragleave = () => dropZone.style.borderColor = '#555';
+        dropZone.ondrop = e => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#555';
+            if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]);
+        };
+
+        function getPos(e) {
+            const r = overlay.getBoundingClientRect();
+            return {
+                x: Math.round((e.clientX - r.left) / scale),
+                y: Math.round((e.clientY - r.top) / scale)
+            };
+        }
+
+        overlay.addEventListener('mousedown', e => {
+            const pos = getPos(e);
+            startX = pos.x;
+            startY = pos.y;
+            dragging = true;
+        });
+
+        overlay.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            const pos = getPos(e);
+            const rx = Math.min(startX, pos.x) * scale;
+            const ry = Math.min(startY, pos.y) * scale;
+            const rw = Math.abs(pos.x - startX) * scale;
+            const rh = Math.abs(pos.y - startY) * scale;
+
+            octx.clearRect(0, 0, overlay.width, overlay.height);
+            octx.strokeStyle = '#00e5ff';
+            octx.lineWidth = 2;
+            octx.fillStyle = 'rgba(0, 229, 255, 0.08)';
+            octx.fillRect(rx, ry, rw, rh);
+            octx.strokeRect(rx, ry, rw, rh);
+        });
+
+        overlay.addEventListener('mouseup', e => {
+            if (!dragging) return;
+            dragging = false;
+            const pos = getPos(e);
+            const x = Math.min(startX, pos.x);
+            const y = Math.min(startY, pos.y);
+            const w = Math.abs(pos.x - startX);
+            const h = Math.abs(pos.y - startY);
+            const str = `x: ${x}, y: ${y}, w: ${w}, h: ${h}`;
+            console.log(str);
+            output.style.display = 'block';
+            output.textContent = str;
+        });
+    </script>
+</body>
+
+</html>
