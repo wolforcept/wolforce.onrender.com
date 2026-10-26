@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://wolforcept.github.io/cdn/iconawesome/ia.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet" />
 
     <style>
         /* ============================================================
@@ -53,8 +53,8 @@
             --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
             --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.35);
 
-            --font-display: 'Cinzel', serif;
-            --font-body: 'Crimson Pro', serif;
+            --font-display: 'Forum', serif;
+            --font-body: 'Forum', serif;
 
             --navbar-h: 56px;
             --filterbar-h: 52px;
@@ -144,15 +144,62 @@
        #region NAVBAR
     ============================================================ */
         .navbar {
-            height: var(--navbar-h);
+            min-height: var(--navbar-h);
             background: var(--bg-navbar);
             border-bottom: 1px solid rgba(201, 168, 76, 0.1);
-            display: flex;
+            /* equal 1fr side columns keep the middle (chips) centered */
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
             padding: 0 20px;
             gap: 12px;
             position: relative;
             z-index: 100;
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            justify-self: start;
+            min-width: 0;
+        }
+
+        .navbar-center {
+            display: flex;
+            justify-content: center;
+            min-width: 0;
+            padding: 8px 0;
+        }
+
+        .navbar-center:empty {
+            display: none;
+        }
+
+        /* Mobile: logo + buttons on the first row, chips on a second row below */
+        @media (max-width: 600px) {
+            .navbar {
+                grid-template-columns: 1fr auto;
+                grid-template-rows: var(--navbar-h) auto;
+                row-gap: 0;
+                padding-left: 0;
+                padding-right: 10px;
+            }
+
+            .navbar-left {
+                grid-column: 1;
+                grid-row: 1;
+            }
+
+            .navbar-right {
+                grid-column: 2;
+                grid-row: 1;
+            }
+
+            .navbar-center {
+                grid-column: 1 / -1;
+                grid-row: 2;
+                padding: 0 0 10px;
+            }
         }
 
         .navbar-logo {
@@ -178,7 +225,10 @@
         .navbar-right {
             display: flex;
             align-items: center;
+            justify-content: flex-end;
+            justify-self: end;
             gap: 8px;
+            min-width: 0;
         }
 
         .btn-icon {
@@ -234,7 +284,10 @@
         .filterbar-wrapper {
             background: var(--bg-filter);
             border-bottom: 1px solid rgba(201, 168, 76, 0.08);
-            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .filterbar-wrapper:empty {
+            display: none;
         }
 
         .filterbar {
@@ -265,7 +318,6 @@
         }
 
         .filterbar-chips {
-            flex: 1;
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
@@ -278,7 +330,8 @@
             gap: 5px;
             padding: 4px 12px;
             border-radius: 20px;
-            font-size: 13px;
+            font-size: 15px;
+            font-weight: 700;
             background: var(--chip-bg);
             color: var(--chip-text);
             border: 1px solid rgba(255, 255, 255, 0.07);
@@ -455,7 +508,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(transparent, rgba(0, 0, 0, 0.75) 60%, rgba(0, 0, 0, 0.92));
+            background: rgba(10, 18, 20, 0.85);
             padding: 20px 8px 7px;
         }
 
@@ -466,7 +519,6 @@
             color: #fff;
             letter-spacing: 0.04em;
             line-height: 1.3;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
         }
 
         @media (min-width: 600px) {
@@ -491,14 +543,12 @@
             overflow: hidden;
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: var(--shadow-card);
             padding: 12px 14px;
-            transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+            transition: background var(--transition), transform var(--transition);
         }
 
         .post-card:hover {
             background: var(--bg-card-hover);
-            box-shadow: var(--shadow);
             transform: translateY(-1px);
         }
 
@@ -517,6 +567,19 @@
 
         .post-card-img-wrap {
             flex-shrink: 0;
+            position: relative;
+        }
+
+        /* "direct" marker: white icon over the bottom-right corner of the image */
+        .direct-icon {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            color: #fff;
+            font-size: 14px;
+            line-height: 1;
+            pointer-events: none;
+            z-index: 2;
         }
 
         .post-card-img {
@@ -809,7 +872,6 @@
             background: var(--bg-dialog);
             border: 1px solid var(--bg-dialog-border);
             border-radius: var(--radius-lg);
-            box-shadow: 0 8px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(201, 168, 76, 0.08) inset;
             padding: 28px 28px 22px;
             width: 100%;
             max-width: 400px;
@@ -845,6 +907,23 @@
 
         .dialog-field {
             margin-bottom: 16px;
+        }
+
+        .dialog-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .dialog-check input {
+            width: auto;
+            padding: 0;
+            margin: 0;
+            accent-color: var(--gold);
+            cursor: pointer;
         }
 
         .dialog-error {
@@ -1081,6 +1160,9 @@
             return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         };
 
+        // A "direct" post opens its first link instead of the detail page
+        const isDirect = (post) => post.direct === true && !!post.links?.[0]?.link;
+
         // Cycle: OFF → AND → OR → NOT → OFF
         const cycleTagState = (s) => ({ OFF: 'AND', AND: 'OR', OR: 'NOT', NOT: 'OFF' }[s] || 'OFF');
 
@@ -1136,6 +1218,7 @@
                 /* h('div', { class: 'post-tile-overlay' },
                   h('div', { class: 'post-tile-title' }, post.title)
                 ), */
+                isDirect(post) && h('i', { class: 'ia ia-external direct-icon' }),
                 h(StarBtn, { postTitle: post.title, favs, onToggle: onToggleFav })
             );
         }
@@ -1167,7 +1250,8 @@
                     h('div', { class: 'post-card-img-wrap' },
                         post.image
                             ? h('img', { class: 'post-card-img', src: imgSrc(post.image), alt: post.title, loading: 'lazy' })
-                            : null
+                            : null,
+                        post.image && isDirect(post) && h('i', { class: 'ia ia-external direct-icon' })
                     ),
                 ),
                 h(StarBtn, {
@@ -1282,6 +1366,7 @@
                 imageUrl: isEdit ? (editPost.image || '') : '',
                 tags: isEdit ? (editPost.tags || []).join(', ') : '',
                 content: isEdit ? (editPost.content || '') : '',
+                direct: isEdit ? editPost.direct === true : false,
             }));
             const [links, setLinks] = useState(() =>
                 isEdit && editPost.links?.length
@@ -1309,6 +1394,7 @@
                         date: isEdit ? editPost.date : new Date().toISOString().slice(0, 10),
                         title: form.title.trim(),
                         content: form.content.trim(),
+                        direct: form.direct,
                         image: form.imageUrl.trim(),
                         tags,
                         links: builtLinks,
@@ -1360,6 +1446,16 @@
                         h('textarea', { value: form.content, onInput: set('content'), placeholder: 'Describe your project…' })
                     ),
                     h('div', { class: 'dialog-field' },
+                        h('label', { class: 'dialog-check' },
+                            h('input', {
+                                type: 'checkbox',
+                                checked: form.direct,
+                                onChange: e => setForm(f => ({ ...f, direct: e.target.checked })),
+                            }),
+                            h('span', null, 'Direct')
+                        )
+                    ),
+                    h('div', { class: 'dialog-field' },
                         h('label', null, 'Links'),
                         h('div', { class: 'link-rows' },
                             links.map((l, i) =>
@@ -1390,39 +1486,25 @@
         // ============================================================
         // #region FILTER BAR COMPONENT
         // ============================================================
-        function FilterBar({ arrange, onArrange, simpleChip, onSimpleChip, advOpen, onAdvOpen, allTags, advTags, onAdvTag, onAdvClear }) {
+        // Simple chips (rendered in the middle of the navbar)
+        function FilterChips({ simpleChip, onSimpleChip, onAdvClear }) {
+            return h('div', { class: 'filterbar-chips' },
+                SIMPLE_CHIPS.map(chip =>
+                    h('button', {
+                        key: chip.id,
+                        class: `chip ${simpleChip === chip.id ? 'active' : ''}`,
+                        onClick: () => { onSimpleChip(simpleChip === chip.id ? null : chip.id); onAdvClear(); },
+                    },
+                        chip.icon && h('i', { class: chip.icon }),
+                        chip.label && h('span', null, chip.label)
+                    )
+                )
+            );
+        }
+
+        // Advanced tag panel (shown under the navbar when the filter button is toggled)
+        function FilterBar({ advOpen, allTags, advTags, onAdvTag, onAdvClear }) {
             return h('div', { class: 'filterbar-wrapper' },
-                h('div', { class: 'filterbar' },
-                    // Grid/list toggle
-                    h('button', {
-                        class: 'btn-arrange',
-                        onClick: () => onArrange(arrange === 'grid' ? 'list' : 'grid'),
-                        title: arrange === 'grid' ? 'Switch to list' : 'Switch to grid',
-                    }, h('i', { class: arrange === 'grid' ? 'ia ia-list' : 'ia ia-grid' })),
-
-                    // Simple chips (centered)
-                    h('div', { class: 'filterbar-chips' },
-                        SIMPLE_CHIPS.map(chip =>
-                            h('button', {
-                                key: chip.id,
-                                class: `chip ${simpleChip === chip.id ? 'active' : ''}`,
-                                onClick: () => { onSimpleChip(simpleChip === chip.id ? null : chip.id); onAdvClear(); },
-                            },
-                                chip.icon && h('i', { class: chip.icon }),
-                                chip.label && h('span', null, chip.label)
-                            )
-                        )
-                    ),
-
-                    // Advanced toggle
-                    h('button', {
-                        class: `btn-advanced ${advOpen ? 'active' : ''}`,
-                        onClick: onAdvOpen,
-                        title: 'Advanced filters',
-                    }, h('i', { class: 'ia ia-filter' }))
-                ),
-
-                // Advanced panel
                 advOpen && allTags.length > 0 && h('div', { class: 'advanced-panel' },
                     h('div', { class: 'advanced-panel-inner' },
                         allTags.map(tag => {
@@ -1512,6 +1594,11 @@
 
             // --- navigation ---
             const openPost = (post) => {
+                // "direct" posts skip the detail page and open their first link
+                if (isDirect(post)) {
+                    window.open(post.links[0].link, '_blank', 'noopener');
+                    return;
+                }
                 window.location.hash = `post/${post.id}`;
             };
             const goBack = () => { window.location.hash = ''; };
@@ -1544,17 +1631,41 @@
             return h(Fragment, null,
                 // ---- NAVBAR ----
                 h('nav', { class: 'navbar' },
-                    h('a', { href: '#' },
-                        h('img', {
-                            class: 'navbar-logo',
-                            src: 'assets/images/logo.png',
-                            alt: 'Wolforcept',
-                            onError: e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }
-                        }),
-                        h('span', { class: 'navbar-logo-fallback', style: { display: 'none' } }, 'Wolforcept')
+                    // Left: logo
+                    h('div', { class: 'navbar-left' },
+                        h('a', { href: '#' },
+                            h('img', {
+                                class: 'navbar-logo',
+                                src: 'assets/images/logo.png',
+                                alt: 'Wolforcept',
+                                onError: e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }
+                            }),
+                            h('span', { class: 'navbar-logo-fallback', style: { display: 'none' } }, 'Wolforcept')
+                        )
                     ),
-                    h('div', { class: 'navbar-spacer' }),
+
+                    // Center: chips (list view only)
+                    h('div', { class: 'navbar-center' },
+                        !detail && h(FilterChips, {
+                            simpleChip, onSimpleChip: setSimpleChip,
+                            onAdvClear: () => { clearAdvTags(); }
+                        })
+                    ),
+
+                    // Right: buttons (same width as the left column via grid 1fr / auto / 1fr)
                     h('div', { class: 'navbar-right' },
+                        // Grid/list toggle (list view only)
+                        !detail && h('button', {
+                            class: 'btn-arrange',
+                            onClick: () => setArrange(arrange === 'grid' ? 'list' : 'grid'),
+                            title: arrange === 'grid' ? 'Switch to list' : 'Switch to grid',
+                        }, h('i', { class: arrange === 'grid' ? 'ia ia-list' : 'ia ia-grid' })),
+                        // Advanced filter toggle (list view only)
+                        !detail && h('button', {
+                            class: `btn-advanced ${advOpen ? 'active' : ''}`,
+                            onClick: toggleAdv,
+                            title: 'Advanced filters',
+                        }, h('i', { class: 'ia ia-filter' })),
                         // Back button (detail mode)
                         detail && h('button', { class: 'btn-back', onClick: goBack },
                             h('i', { class: 'ia ia-chevron-left' }), 'Back'
@@ -1580,11 +1691,9 @@
                     )
                 ),
 
-                // ---- FILTER BAR (only on list view, not detail) ----
+                // ---- ADVANCED FILTER PANEL (only on list view, not detail) ----
                 !detail && h(FilterBar, {
-                    arrange, onArrange: setArrange,
-                    simpleChip, onSimpleChip: setSimpleChip,
-                    advOpen, onAdvOpen: toggleAdv,
+                    advOpen,
                     allTags, advTags,
                     onAdvTag: toggleAdvTag,
                     onAdvClear: () => { clearAdvTags(); }
