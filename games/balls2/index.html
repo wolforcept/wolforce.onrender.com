@@ -349,9 +349,8 @@
             flex-direction: column;
             padding-top: var(--hudH, 0px);
             /* the HUD sits on top of the shop, so the shop starts below it */
-            background: rgba(5, 3, 20, .80);
-            -webkit-backdrop-filter: blur(3px);
-            backdrop-filter: blur(3px);
+            background: rgba(5, 3, 20, .86);
+            /* no backdrop-filter: blurring the live canvas behind it is re-done every frame and is slow on phones */
             transform: translateY(100%);
             visibility: hidden;
             transition: transform .26s ease, visibility 0s .26s;
@@ -559,8 +558,20 @@
             border-color: #6bff1f;
             background: rgba(107, 255, 31, .28);
             cursor: default;
-            box-shadow: 0 0 16px #6bff1f, inset 0 0 14px rgba(107, 255, 31, .55);
+            box-shadow: 0 0 10px #6bff1f, inset 0 0 8px rgba(107, 255, 31, .35);
+            position: relative;
+        }
+
+        /* the twinkle only animates the opacity of an extra glow layer, which the GPU handles without repainting */
+        .buy.active::after {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            pointer-events: none;
+            box-shadow: 0 0 26px #6bff1f, 0 0 40px rgba(107, 255, 31, .6), inset 0 0 20px rgba(107, 255, 31, .8);
             animation: twinkle .9s ease-in-out infinite;
+            will-change: opacity;
         }
 
         .buy.active .bc {
@@ -573,23 +584,19 @@
 
             0%,
             100% {
-                box-shadow: 0 0 10px #6bff1f, inset 0 0 8px rgba(107, 255, 31, .35);
-                filter: brightness(.9)
+                opacity: 0
             }
 
             35% {
-                box-shadow: 0 0 26px #6bff1f, 0 0 40px rgba(107, 255, 31, .6), inset 0 0 20px rgba(107, 255, 31, .8);
-                filter: brightness(1.35)
+                opacity: 1
             }
 
             60% {
-                box-shadow: 0 0 14px #6bff1f, inset 0 0 12px rgba(107, 255, 31, .5);
-                filter: brightness(1)
+                opacity: .25
             }
 
             80% {
-                box-shadow: 0 0 22px #6bff1f, inset 0 0 18px rgba(107, 255, 31, .7);
-                filter: brightness(1.25)
+                opacity: .75
             }
         }
 
@@ -678,7 +685,9 @@
             const GOLD = '#ffd23a';
             const BALL_GLOWS = ['#3d8bff', '#4da3ff', '#19a8ff', '#5b7bff', '#7a4dff', '#8a5bff', '#a56bff', '#b78cff'];   // each ball gets a random bluish or purplish glow
             const randGlow = () => BALL_GLOWS[(Math.random() * BALL_GLOWS.length) | 0];
-            const PEG_TYPES = { basic: { color: '#ffffff' }, research: { color: '#8a5bff' }, dual: { color: '#ffd23a' }, splitter: { color: '#4da3ff' } };   // more peg types (other colours, other effects) go here
+            const PEG_TYPES = { basic: { color: '#ffffff' }, research: { color: '#8a5bff' }, dual: { color: '#ffd23a' }, splitter: { color: '#4da3ff' }, gravity: { color: '#2effb0' } };   // more peg types (other colours, other effects) go here
+            const GRAVPEG_R = 90;                       // how far a gravity peg reaches (px)
+            const GRAVPEG_PULL = 0.06;                  // strongest pull, right next to the peg (px per physics step^2); normal gravity is about 0.11, so this is only a nudge
             const SAVE_KEY = 'neonpegs.save.v2';
 
             /* =====================================================================
@@ -762,7 +771,7 @@
                     stat: l => `x${(1 + 0.5 * l).toFixed(1)}`
                 },
                 {
-                    id: 'research', name: 'Research Lab', color: '#8a5bff', base: 200, growth: 1.7, max: MONEY_MAX, unlock: 120,
+                    id: 'research', name: 'Research Lab', color: '#8a5bff', base: 1000, growth: 1.7, max: MONEY_MAX, unlock: 120,
                     desc: 'Unlocks research points (hexagons), which generate slowly on their own. Every level makes them come faster.',
                     stat: l => `${rpRate(l).toFixed(1)} RP per second`
                 },
@@ -819,8 +828,13 @@
                     stat: l => `${l} owned, +${RP_PEG} RP per hit`
                 },
                 {
-                    id: 'splitpeg', cur: 'rp', name: 'Splitter Pegs', color: '#4da3ff', base: 10, growth: 1.45, max: 10, unlock: 0,
-                    desc: 'Adds a blue splitter peg to place. A ball that hits it splits in two half-size balls, each counting as half a ball for your ball limit. Half-size balls cannot be split again.',
+                    id: 'splitpeg', cur: 'rp', name: 'Splitter Pegs', color: '#4da3ff', base: 10, growth: 2.6, max: 10, unlock: 0,
+                    desc: 'Adds a blue splitter peg to place. A ball that hits it splits in two half-size balls, each counting as half a ball for your ball limit. Half-size balls cannot be split again. Every extra splitter peg costs much more than the last.',
+                    stat: l => `${l} owned`
+                },
+                {
+                    id: 'gravpeg', cur: 'rp', name: 'Gravity Pegs', color: '#2effb0', base: 14, growth: 2.6, max: 10, unlock: 0,
+                    desc: `Adds a teal gravity peg to place. Balls passing within ${GRAVPEG_R}px of it get pulled gently towards it (the closer, the stronger), bending their path. It is also a normal solid peg that pays money. Every extra gravity peg costs much more than the last.`,
                     stat: l => `${l} owned`
                 },
                 {
@@ -919,15 +933,17 @@
             UPGRADES.forEach(u => state.levels[u.id] = 0);
             const L = id => state.levels[id] | 0;
             const placedOf = t => state.pegs.filter(p => p.type === t).length;
-            const readyOf = t => Math.max(0, (t === 'research' ? L('rpeg') : t === 'splitter' ? L('splitpeg') : L('peg')) - placedOf(t));
-            const ready = () => readyOf('basic') + readyOf('research') + readyOf('splitter') + state.dualReady.length;
-            const nextType = () => state.dualReady.length ? 'dual' : readyOf('research') > 0 ? 'research' : readyOf('splitter') > 0 ? 'splitter' : 'basic';   // dual first, then research
+            const readyOf = t => Math.max(0, (t === 'research' ? L('rpeg') : t === 'splitter' ? L('splitpeg') : t === 'gravity' ? L('gravpeg') : L('peg')) - placedOf(t));
+            const ready = () => readyOf('basic') + readyOf('research') + readyOf('splitter') + readyOf('gravity') + state.dualReady.length;
+            const nextType = () => state.dualReady.length ? 'dual' : readyOf('research') > 0 ? 'research' : readyOf('splitter') > 0 ? 'splitter' : readyOf('gravity') > 0 ? 'gravity' : 'basic';   // dual first, then research, splitter, gravity
             const maxBalls = () => (1 + L('balls')) * (burstT > 0 ? 10 : 1);
             let worldH = worldHeight(0);
             let evilOn = false;                          // the Evil toggle (not saved: it always starts off)
             let deadT = 0, deadCD = 0, deadApplied = false, ghostCD = 0, gravCD = 0, chaosT = 0, chaosCD = 0;
             let burstT = 0, burstCD = 0, ghostT = 0, gravT = 0;   // temporary goo upgrades (ms remaining)
             let launchX = W / 2;                         // the cannon sweeps left and right along the ceiling
+            let prevLaunchX = launchX;                   // launchX before the last physics step (for smooth drawing)
+            let uiDirty = false;                         // refreshUI() runs on the next frame (never from inside a physics step)
 
             // the launcher stays near the top; the bucket is anchored to the floor, because the world grows downward
             const rimY = () => worldH - 36;
@@ -999,10 +1015,12 @@
                 const po = { isStatic: true, restitution: deadT > 0 ? DEAD_REST : 0.5, friction: 0, label: 'peg' };
                 const r = pegRadius(y);
                 const body = type === 'research' ? Bodies.polygon(x, y, 6, r + 1, po) : Bodies.circle(x, y, r, po);
+                if (type === 'research') Body.rotate(body, Math.PI / 6);   // Matter's hexagon has a pointy top; hexPath() draws a flat top
                 const peg = { x, y, r, type, body, flash: 0, color: PEG_TYPES[type].color, gooT: 0, left, dead: false, dmg, gone: false, evilKill: false };
                 body.peg = peg;
                 Composite.add(world, body);
                 state.pegs.push(peg);
+                pegGrid = null;
                 return peg;
             }
             function removePeg(peg) {
@@ -1010,6 +1028,54 @@
                 if (i < 0) return;
                 Composite.remove(world, peg.body);
                 state.pegs.splice(i, 1);
+                pegGrid = null;
+            }
+
+            /* Pegs never move, so they are kept in a grid of cells and a ball is only checked against the pegs in nearby cells. */
+            const CELL = 32;
+            let pegGrid = null;                          // Map: cell key -> pegs; null = rebuild on next use
+            const cellKey = (cx, cy) => cy * 64 + cx + 8;
+            function pegsNear(x0, y0, x1, y1, out) {
+                if (!pegGrid) {
+                    pegGrid = new Map();
+                    for (const p of state.pegs) {
+                        const k = cellKey(Math.floor(p.x / CELL), Math.floor(p.y / CELL));
+                        const a = pegGrid.get(k);
+                        if (a) a.push(p); else pegGrid.set(k, [p]);
+                    }
+                }
+                out.length = 0;
+                const m = PEG_R + 2;                     // a peg is filed under its centre, so widen the search by a peg radius
+                const cx0 = Math.floor((x0 - m) / CELL), cx1 = Math.floor((x1 + m) / CELL);
+                const cy0 = Math.floor((y0 - m) / CELL), cy1 = Math.floor((y1 + m) / CELL);
+                for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+                    const a = pegGrid.get(cellKey(cx, cy));
+                    if (a) for (const p of a) out.push(p);
+                }
+                return out;
+            }
+
+            // Matter's detector sweeps over every body on every step, which gets slow with hundreds of pegs.
+            // Only balls ever collide (balls ignore each other, pegs and walls are static), so check just the balls against nearby pegs and the walls.
+            if (Matter.Detector && Matter.Collision && Matter.Collision.collides) {
+                const { Detector, Collision } = Matter;
+                const near = [];
+                Detector.collisions = function (detector) {
+                    const out = [], pairs = detector.pairs;
+                    const test = (A, B) => {
+                        const a = A.bounds, b = B.bounds;
+                        if (b.min.x > a.max.x || b.max.x < a.min.x || b.min.y > a.max.y || b.max.y < a.min.y) return;
+                        if (!Detector.canCollide(A.collisionFilter, B.collisionFilter)) return;
+                        const c = Collision.collides(A, B, pairs);
+                        if (c) out.push(c);
+                    };
+                    for (const ball of balls) {
+                        const A = ball.body, a = A.bounds;
+                        for (const w of wallBodies) test(A, w);
+                        for (const p of pegsNear(a.min.x, a.min.y, a.max.x, a.max.y, near)) test(A, p.body);
+                    }
+                    return out;
+                };
             }
 
             /* ---------- launching ----------
@@ -1032,23 +1098,20 @@
                 const isGoo = Math.random() < gooChance(L('goo'));
                 const isGold = !isGoo && L('goldball') > 0 && Math.random() < GOLD_CHANCE;   // a ball is never both
                 const ball = {
-                    body, r, hits: 0, age: 0, still: 0, tick: 0, trail: [], lastPeg: null, lastT: 0,
+                    body, r, px: launchX, py: LAUNCH_Y, hits: 0, age: 0, still: 0, tick: 0, trail: [], lastPeg: null, lastT: 0,
                     goo: isGoo, gold: isGold, gooHits: 0, expired: false, touch: new Set(), w: 1, split: false, glow: randGlow()
                 };
                 body.ball = ball;
                 Composite.add(world, body);
                 balls.push(ball);
                 recoil = 1;
-                refreshUI();
+                uiDirty = true;
                 return true;
             }
 
             /* ---------- scoring ---------- */
-            const earnLog = [];
-            const t0 = performance.now();
             function gain(v) {
                 state.money += v; state.total += v;
-                earnLog.push({ t: performance.now(), v });
             }
 
             const particles = [];
@@ -1145,7 +1208,7 @@
                     });
                     Body.setVelocity(body, { x: sp * Math.cos(a), y: sp * Math.sin(a) });
                     const nb = {
-                        body, r, hits: ball.hits, age: ball.age, still: 0, tick: 0, trail: [], lastPeg: peg, lastT: simT,
+                        body, r, px: p.x, py: p.y, hits: ball.hits, age: ball.age, still: 0, tick: 0, trail: [], lastPeg: peg, lastT: simT,
                         goo: ball.goo, gold: ball.gold, gooHits: ball.gooHits, expired: false, touch: new Set([peg]), w: 0.5, split: true, glow: ball.glow
                     };
                     body.ball = nb;
@@ -1153,12 +1216,18 @@
                     balls.push(nb);
                 }
                 burst(peg.x, peg.y, peg.color, 8);
-                refreshUI();
+                uiDirty = true;
             }
 
             /* The bucket row is only drawn: catching is a position check in stepGame().
                With more buckets the same total width is split into equal buckets; the further from the middle, the lower the multiplier. */
+            let bucketKey = '', bucketCache = null;
             function bucketLayout() {
+                const key = L('buckets') + ',' + L('wide');
+                if (key !== bucketKey) { bucketKey = key; bucketCache = buildBuckets(); }
+                return bucketCache;
+            }
+            function buildBuckets() {
                 const l = L('buckets'), n = bucketCount(l), w = bucketW(L('wide')) / n, pitch = w + BUCKET_GAP;
                 const span = w * n + BUCKET_GAP * (n - 1), x0 = BUCKET_X - span / 2;
                 const cm = (n - 1) / 2, mid = midMult(l), edge = edgeMult(l), out = [];
@@ -1194,9 +1263,25 @@
                 }
             });
 
+            // Gravity pegs: every ball within reach is pulled gently towards the peg's centre; the closer the ball, the stronger the pull.
+            function applyGravityPegs() {
+                for (const pg of state.pegs) {
+                    if (pg.type !== 'gravity' || pg.dead) continue;
+                    for (const b of balls) {
+                        const p = b.body.position;
+                        const dx = pg.x - p.x, dy = pg.y - p.y, d = Math.hypot(dx, dy);
+                        if (d >= GRAVPEG_R || d < 1) continue;
+                        const f = GRAVPEG_PULL * (1 - d / GRAVPEG_R);
+                        const v = b.body.velocity;
+                        Body.setVelocity(b.body, { x: v.x + dx / d * f, y: v.y + dy / d * f });
+                    }
+                }
+            }
+
             function stepGame(dt) {
                 simT += dt;
                 state.rp += rpRate(L('research')) * dt / 1000;
+                prevLaunchX = launchX;
                 launchX = W / 2 + (W / 2 - SWEEP_MARGIN) * Math.sin(simT * Math.PI * 2 / SWEEP_MS);
 
                 if (burstT > 0) { burstT -= dt; if (burstT <= 0) { burstT = 0; burstCD = BURST_CD; } }
@@ -1217,6 +1302,8 @@
                     autoT = Math.min(autoT + dt, autoInterval(al));
                     if (autoT >= autoInterval(al) && launch(true)) autoT = 0;
                 }
+                for (const b of balls) { b.px = b.body.position.x; b.py = b.body.position.y; }
+                applyGravityPegs();
                 Engine.update(engine, dt);
 
                 // Chaos Balls: whatever the physics just decided, throw the ball in a random direction at a random speed
@@ -1231,7 +1318,7 @@
                     burst(b.body.position.x, b.body.position.y, '#ff2bd6', 3);
                 }
 
-                const bs = bucketLayout();
+                const bs = bucketLayout(), ghostNear = [];
                 for (let i = balls.length - 1; i >= 0; i--) {
                     const b = balls[i], p = b.body.position, v = b.body.velocity;
                     const sp = Math.hypot(v.x, v.y);
@@ -1239,10 +1326,13 @@
                     b.age += dt;
                     b.still = sp < 0.15 ? b.still + dt : 0;
                     if (ghostT > 0) {          // ghost balls do not collide with pegs: detect the overlaps ourselves
-                        for (const pg of state.pegs) {
+                        for (const pg of b.touch) {
                             const dx = p.x - pg.x, dy = p.y - pg.y, rr = b.r + pg.r;
-                            if (dx * dx + dy * dy < rr * rr) { if (!b.touch.has(pg)) { b.touch.add(pg); hitPeg(b, pg); } }
-                            else b.touch.delete(pg);
+                            if (dx * dx + dy * dy >= rr * rr) b.touch.delete(pg);
+                        }
+                        for (const pg of pegsNear(p.x - b.r, p.y - b.r, p.x + b.r, p.y + b.r, ghostNear)) {
+                            const dx = p.x - pg.x, dy = p.y - pg.y, rr = b.r + pg.r;
+                            if (dx * dx + dy * dy < rr * rr && !b.touch.has(pg)) { b.touch.add(pg); hitPeg(b, pg); }
                         }
                     }
                     if ((++b.tick & 1) === 0) { b.trail.push(p.x, p.y); if (b.trail.length > 14) b.trail.splice(0, 2); }
@@ -1316,18 +1406,25 @@
                 camY = Math.min(hi, Math.max(lo, camY));
             }
 
+            // quality tiers: the max canvas pixel ratio. A phone that keeps dropping frames steps down one tier at a time.
+            const DPR_TIERS = [2, 1.5, 1.25, 1];
+            let qTier = navigator.deviceMemory && navigator.deviceMemory <= 4 ? 1 : 0;   // low-memory phones (Chrome reports this) start one tier down
             function resize() {
                 const r = cv.getBoundingClientRect();
                 cssW = r.width; cssH = r.height;
-                dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+                dpr = Math.min(window.devicePixelRatio || 1, DPR_TIERS[qTier]);
                 cv.width = Math.round(cssW * dpr);
                 cv.height = Math.round(cssH * dpr);
                 scale = cssW / W;
+                for (const key in pegSprites) delete pegSprites[key];   // sprites are drawn at device pixels
                 measurePads();
                 clampCam();
             }
             window.addEventListener('resize', resize);
             window.addEventListener('orientationchange', () => setTimeout(resize, 150));
+            // reading offsetHeight every frame forces a layout; only re-measure when the HUD or button bar actually change size
+            const padObserver = window.ResizeObserver ? new ResizeObserver(() => { measurePads(); clampCam(); }) : null;
+            if (padObserver) { padObserver.observe(hudEl); padObserver.observe(barEl); }
 
             /* ---------- drag to scroll + tap ---------- */
             let drag = null;
@@ -1434,13 +1531,54 @@
                 ctx.globalAlpha = 1;
             }
             const TAU = Math.PI * 2;
-            function hexPath(x, y, r) {
-                ctx.beginPath();
+            const FONT_BIG = '800 15px system-ui,sans-serif', FONT_SMALL = '700 11px system-ui,sans-serif';
+            function hexPath(x, y, r, g = ctx) {
+                g.beginPath();
                 for (let i = 0; i < 6; i++) {
                     const a = i * Math.PI / 3, px = x + r * Math.cos(a), py = y + r * Math.sin(a);
-                    if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+                    if (i) g.lineTo(px, py); else g.moveTo(px, py);
                 }
-                ctx.closePath();
+                g.closePath();
+            }
+
+            // Each peg look (type, colour, damage, radius) is drawn once into a sprite at device pixels: glow, body, outline.
+            // Drawing hundreds of cached images is far cheaper than hundreds of glows plus path fills and strokes every frame.
+            const pegSprites = {};
+            const PEG_GLOW = 12;                         // how far the resting glow reaches past the peg edge
+            function pegSprite(p, col, k) {
+                const r = Math.round(p.r * 4) / 4, dmg = p.dmg > 0.02 ? Math.round(p.dmg * 10) / 10 : 0;
+                const key = p.type + col + dmg + ',' + r;
+                let s = pegSprites[key];
+                if (s) return s;
+                const R = r + 1 + PEG_GLOW, size = Math.ceil(2 * R * k) + 2, c = size / 2 / k;
+                s = document.createElement('canvas'); s.width = s.height = size;
+                const g = s.getContext('2d');
+                g.scale(k, k);
+                const gr = g.createRadialGradient(c, c, 0, c, c, R);
+                gr.addColorStop(0, col + '59'); gr.addColorStop(0.35, col + '29'); gr.addColorStop(1, col + '00');
+                g.fillStyle = gr; g.fillRect(0, 0, 2 * c, 2 * c);
+                if (p.type === 'research') hexPath(c, c, r + 1, g); else { g.beginPath(); g.arc(c, c, r, 0, TAU); }
+                g.fillStyle = '#0b0825'; g.fill();
+                if (dmg) { g.fillStyle = `rgba(255,30,50,${dmg * 0.5})`; g.fill(); }
+                g.strokeStyle = col; g.lineWidth = 2.5; g.stroke();
+                if (p.type === 'splitter') {             // a vertical split line marks the splitter
+                    g.beginPath(); g.moveTo(c, c - 5); g.lineTo(c, c + 5);
+                    g.lineWidth = 2; g.lineCap = 'round'; g.stroke();
+                }
+                if (p.type === 'gravity') {              // a small ring around a dot marks the gravity peg
+                    g.beginPath(); g.arc(c, c, r * 0.5, 0, TAU);
+                    g.lineWidth = 1.6; g.stroke();
+                    g.beginPath(); g.arc(c, c, 1.6, 0, TAU);
+                    g.fillStyle = col; g.fill();
+                }
+                return (pegSprites[key] = s);
+            }
+
+            // the old shadowBlur glow, faked with a wide faint stroke under the real one (shadowBlur is very slow on phones)
+            function glowStroke(color, width, glowW, glowA) {
+                ctx.strokeStyle = color;
+                ctx.globalAlpha = glowA; ctx.lineWidth = glowW; ctx.stroke();
+                ctx.globalAlpha = 1; ctx.lineWidth = width; ctx.stroke();
             }
 
             // a goo-covered peg wears a wavy green cap on its top side, like icing on a cake; it slowly slides off as the goo wears out
@@ -1466,7 +1604,8 @@
                 pegPath(p);                                                  // leave the peg outline as the current path for the code that follows
             }
 
-            function render(dt) {
+            // a: how far we are between the last two physics steps (0..1), so balls and the cannon move smoothly at any refresh rate
+            function render(dt, a) {
                 recoil = Math.max(0, recoil - dt / 220);
 
                 const k = dpr * scale;
@@ -1474,12 +1613,13 @@
                 ctx.clearRect(0, 0, cv.width, cv.height);
                 ctx.setTransform(k, 0, 0, k, 0, -camY * k);
                 const viewTop = camY - 40, viewBot = camY + cssH / scale + 40;
+                const visTop = Math.max(0, viewTop), visBot = Math.min(worldH, viewBot);   // long lines are only drawn where visible
 
                 // grid, anchored to the top so it stays put when the world grows downward
                 ctx.lineWidth = 1 / scale;
                 ctx.strokeStyle = 'rgba(138,91,255,.10)';
                 ctx.beginPath();
-                for (let x = 40; x < W; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, worldH); }
+                for (let x = 40; x < W; x += 40) { ctx.moveTo(x, visTop); ctx.lineTo(x, visBot); }
                 for (let y = 40; y < worldH; y += 40) {
                     if (y < viewTop || y > viewBot) continue;
                     ctx.moveTo(0, y); ctx.lineTo(W, y);
@@ -1500,44 +1640,58 @@
                 ctx.fillStyle = 'rgba(2,1,10,.65)';
                 ctx.fillRect(-10, worldH, W + 20, 4000);
                 ctx.fillRect(-10, -4000, W + 20, 4000);
-                ctx.save();
-                ctx.shadowColor = '#8a5bff'; ctx.shadowBlur = 14; ctx.strokeStyle = '#8a5bff'; ctx.lineWidth = 2.5;
-                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, worldH); ctx.moveTo(W, 0); ctx.lineTo(W, worldH);
-                ctx.moveTo(0, 0); ctx.lineTo(W, 0); ctx.stroke();
-                ctx.shadowColor = '#ff2bd6'; ctx.strokeStyle = '#ff2bd6';
-                ctx.setLineDash([10, 8]);
-                ctx.beginPath(); ctx.moveTo(0, worldH); ctx.lineTo(W, worldH); ctx.stroke();
-                ctx.restore();
-                ctx.setLineDash([]);
+                ctx.lineCap = 'butt';
+                ctx.beginPath(); ctx.moveTo(0, visTop); ctx.lineTo(0, visBot); ctx.moveTo(W, visTop); ctx.lineTo(W, visBot);
+                if (viewTop < 0) { ctx.moveTo(0, 0); ctx.lineTo(W, 0); }
+                glowStroke('#8a5bff', 2.5, 9, 0.22);
+                if (viewBot > worldH) {
+                    ctx.setLineDash([10, 8]);
+                    ctx.beginPath(); ctx.moveTo(0, worldH); ctx.lineTo(W, worldH);
+                    glowStroke('#ff2bd6', 2.5, 9, 0.22);
+                    ctx.setLineDash([]);
+                }
 
                 drawBucket();
 
-                // pegs: glow pass
+                // gravity pegs: a faint field showing how far their pull reaches (drawn under the pegs)
+                ctx.globalCompositeOperation = 'lighter';
+                for (const p of state.pegs) {
+                    if (p.type !== 'gravity') continue;
+                    if (p.y < viewTop - GRAVPEG_R || p.y > viewBot + GRAVPEG_R) continue;
+                    drawGlow(p.color, p.x, p.y, GRAVPEG_R * 2, 0.16);
+                }
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.setLineDash([3, 6]);
+                for (const p of state.pegs) {
+                    if (p.type !== 'gravity') continue;
+                    if (p.y < viewTop - GRAVPEG_R || p.y > viewBot + GRAVPEG_R) continue;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, GRAVPEG_R, 0, TAU);
+                    ctx.strokeStyle = 'rgba(46,255,176,.22)'; ctx.lineWidth = 1; ctx.stroke();
+                }
+                ctx.setLineDash([]);
+
+                // pegs: one cached sprite each (glow + body); the bigger flash glow is only drawn while a peg flashes
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                for (const p of state.pegs) {
+                    if (p.y < viewTop || p.y > viewBot) continue;
+                    const s = pegSprite(p, pegCol(p), k);
+                    ctx.drawImage(s, Math.round(p.x * k - s.width / 2), Math.round((p.y - camY) * k - s.width / 2));   // whole device pixels: crisp
+                }
+                ctx.setTransform(k, 0, 0, k, 0, -camY * k);
                 ctx.globalCompositeOperation = 'lighter';
                 for (const p of state.pegs) {
                     if (p.y < viewTop || p.y > viewBot) continue;
-                    const gg = p.gooT > 0;
-                    drawGlow(pegCol(p), p.x, p.y, 46 + 22 * p.flash, Math.min(1, 0.35 + 0.65 * p.flash));
-                    if (gg) drawGlow(GOO_COL, p.x, p.y - 4, 30, 0.35);          // faint green glow from the cap only
+                    if (p.flash > 0) drawGlow(pegCol(p), p.x, p.y, 46 + 22 * p.flash, 0.65 * p.flash);
+                    if (p.gooT > 0) drawGlow(GOO_COL, p.x, p.y - 4, 30, 0.35);  // faint green glow from the cap only
                 }
                 ctx.globalCompositeOperation = 'source-over';
-                // pegs: body pass
-                ctx.lineWidth = 2.5;
                 for (const p of state.pegs) {
                     if (p.y < viewTop || p.y > viewBot) continue;
-                    // the peg keeps its own colour; goo is only a green cap drawn on top of it (top side green, bottom side original)
-                    pegPath(p);
-                    ctx.fillStyle = '#0b0825'; ctx.fill();
-                    if (p.dmg > 0.02) { ctx.fillStyle = `rgba(255,30,50,${p.dmg * 0.5})`; ctx.fill(); }
-                    ctx.strokeStyle = pegCol(p); ctx.stroke();
                     if (p.type === 'dual') {
                         ctx.fillStyle = '#ffd23a'; ctx.font = '800 10px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                         ctx.fillText(String(p.left), p.x, p.y + 0.5); ctx.textBaseline = 'alphabetic';
                     }
-                    if (p.type === 'splitter') {            // a vertical split line marks the splitter
-                        ctx.beginPath(); ctx.moveTo(p.x, p.y - 5); ctx.lineTo(p.x, p.y + 5);
-                        ctx.strokeStyle = pegCol(p); ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 2.5;
-                    }
+                    // the peg keeps its own colour; goo is only a green cap drawn on top of it (top side green, bottom side original)
                     if (p.gooT > 0) drawGooCap(p);          // covers the outline and everything else on the top side
                     if (p.flash > 0) { pegPath(p); ctx.fillStyle = `rgba(255,255,255,${p.flash * 0.85})`; ctx.fill(); }
                 }
@@ -1549,31 +1703,35 @@
                     if (nextType() === 'research') hexPath(s.x, s.y, hr + 1); else { ctx.beginPath(); ctx.arc(s.x, s.y, hr, 0, TAU); }
                     ctx.strokeStyle = 'rgba(255,255,255,.7)';
                     ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+                    if (nextType() === 'gravity') {         // preview the reach of the gravity peg
+                        ctx.beginPath(); ctx.arc(s.x, s.y, GRAVPEG_R, 0, TAU);
+                        ctx.strokeStyle = 'rgba(46,255,176,.35)'; ctx.lineWidth = 1; ctx.setLineDash([3, 6]); ctx.stroke(); ctx.setLineDash([]);
+                    }
                 }
 
                 // balls
                 ctx.globalCompositeOperation = 'lighter';
                 ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 for (const b of balls) {
-                    const p = b.body.position;
-                    if (p.y < viewTop || p.y > viewBot) continue;
+                    const p = b.body.position, x = b.px + (p.x - b.px) * a, y = b.py + (p.y - b.py) * a;
+                    if (y < viewTop || y > viewBot) continue;
                     const col = b.goo ? GOO_COL : b.gold ? GOLD : b.glow;
                     const t = b.trail;
                     if (t.length >= 4) {
                         ctx.strokeStyle = col; ctx.globalAlpha = 0.35; ctx.lineWidth = b.r * 1.1;
                         ctx.beginPath(); ctx.moveTo(t[0], t[1]);
                         for (let i = 2; i < t.length; i += 2) ctx.lineTo(t[i], t[i + 1]);
-                        ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.globalAlpha = 1;
+                        ctx.lineTo(x, y); ctx.stroke(); ctx.globalAlpha = 1;
                     }
-                    drawGlow(col, p.x, p.y, b.r * 5, 0.9);
+                    drawGlow(col, x, y, b.r * 5, 0.9);
                 }
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.globalAlpha = ghostT > 0 ? 0.5 : 1;       // ghost balls are see-through
                 for (const b of balls) {
-                    const p = b.body.position;
-                    if (p.y < viewTop || p.y > viewBot) continue;
+                    const p = b.body.position, x = b.px + (p.x - b.px) * a, y = b.py + (p.y - b.py) * a;
+                    if (y < viewTop || y > viewBot) continue;
                     ctx.fillStyle = b.goo ? GOO_COL : b.gold ? GOLD : '#fff';
-                    ctx.beginPath(); ctx.arc(p.x, p.y, b.r * 0.78, 0, TAU); ctx.fill();
+                    ctx.beginPath(); ctx.arc(x, y, b.r * 0.78, 0, TAU); ctx.fill();
                 }
                 ctx.globalAlpha = 1;
 
@@ -1587,16 +1745,18 @@
 
                 // floating numbers
                 ctx.textAlign = 'center';
+                let lastFont = '';
                 for (const f of floaters) {
                     if (f.y < viewTop || f.y > viewBot) continue;
                     ctx.globalAlpha = Math.min(1, f.life / f.max * 1.6);
-                    ctx.font = (f.big ? '800 15px' : '700 11px') + ' system-ui,sans-serif';
+                    const font = f.big ? FONT_BIG : FONT_SMALL;
+                    if (font !== lastFont) { ctx.font = lastFont = font; }   // setting ctx.font re-parses the string, so only when it changes
                     ctx.fillStyle = f.color;
                     ctx.fillText(f.text, f.x, f.y);
                 }
                 ctx.globalAlpha = 1;
 
-                drawLauncher();
+                drawLauncher(prevLaunchX + (launchX - prevLaunchX) * a, visBot);
             }
 
             function drawBucket() {
@@ -1607,11 +1767,11 @@
                     const sl = Math.min(8, b.w * 0.15);
                     const x0 = b.cx - b.w / 2, x1 = b.cx + b.w / 2;
                     ctx.save();
-                    ctx.shadowColor = col; ctx.shadowBlur = 12 + 14 * fl;
                     ctx.beginPath(); ctx.moveTo(x0, rim); ctx.lineTo(x0 + sl, bot); ctx.lineTo(x1 - sl, bot); ctx.lineTo(x1, rim); ctx.closePath();
                     ctx.globalAlpha = 0.08 + 0.3 * fl; ctx.fillStyle = col; ctx.fill();
-                    ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = n > 1 ? 2.5 : 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-                    ctx.beginPath(); ctx.moveTo(x0, rim); ctx.lineTo(x0 + sl, bot); ctx.lineTo(x1 - sl, bot); ctx.lineTo(x1, rim); ctx.stroke();
+                    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+                    ctx.beginPath(); ctx.moveTo(x0, rim); ctx.lineTo(x0 + sl, bot); ctx.lineTo(x1 - sl, bot); ctx.lineTo(x1, rim);
+                    glowStroke(col, n > 1 ? 2.5 : 3, 9 + 6 * fl, 0.2 + 0.3 * fl);
                     ctx.restore();
                     ctx.textAlign = 'center'; ctx.font = `800 ${Math.max(8, Math.min(12, b.w / 3.6))}px system-ui,sans-serif`;
                     ctx.fillStyle = col;
@@ -1619,13 +1779,13 @@
                 }
             }
 
-            function drawLauncher() {
-                const x = launchX, y = LAUNCH_Y;
+            function drawLauncher(x, visBot) {
+                const y = LAUNCH_Y;
 
                 // faint aim line straight down, so players can time their shot
                 ctx.save();
                 ctx.strokeStyle = 'rgba(255,157,26,.25)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 7]);
-                ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x, worldH); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x, Math.max(y + 2, visBot)); ctx.stroke();
                 ctx.restore();
 
                 ctx.globalCompositeOperation = 'lighter';
@@ -1731,9 +1891,11 @@
             });
             listEl.appendChild(resetBtn);
 
+            const PEG_LABEL = { basic: '', research: 'research ', dual: 'blast ', splitter: 'splitter ', gravity: 'gravity ' };
+
             function refreshUI() {
+                uiDirty = false;
                 const now = performance.now();
-                while (earnLog.length && earnLog[0].t < now - 10000) earnLog.shift();
 
                 const m = '$' + fmt(Math.floor(state.money));
                 setText(moneyEl, m);
@@ -1799,7 +1961,7 @@
 
                 let h = '', pulse = false;
                 if (now < toastUntil) h = toastText;
-                else if (ready() > 0) { h = `Tap the board to place a ${nextType() === 'research' ? 'research ' : nextType() === 'dual' ? 'blast ' : nextType() === 'splitter' ? 'splitter ' : ''}peg (${ready()} ready)`; pulse = true; }
+                else if (ready() > 0) { h = `Tap the board to place a ${PEG_LABEL[nextType()]}peg (${ready()} ready)`; pulse = true; }
                 else if (state.pegs.length === 0) {
                     h = state.money >= cost(UPGRADES[0]) ? 'Open the Shop and buy a peg!' : 'Press LAUNCH when the cannon lines up with the bucket';
                     pulse = true;
@@ -1839,12 +2001,13 @@
             /* =====================================================================
                SAVE / LOAD
                ===================================================================== */
+            const SAVE_CODE = { research: 'r', dual: 'd', splitter: 's', gravity: 'g', basic: 'b' };
             function save() {
                 if (resetting) return;
                 try {
                     localStorage.setItem(SAVE_KEY, JSON.stringify({
                         v: 2, money: state.money, total: state.total, rp: state.rp, goo: state.goo, evil: state.evil, autoOn, dualReady: state.dualReady, levels: state.levels,
-                        pegs: state.pegs.map(p => [Math.round(p.x * 10) / 10, Math.round(p.y * 10) / 10, p.type === 'research' ? 'r' : p.type === 'dual' ? 'd' : p.type === 'splitter' ? 's' : 'b', p.left || 0, Math.round(p.dmg * 100) / 100]),
+                        pegs: state.pegs.map(p => [Math.round(p.x * 10) / 10, Math.round(p.y * 10) / 10, SAVE_CODE[p.type] || 'b', p.left || 0, Math.round(p.dmg * 100) / 100]),
                     }));
                 } catch (e) { }
             }
@@ -1865,11 +2028,11 @@
                     worldH = worldHeight(L('depth'));
                     state.goo = Math.min(state.goo, gooCap());
                     if (Array.isArray(d.pegs)) {
-                        const lim = { basic: L('peg'), research: L('rpeg'), splitter: L('splitpeg') }, cnt = { basic: 0, research: 0, splitter: 0 };
+                        const lim = { basic: L('peg'), research: L('rpeg'), splitter: L('splitpeg'), gravity: L('gravpeg') }, cnt = { basic: 0, research: 0, splitter: 0, gravity: 0 };
                         for (const pt of d.pegs) {
                             if (!Array.isArray(pt) || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) continue;
                             if (pt[2] === 'd') { if (Number.isFinite(pt[3]) && pt[3] > 0) addPeg(pt[0], pt[1], 'dual', pt[3] | 0, pd(pt[4])); continue; }
-                            const type = pt[2] === 'r' ? 'research' : pt[2] === 's' ? 'splitter' : 'basic';
+                            const type = pt[2] === 'r' ? 'research' : pt[2] === 's' ? 'splitter' : pt[2] === 'g' ? 'gravity' : 'basic';
                             if (cnt[type] >= lim[type]) continue;
                             cnt[type]++;
                             addPeg(pt[0], pt[1], type, 0, pd(pt[4]));
@@ -1889,18 +2052,32 @@
             camY = camRange()[0];          // start looking at the top, where the launcher is
             refreshUI();
 
-            let last = performance.now(), acc = 0, uiT = 0;
+            let last = performance.now(), acc = 0, uiT = 0, renderDt = 0, skipRender = false;
+            let frameAvg = 16, slowT = 0;
+            // ?debug in the URL shows fps, physics ms, render ms and the pixel ratio in the corner
+            const DEBUG = /[?&]debug\b/.test(location.search);
+            let dbgFrames = 0, dbgPhys = 0, dbgRender = 0, dbgT = 0, dbgText = '';
+            const MAX_STEPS = 3;                     // physics steps per frame; more would make a slow phone even slower (it plays in slow motion instead)
             function frame(t) {
-                const dt = Math.min(100, t - last); last = t;
+                const raw = t - last, dt = Math.min(100, raw); last = t;
+
+                // quality governor: if frames stay slow (below ~50 fps) for 1.5 seconds, lower the canvas pixel ratio one tier
+                if (raw < 250) {                     // ignore the gap after the tab was hidden
+                    frameAvg += (raw - frameAvg) * 0.05;
+                    slowT = frameAvg > 20 ? slowT + raw : 0;
+                    if (slowT > 1500 && qTier < DPR_TIERS.length - 1) { qTier++; slowT = 0; frameAvg = 16; resize(); }
+                }
 
                 // fixed-timestep physics, identical behaviour on 60 Hz and 120 Hz screens
+                const t0 = DEBUG ? performance.now() : 0;
                 acc += dt;
                 let n = 0;
-                while (acc >= STEP && n < 6) { stepGame(STEP); acc -= STEP; n++; }
-                if (n === 6) acc = 0;
+                while (acc >= STEP && n < MAX_STEPS) { stepGame(STEP); acc -= STEP; n++; }
+                if (n === MAX_STEPS) acc = Math.min(acc, STEP);
+                const t1 = DEBUG ? performance.now() : 0;
 
                 // momentum scrolling
-                measurePads();
+                if (!padObserver) measurePads();
                 if (!drag && Math.abs(camVel) > 4) {
                     camY += camVel * dt / 1000;
                     camVel *= Math.pow(0.04, dt / 1000);
@@ -1909,10 +2086,25 @@
                 } else if (!drag) camVel = 0;
                 clampCam();
 
-                render(dt);
+                // the shop covers most of the board, so the board is only drawn every other frame while it is open
+                renderDt += dt;
+                skipRender = overlay.classList.contains('open') && !skipRender;
+                if (!skipRender) { render(renderDt, acc / STEP); renderDt = 0; }
+
+                if (DEBUG) {
+                    dbgFrames++; dbgPhys += t1 - t0; dbgRender += performance.now() - t1; dbgT += raw;
+                    if (dbgT >= 1000) {
+                        dbgText = `${Math.round(dbgFrames * 1000 / dbgT)} fps  phys ${(dbgPhys / dbgFrames).toFixed(1)}ms  draw ${(dbgRender / dbgFrames).toFixed(1)}ms  dpr ${dpr}  pegs ${state.pegs.length}  balls ${balls.length}`;
+                        dbgFrames = dbgPhys = dbgRender = dbgT = 0;
+                    }
+                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(0, cssH - padBot - 18, cssW, 18);
+                    ctx.fillStyle = '#fff'; ctx.font = '600 11px system-ui,sans-serif'; ctx.textAlign = 'left';
+                    ctx.fillText(dbgText, 6, cssH - padBot - 5);
+                }
 
                 uiT += dt;
-                if (uiT > 100) { uiT = 0; refreshUI(); }
+                if (uiT > 100 || uiDirty) { uiT = 0; refreshUI(); }
                 requestAnimationFrame(frame);
             }
             requestAnimationFrame(frame);
