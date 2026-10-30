@@ -102,72 +102,53 @@
         }
 
         /* ---------- HUD ---------- */
+        /* The HUD stays visible on top of the shop (z-index above the overlay); the shop starts right below it. */
         #hud {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            z-index: 5;
+            z-index: 22;
             pointer-events: none;
-            padding: calc(env(safe-area-inset-top) + 10px) 14px 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            background: linear-gradient(#07051af2 55%, #07051a00);
-        }
-
-        #money {
-            font-size: 30px;
-            font-weight: 800;
-            line-height: 1.05;
-            color: var(--gold);
-            text-shadow: 0 0 8px var(--gold), 0 0 22px rgba(255, 210, 58, .55)
-        }
-
-        #rate {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--lime);
-            text-shadow: 0 0 8px rgba(182, 255, 46, .7);
-            margin-top: 2px
-        }
-
-        #topL {
-            display: flex;
-            gap: 16px;
-            align-items: flex-start
-        }
-
-        #resCol {
+            padding: calc(env(safe-area-inset-top) + 8px) 12px 8px;
             display: flex;
             flex-direction: column;
             gap: 3px;
-            padding-top: 2px
+            background: linear-gradient(#07051af2 70%, #07051a00);
         }
 
-        .res {
+        /* row 1: every resource counter has the same size and the same width; the symbol sits right next to the number, centred with it */
+        #resRow {
+            display: flex;
+            gap: 4px
+        }
+
+        .rc {
+            flex: 1 1 0;
+            min-width: 0;
             display: none;
             align-items: center;
-            gap: 6px;
-            font-size: 22px;
+            justify-content: center;
+            gap: 4px;
+            font-size: 23px;
             font-weight: 800;
-            line-height: 1.1
+            line-height: 1.1;
+            white-space: nowrap
         }
 
-        .res.on {
+        .rc.on {
             display: flex
         }
 
-        .res svg {
-            width: 18px;
-            height: 18px;
+        .rc svg {
+            width: 21px;
+            height: 21px;
             flex: none
         }
 
-        .res small {
-            font-size: 11px;
-            font-weight: 600;
-            opacity: .85
+        #moneyBox {
+            color: var(--gold);
+            text-shadow: 0 0 8px var(--gold), 0 0 20px rgba(255, 210, 58, .5)
         }
 
         #rpBox {
@@ -197,16 +178,22 @@
             filter: drop-shadow(0 0 4px var(--evil))
         }
 
-        #stats {
-            text-align: right;
+        /* row 2: balls and pegs */
+        #statRow {
+            display: flex;
+            gap: 10px
+        }
+
+        .st {
+            flex: 1 1 0;
+            text-align: center;
             font-size: 11px;
             letter-spacing: 1.5px;
             color: var(--dim);
-            line-height: 1.55;
             font-weight: 600
         }
 
-        #stats b {
+        .st b {
             color: var(--mag);
             text-shadow: 0 0 8px rgba(255, 43, 214, .7);
             font-size: 13px
@@ -279,6 +266,9 @@
 
         .big {
             --k: var(--mag);
+            flex: 1 1 0;
+            min-width: 0;
+            /* every bottom button gets the same width */
             pointer-events: auto;
             position: relative;
             height: 56px;
@@ -303,8 +293,7 @@
         }
 
         #launchBtn {
-            --k: var(--cyan);
-            flex: 1.25
+            --k: var(--cyan)
         }
 
         #launchBtn.autoon {
@@ -313,13 +302,11 @@
         }
 
         #upBtn {
-            --k: var(--mag);
-            flex: 1
+            --k: var(--mag)
         }
 
         #evilBtn {
             --k: var(--evil);
-            flex: 1;
             display: none
         }
 
@@ -360,6 +347,8 @@
             z-index: 20;
             display: flex;
             flex-direction: column;
+            padding-top: var(--hudH, 0px);
+            /* the HUD sits on top of the shop, so the shop starts below it */
             background: rgba(5, 3, 20, .80);
             -webkit-backdrop-filter: blur(3px);
             backdrop-filter: blur(3px);
@@ -374,33 +363,10 @@
             transition: transform .26s ease, visibility 0s 0s
         }
 
-        #ovHead {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
-            border-bottom: 1px solid rgba(138, 91, 255, .35);
-        }
-
-        .ovTitle {
-            font-size: 12px;
-            letter-spacing: 4px;
-            font-weight: 800;
-            color: var(--mag);
-            text-shadow: 0 0 8px var(--mag)
-        }
-
-        #ovMoney {
-            font-size: 26px;
-            font-weight: 800;
-            color: var(--gold);
-            text-shadow: 0 0 8px var(--gold), 0 0 20px rgba(255, 210, 58, .5)
-        }
-
-        #closeBtn {
-            border-color: var(--mag);
-            box-shadow: 0 0 10px rgba(255, 43, 214, .55);
-            background: rgba(255, 43, 214, .14)
+        /* while the shop is open only the SHOP/CLOSE button stays in the bottom bar */
+        #app.ov #launchBtn,
+        #app.ov #evilBtn {
+            display: none !important
         }
 
         #tabs {
@@ -473,67 +439,6 @@
 
         .card.hid {
             display: none
-        }
-
-        #ovBal {
-            display: flex;
-            gap: 12px;
-            align-items: center
-        }
-
-        #ovRp {
-            display: none;
-            align-items: center;
-            gap: 6px;
-            font-size: 22px;
-            font-weight: 800;
-            color: var(--violet);
-            text-shadow: 0 0 8px var(--violet)
-        }
-
-        #ovRp.on {
-            display: flex
-        }
-
-        #ovRp svg,
-        #ovGoo svg {
-            width: 18px;
-            height: 18px;
-            flex: none
-        }
-
-        #ovGoo {
-            display: none;
-            align-items: center;
-            gap: 6px;
-            font-size: 22px;
-            font-weight: 800;
-            color: var(--goo);
-            text-shadow: 0 0 8px var(--goo)
-        }
-
-        #ovGoo.on {
-            display: flex
-        }
-
-        #ovEvil {
-            display: none;
-            align-items: center;
-            gap: 6px;
-            font-size: 22px;
-            font-weight: 800;
-            color: var(--evil);
-            text-shadow: 0 0 8px var(--evil)
-        }
-
-        #ovEvil.on {
-            display: flex
-        }
-
-        #ovEvil svg {
-            width: 18px;
-            height: 18px;
-            flex: none
         }
 
         #list {
@@ -649,6 +554,45 @@
             cursor: default
         }
 
+        /* a temporary upgrade that is running: bright green, glowing and twinkling */
+        .buy.active {
+            border-color: #6bff1f;
+            background: rgba(107, 255, 31, .28);
+            cursor: default;
+            box-shadow: 0 0 16px #6bff1f, inset 0 0 14px rgba(107, 255, 31, .55);
+            animation: twinkle .9s ease-in-out infinite;
+        }
+
+        .buy.active .bc {
+            font-size: 19px;
+            color: #eaffd9;
+            text-shadow: 0 0 8px #6bff1f, 0 0 16px #6bff1f
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px #6bff1f, inset 0 0 8px rgba(107, 255, 31, .35);
+                filter: brightness(.9)
+            }
+
+            35% {
+                box-shadow: 0 0 26px #6bff1f, 0 0 40px rgba(107, 255, 31, .6), inset 0 0 20px rgba(107, 255, 31, .8);
+                filter: brightness(1.35)
+            }
+
+            60% {
+                box-shadow: 0 0 14px #6bff1f, inset 0 0 12px rgba(107, 255, 31, .5);
+                filter: brightness(1)
+            }
+
+            80% {
+                box-shadow: 0 0 22px #6bff1f, inset 0 0 18px rgba(107, 255, 31, .7);
+                filter: brightness(1.25)
+            }
+        }
+
         #resetBtn {
             display: block;
             margin: 22px auto 0;
@@ -670,24 +614,22 @@
         <div id="evilVig"></div>
 
         <div id="hud">
-            <div id="topL">
-                <div>
-                    <div id="money">$0</div>
-                    <div id="rate">+0/s</div>
-                </div>
-                <div id="resCol">
-                    <div class="res" id="rpBox"><svg viewBox="0 0 24 24">
-                            <polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="rgba(138,91,255,.25)" stroke="#8a5bff" stroke-width="2.2" stroke-linejoin="round" />
-                        </svg><span id="rpNum">0</span><small id="rpRate">+0/s</small></div>
-                    <div class="res" id="gooBox"><svg viewBox="0 0 24 24">
-                            <path d="M12 2.5C12 2.5 5.5 10 5.5 15a6.5 6.5 0 0 0 13 0C18.5 10 12 2.5 12 2.5Z" fill="rgba(107,255,31,.3)" stroke="#6bff1f" stroke-width="2.2" stroke-linejoin="round" />
-                        </svg><span id="gooNum">0</span></div>
-                    <div class="res" id="evilBox"><svg viewBox="0 0 24 24">
-                            <polygon points="12,2.5 14.4,9.3 21.5,9.4 15.8,13.7 17.9,20.6 12,16.5 6.1,20.6 8.2,13.7 2.5,9.4 9.6,9.3" fill="rgba(255,42,61,.3)" stroke="#ff2a3d" stroke-width="2" stroke-linejoin="round" />
-                        </svg><span id="evilNum">0</span></div>
-                </div>
+            <div id="resRow">
+                <div class="rc on" id="moneyBox"><span id="money">$0</span></div>
+                <div class="rc" id="rpBox"><svg viewBox="0 0 24 24">
+                        <polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="rgba(138,91,255,.25)" stroke="#8a5bff" stroke-width="2.2" stroke-linejoin="round" />
+                    </svg><span id="rpNum">0</span></div>
+                <div class="rc" id="gooBox"><svg viewBox="0 0 24 24">
+                        <path d="M12 2.5C12 2.5 5.5 10 5.5 15a6.5 6.5 0 0 0 13 0C18.5 10 12 2.5 12 2.5Z" fill="rgba(107,255,31,.3)" stroke="#6bff1f" stroke-width="2.2" stroke-linejoin="round" />
+                    </svg><span id="gooNum">0</span></div>
+                <div class="rc" id="evilBox"><svg viewBox="0 0 24 24">
+                        <polygon points="12,2.5 14.4,9.3 21.5,9.4 15.8,13.7 17.9,20.6 12,16.5 6.1,20.6 8.2,13.7 2.5,9.4 9.6,9.3" fill="rgba(255,42,61,.3)" stroke="#ff2a3d" stroke-width="2" stroke-linejoin="round" />
+                    </svg><span id="evilNum">0</span></div>
             </div>
-            <div id="stats">BALLS <b id="stBalls">0/1</b><br>PEGS <b id="stPegs">0</b><br>READY <b id="stReady">0</b></div>
+            <div id="statRow">
+                <div class="st">BALLS <b id="stBalls">0/1</b></div>
+                <div class="st">PEGS <b id="stPegs">0</b></div>
+            </div>
         </div>
 
         <div id="bar">
@@ -695,29 +637,11 @@
             <div id="btns">
                 <button id="launchBtn" class="big" type="button">LAUNCH</button>
                 <button id="evilBtn" class="big" type="button">EVIL</button>
-                <button id="upBtn" class="big" type="button">UPGRADES</button>
+                <button id="upBtn" class="big" type="button">SHOP</button>
             </div>
         </div>
 
         <div id="overlay" aria-hidden="true">
-            <div id="ovHead">
-                <div>
-                    <div class="ovTitle">UPGRADES</div>
-                    <div id="ovBal">
-                        <div id="ovMoney">$0</div>
-                        <div id="ovRp"><svg viewBox="0 0 24 24">
-                                <polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="rgba(138,91,255,.25)" stroke="#8a5bff" stroke-width="2.2" stroke-linejoin="round" />
-                            </svg><span id="ovRpNum">0</span></div>
-                        <div id="ovGoo"><svg viewBox="0 0 24 24">
-                                <path d="M12 2.5C12 2.5 5.5 10 5.5 15a6.5 6.5 0 0 0 13 0C18.5 10 12 2.5 12 2.5Z" fill="rgba(107,255,31,.3)" stroke="#6bff1f" stroke-width="2.2" stroke-linejoin="round" />
-                            </svg><span id="ovGooNum">0</span></div>
-                        <div id="ovEvil"><svg viewBox="0 0 24 24">
-                                <polygon points="12,2.5 14.4,9.3 21.5,9.4 15.8,13.7 17.9,20.6 12,16.5 6.1,20.6 8.2,13.7 2.5,9.4 9.6,9.3" fill="rgba(255,42,61,.3)" stroke="#ff2a3d" stroke-width="2" stroke-linejoin="round" />
-                            </svg><span id="ovEvilNum">0</span></div>
-                    </div>
-                </div>
-                <button class="round" id="closeBtn" type="button" aria-label="Close">✕</button>
-            </div>
             <div id="tabs">
                 <button class="tab sel" id="tabMoney" type="button">MONEY</button>
                 <button class="tab" id="tabRp" type="button">RESEARCH</button>
@@ -739,6 +663,9 @@
             const W = 360;                              // logical world width (height grows with upgrades)
             const STEP = 1000 / 90;                     // fixed physics step (ms)
             const PEG_R = 9;
+            // pegs get slightly smaller the lower they are placed: negligible near the top, up to 15% smaller at a depth of 1500 (about 8 Taller World levels)
+            const PEG_SHRINK = 0.15, SHRINK_DEPTH = 1500;
+            const pegRadius = y => PEG_R * (1 - PEG_SHRINK * Math.min(1, Math.pow(Math.max(0, y) / SHRINK_DEPTH, 2)));
             const LAUNCH_Y = 38;                        // ball leaves the cannon just below the ceiling
             const BUCKET_X = W / 2;
             const LAUNCH_SPEED = 3;                     // initial downward speed (px per physics step)
@@ -757,12 +684,16 @@
             /* =====================================================================
                UPGRADES  (data driven: add an object here and it shows up in the list)
                ===================================================================== */
-            const worldHeight = l => 360 + 140 * l;
-            const spreadDeg = l => 1 + 3 * l;                            // total random launch range, in degrees
-            const bucketW = l => 160 + 14 * l;
+            // Each level adds less height than the one before, but the sum never stops growing (a power below 1 has no asymptote).
+            // Level 8 still gives the same 1479 as the old linear formula.
+            const worldHeight = l => Math.round(360 + 191 * Math.pow(l, 0.85));
+            // Soft limits: asymptote(l) = LIMIT - (LIMIT - START) * RATE^l. Always increasing, never reaching LIMIT, so these can be bought without end.
+            const soft = (start, limit, rate, l) => limit - (limit - start) * Math.pow(rate, l);
+            const spreadDeg = l => soft(1, 60, 0.95, l);                 // total random launch range, in degrees (soft limit 60)
+            const bucketW = l => soft(160, 280, 0.89, l);                // soft limit 280 (keeps 7 buckets plus gaps inside the board)
             const bucketValue = l => 1 + l;
-            const restitution = l => 0.5 + 0.045 * l;
-            const ballRadius = l => 6 + 0.6 * l;
+            const restitution = l => soft(0.5, 0.9, 0.96, l);            // bounce: very slow growth, never reaches 90%
+            const ballRadius = l => soft(6, 14, 0.93, l);                // soft limit 14
             const rpRate = l => 0.1 * l;                                 // research points per second
             const RP_PEG = 0.5;                                          // research points per research-peg hit
             const autoInterval = l => 2000 * Math.pow(0.85, l - 1);      // ms between automatic drops
@@ -781,6 +712,14 @@
             const DUAL_HITS = 5, DUAL_MULT = 100;                        // dual peg: hits before it vanishes, reward multiplier
             const BURST_MS = 8000, BURST_CD = 30000;                     // ball burst: duration, cooldown after it ends
             const GHOST_MS = 10000;                                      // ghost balls duration
+            const GRAV_MS = 10000, GRAV_MULT = 5;                        // heavy gravity: duration, gravity multiplier
+            const DEAD_MS = 10000, DEAD_REST = 0.02;                     // dead balls: duration, bounciness while active (pegs and walls too, since Matter uses the higher of the two)
+            const CHAOS_MS = 10000, CHAOS_CD = 30000;                    // chaos balls: duration, cooldown
+            const GHOST_CD = 30000, GRAV_CD = 30000, DEAD_CD = 30000;   // cooldowns of the temporary goo upgrades, counted after they end (ball burst: BURST_CD)
+            // button state of a temporary upgrade: running, cooling down, or ready (null)
+            const tmr = (t, cd) => t > 0 ? { active: true, s: Math.ceil(t / 1000) } : cd > 0 ? { active: false, s: Math.ceil(cd / 1000) } : null;
+            const GOO_BASE_CAP = 100, GOO_CAP_STEP = 50;                 // the most Phlegm Goo you can hold: starts at 100, +50 per Goo Tank level
+            const gooCap = (l = L('goocap')) => GOO_BASE_CAP + GOO_CAP_STEP * l;
             const edgeMult = l => 1 / (1 + 0.1 * l);                     // value multiplier of the outermost buckets
 
             // upgrade card colour = the colour of the resource it is paid with
@@ -791,7 +730,8 @@
             const EVIL_COST = 1000;                                      // research points needed to unlock evil
             const EVIL_BASE = 0.01;                                      // evil per hit on an undamaged peg; grows towards 1 as the peg gets damaged
             const EVIL_KILL = 50;                                        // evil from destroying a peg
-            const evilDmg = l => 0.05 * Math.pow(0.88, l);               // damage per hit (a peg is destroyed at 1)
+            const EVIL_DMG = 0.05;                                       // base damage per hit (a peg is destroyed at 1)
+            const evilDmg = l => EVIL_DMG * (0.1 + 0.9 * Math.pow(0.9778, l));   // Sturdy Pegs: soft limit, damage keeps shrinking but never goes below 10% of the base
             const evilRegen = l => 0.02 * (1 + 0.6 * l);                 // damage healed per second while evil is off
             const evilYield = l => 1 + 0.25 * l;                         // multiplier on all evil gained
 
@@ -802,14 +742,14 @@
                     stat: l => `${l} owned`
                 },
                 {
+                    id: 'bucket', name: 'Bucket Value', color: '#ffd23a', base: 4, growth: 1.3, max: MONEY_MAX, unlock: 4,
+                    desc: 'A ball landing in the bucket pays more.',
+                    stat: l => `$${fmt(bucketValue(l))} per catch`
+                },
+                {
                     id: 'ball', name: 'Ball Value', color: '#b6ff2e', base: 20, growth: 1.5, max: MONEY_MAX, unlock: 8,
                     desc: 'Every peg hit pays more.',
                     stat: l => `$${fmt(1 + l)} per hit`
-                },
-                {
-                    id: 'bucket', name: 'Bucket Value', color: '#ffd23a', base: 25, growth: 1.55, max: MONEY_MAX, unlock: 15,
-                    desc: 'A ball landing in the bucket pays more.',
-                    stat: l => `$${fmt(bucketValue(l))} per catch`
                 },
                 {
                     id: 'balls', name: 'Extra Ball', color: '#ff9d1a', base: 50, growth: 2.4, max: MONEY_MAX, unlock: 30,
@@ -829,12 +769,12 @@
                 {
                     id: 'wide', name: 'Wide Bucket', color: '#b6ff2e', base: 120, growth: 1.9, max: MONEY_MAX, unlock: 200,
                     desc: 'A wider bucket is easier to hit (with more buckets, the whole row gets wider).',
-                    stat: l => `${bucketW(l)} wide`
+                    stat: l => `${Math.round(bucketW(l))} wide`
                 },
                 {
                     id: 'spread', name: 'Wild Launch', color: '#ff9d1a', base: 200, growth: 2.0, max: MONEY_MAX, unlock: 250,
                     desc: 'The launch angle gets more random: balls spread out and reach more pegs.',
-                    stat: l => `${spreadDeg(l)}° range`
+                    stat: l => `${spreadDeg(l).toFixed(1)}° range`
                 },
                 {
                     id: 'combo', name: 'Combo Chain', color: '#19f5ff', base: 400, growth: 1.7, max: MONEY_MAX, unlock: 400,
@@ -847,20 +787,20 @@
                     stat: l => `${4 * l}% chance`
                 },
                 {
-                    id: 'bounce', name: 'Bouncy Balls', color: '#b6ff2e', base: 1200, growth: 1.9, max: MONEY_MAX, unlock: 1000,
-                    desc: 'Balls keep more energy when they bounce.',
-                    stat: l => `${Math.round(restitution(l) * 100)}% bounce`
+                    id: 'bounce', name: 'Bouncy Balls', color: '#b6ff2e', base: 1200, growth: 1.9, max: 0, unlock: 1000,
+                    desc: 'Balls keep more energy when they bounce. Can be bought without end, but the gains keep shrinking and never quite reach 90%.',
+                    stat: l => `${(restitution(l) * 100).toFixed(1)}% bounce`
                 },
                 {
                     id: 'fat', name: 'Fat Balls', color: '#ff9d1a', base: 2000, growth: 1.9, max: MONEY_MAX, unlock: 1500,
                     desc: 'Bigger balls are harder to miss with.',
-                    stat: l => `radius ${ballRadius(l).toFixed(1)}`
+                    stat: l => `radius ${ballRadius(l).toFixed(1)} (max 14)`
                 },
 
                 /* ---- research tab: these cost research points (cur: 'rp') ---- */
                 {
-                    id: 'depth', cur: 'rp', name: 'Taller World', color: '#8a5bff', base: 3, growth: 1.8, max: 8, unlock: 0,
-                    desc: 'Makes the board taller: more room below the launcher for pegs.',
+                    id: 'depth', cur: 'rp', name: 'Taller World', color: '#8a5bff', base: 3, growth: 1.8, max: 0, unlock: 0,
+                    desc: 'Makes the board taller: more room below the launcher for pegs. Can be bought without end: every level adds a little less height than the last, but there is no limit.',
                     stat: l => `${worldHeight(l)} tall`
                 },
                 {
@@ -907,32 +847,58 @@
 
                 /* ---- goo tab: temporary upgrades, paid in Phlegm Goo, fixed price (growth 1) ---- */
                 {
-                    id: 'dual', cur: 'goo', temp: true, name: 'Dual Pegs', color: '#ffd23a', base: 10, growth: 1, max: 0, unlock: 0,
-                    desc: `Adds a temporary dual peg to place. Every hit pays money AND research points at x${DUAL_MULT}. It disappears after ${DUAL_HITS} hits.`,
+                    id: 'goocap', cur: 'goo', name: 'Goo Tank', color: '#6bff1f', costFn: l => gooCap(l), max: 0, unlock: 0,
+                    desc: `Raises the most Phlegm Goo you can hold by ${GOO_CAP_STEP}. It always costs a full tank: as much goo as your current limit.`,
+                    stat: l => `holds up to ${gooCap(l)} goo`
+                },
+                {
+                    id: 'dual', cur: 'goo', temp: true, name: 'Blast Pegs', color: '#ffd23a', base: 100, growth: 1, max: 0, unlock: 0,
+                    desc: `Adds a temporary blast peg to place. Every hit pays money AND research points at x${DUAL_MULT}. It disappears after ${DUAL_HITS} hits.`,
                     status: () => `${state.dualReady.length} ready`,
                     stat: () => `x${DUAL_MULT} money and RP, ${DUAL_HITS} hits`,
                     onBuy: () => { state.dualReady.push(DUAL_HITS); }
                 },
                 {
-                    id: 'burst', cur: 'goo', temp: true, name: 'Ball Burst', color: '#ff9d1a', base: 25, growth: 1, max: 0, unlock: 0,
-                    desc: `For ${BURST_MS / 1000} seconds you can have 10x as many balls in play. Then it needs ${BURST_CD / 1000} seconds to recharge.`,
-                    badge: () => burstT > 0 ? `ACTIVE ${Math.ceil(burstT / 1000)}s` : burstCD > 0 ? `COOLDOWN ${Math.ceil(burstCD / 1000)}s` : '',
-                    stat: () => `x10 ball limit for ${BURST_MS / 1000}s`,
-                    onBuy: () => { burstT = BURST_MS; }
-                },
-                {
-                    id: 'ghost', cur: 'goo', temp: true, name: 'Ghost Balls', color: '#19f5ff', base: 20, growth: 1, max: 0, unlock: 0,
-                    desc: `For ${GHOST_MS / 1000} seconds every ball passes through pegs, but still hits them and earns the rewards.`,
-                    badge: () => ghostT > 0 ? `ACTIVE ${Math.ceil(ghostT / 1000)}s` : '',
+                    id: 'ghost', cur: 'goo', temp: true, name: 'Ghost Balls', color: '#19f5ff', base: 200, growth: 1, max: 0, unlock: 0,
+                    desc: `For ${GHOST_MS / 1000} seconds every ball passes through pegs, but still hits them and earns the rewards. Then it needs ${GHOST_CD / 1000} seconds to recharge.`,
+                    timer: () => tmr(ghostT, ghostCD),
                     stat: () => `non-solid balls for ${GHOST_MS / 1000}s`,
                     onBuy: () => { ghostT = GHOST_MS; for (const b of balls) b.body.collisionFilter.mask = 4; }
+                },
+                {
+                    id: 'gravity', cur: 'goo', temp: true, name: 'Heavy Gravity', color: '#b6ff2e', base: 250, growth: 1, max: 0, unlock: 0,
+                    desc: `For ${GRAV_MS / 1000} seconds gravity is ${GRAV_MULT}x stronger: balls fall much faster. Then it needs ${GRAV_CD / 1000} seconds to recharge.`,
+                    timer: () => tmr(gravT, gravCD),
+                    stat: () => `${GRAV_MULT}x gravity for ${GRAV_MS / 1000}s`,
+                    onBuy: () => { gravT = GRAV_MS; }
+                },
+                {
+                    id: 'dead', cur: 'goo', temp: true, name: 'Dead Balls', color: '#ffffff', base: 300, growth: 1, max: 0, unlock: 0,
+                    desc: `For ${DEAD_MS / 1000} seconds balls lose almost all their bounce: pegs, walls and buckets just stop them. Then it needs ${DEAD_CD / 1000} seconds to recharge.`,
+                    timer: () => tmr(deadT, deadCD),
+                    stat: () => `almost no bounce for ${DEAD_MS / 1000}s`,
+                    onBuy: () => { deadT = DEAD_MS; }
+                },
+                {
+                    id: 'chaos', cur: 'goo', temp: true, name: 'Chaos Balls', color: '#ff2bd6', base: 333, growth: 1, max: 0, unlock: 0,
+                    desc: `For ${CHAOS_MS / 1000} seconds balls ignore the laws of physics when they bounce: every impact sends them off in a strange, random direction and speed. Then it needs ${CHAOS_CD / 1000} seconds to recharge.`,
+                    timer: () => tmr(chaosT, chaosCD),
+                    stat: () => `random bounces for ${CHAOS_MS / 1000}s`,
+                    onBuy: () => { chaosT = CHAOS_MS; }
+                },
+                {
+                    id: 'burst', cur: 'goo', temp: true, name: 'Ball Burst', color: '#ff9d1a', base: 700, growth: 1, max: 0, unlock: 0,
+                    desc: `For ${BURST_MS / 1000} seconds you can have 10x as many balls in play. Then it needs ${BURST_CD / 1000} seconds to recharge.`,
+                    timer: () => tmr(burstT, burstCD),
+                    stat: () => `x10 ball limit for ${BURST_MS / 1000}s`,
+                    onBuy: () => { burstT = BURST_MS; }
                 },
 
                 /* ---- evil tab: paid in Evil (red star) ---- */
                 {
-                    id: 'evilhard', cur: 'evil', name: 'Sturdy Pegs', color: '#ff2a3d', base: 25, growth: 1.6, max: 10, unlock: 0,
-                    desc: 'Pegs take less damage from each hit while Evil is on, so they last longer (and pay more Evil per hit before breaking).',
-                    stat: l => `${(evilDmg(l) * 100).toFixed(1)}% damage per hit`
+                    id: 'evilhard', cur: 'evil', name: 'Sturdy Pegs', color: '#ff2a3d', base: 25, growth: 1.6, max: 0, unlock: 0,
+                    desc: 'Pegs take less damage from each hit while Evil is on, so they last longer. Can be bought without end, but each level helps less and damage never drops below 10% of the original.',
+                    stat: l => `${(evilDmg(l) * 100).toFixed(2)}% damage per hit (${Math.round(evilDmg(l) / EVIL_DMG * 100)}% of base)`
                 },
                 {
                     id: 'evilregen', cur: 'evil', name: 'Fast Healing', color: '#ff2a3d', base: 25, growth: 1.6, max: 10, unlock: 0,
@@ -959,7 +925,8 @@
             const maxBalls = () => (1 + L('balls')) * (burstT > 0 ? 10 : 1);
             let worldH = worldHeight(0);
             let evilOn = false;                          // the Evil toggle (not saved: it always starts off)
-            let burstT = 0, burstCD = 0, ghostT = 0;      // temporary goo upgrades (ms remaining)
+            let deadT = 0, deadCD = 0, deadApplied = false, ghostCD = 0, gravCD = 0, chaosT = 0, chaosCD = 0;
+            let burstT = 0, burstCD = 0, ghostT = 0, gravT = 0;   // temporary goo upgrades (ms remaining)
             let launchX = W / 2;                         // the cannon sweeps left and right along the ceiling
 
             // the launcher stays near the top; the bucket is anchored to the floor, because the world grows downward
@@ -980,7 +947,7 @@
             }
             // research (RP) upgrades get an extra price multiplier: x2 at level 0, rising smoothly to x10 from level 10 on
             const researchMult = l => 2 * Math.pow(5, Math.min(1, l / 10));
-            const cost = (u, l = L(u.id)) => u.fixed ? u.base : Math.ceil(u.base * Math.pow(u.growth, l) * (u.cur === 'rp' ? researchMult(l) : 1));
+            const cost = (u, l = L(u.id)) => u.costFn ? u.costFn(l) : u.fixed ? u.base : Math.ceil(u.base * Math.pow(u.growth, l) * (u.cur === 'rp' ? researchMult(l) : 1));
             const isUnlocked = u => state.total >= u.unlock || L(u.id) > 0;
             const maxOf = u => u.max > 0 && curOf(u) === 'money' ? u.max + L('cap') : u.max;   // money upgrades get +1 per Upgrade Limit level
             const isMaxed = u => { const m = maxOf(u); return m > 0 && L(u.id) >= m; };
@@ -1001,14 +968,23 @@
             engine.gravity.scale = GRAVITY_SCALE;
             const world = engine.world;
 
+            const wallBodies = [];
             (function buildWalls() {
                 const o = { isStatic: true, restitution: 0.5, friction: 0, label: 'wall', collisionFilter: { category: 4, mask: 0xFFFFFFFF, group: 0 } };
-                Composite.add(world, [
-                    Bodies.rectangle(-30, 4000, 60, 10000, o),        // left
-                    Bodies.rectangle(W + 30, 4000, 60, 10000, o),     // right
+                wallBodies.push(
+                    Bodies.rectangle(-30, 500000, 60, 1000000, o),    // left (very tall: the board has no maximum height)
+                    Bodies.rectangle(W + 30, 500000, 60, 1000000, o), // right
                     Bodies.rectangle(W / 2, -30, W + 200, 60, o),     // ceiling
-                ]);
+                );
+                Composite.add(world, wallBodies);
             })();
+            // Dead Balls: Matter uses the higher restitution of the two bodies, so pegs and walls have to go dead as well
+            function setDead(on) {
+                const r = on ? DEAD_REST : 0.5;
+                for (const w of wallBodies) w.restitution = r;
+                for (const p of state.pegs) p.body.restitution = r;
+                for (const b of balls) b.body.restitution = on ? DEAD_REST : restitution(L('bounce'));
+            }
 
             const balls = [];
             let simT = 0;
@@ -1020,9 +996,10 @@
             const ballLoad = () => balls.reduce((a, b) => a + b.w, 0);   // half-size balls count 0.5
 
             function addPeg(x, y, type = 'basic', left = 0, dmg = 0) {
-                const po = { isStatic: true, restitution: 0.5, friction: 0, label: 'peg' };
-                const body = type === 'research' ? Bodies.polygon(x, y, 6, PEG_R + 1, po) : Bodies.circle(x, y, PEG_R, po);
-                const peg = { x, y, type, body, flash: 0, color: PEG_TYPES[type].color, gooT: 0, left, dead: false, dmg, gone: false, evilKill: false };
+                const po = { isStatic: true, restitution: deadT > 0 ? DEAD_REST : 0.5, friction: 0, label: 'peg' };
+                const r = pegRadius(y);
+                const body = type === 'research' ? Bodies.polygon(x, y, 6, r + 1, po) : Bodies.circle(x, y, r, po);
+                const peg = { x, y, r, type, body, flash: 0, color: PEG_TYPES[type].color, gooT: 0, left, dead: false, dmg, gone: false, evilKill: false };
                 body.peg = peg;
                 Composite.add(world, body);
                 state.pegs.push(peg);
@@ -1047,7 +1024,7 @@
                 const th = rand(-half, half);                 // 0 = straight down
                 const r = ballRadius(L('fat'));
                 const body = Bodies.circle(launchX, LAUNCH_Y, r, {
-                    restitution: restitution(L('bounce')), friction: 0, frictionStatic: 0, frictionAir: 0, density: 0.002,
+                    restitution: deadT > 0 ? DEAD_REST : restitution(L('bounce')), friction: 0, frictionStatic: 0, frictionAir: 0, density: 0.002,
                     collisionFilter: { category: 2, mask: ghostT > 0 ? 4 : 5 },   // balls ignore each other; ghost balls only touch walls (4)
                     label: 'ball',
                 });
@@ -1112,7 +1089,7 @@
                 if (peg.type !== 'dual') {
                     if (ball.goo) peg.gooT = GOO_PEG_MS;
                     else if (peg.gooT > 0) {
-                        state.goo += GOO_PER_HIT;
+                        state.goo = Math.min(gooCap(), state.goo + GOO_PER_HIT);
                         if (floaters.length < 30) floaters.push({ x: peg.x + 10, y: peg.y - 22, text: '+' + fmt(GOO_PER_HIT), life: 800, max: 800, color: GOO_COL, big: false });
                     }
                 }
@@ -1212,6 +1189,7 @@
                 for (const p of ev.pairs) {
                     let b = p.bodyA, o = p.bodyB;
                     if (!b.ball) { b = p.bodyB; o = p.bodyA; }
+                    if (b.ball && chaosT > 0) b.ball.chaos = true;      // randomised right after this physics step
                     if (b.ball && o.peg) hitPeg(b.ball, o.peg);
                 }
             });
@@ -1223,7 +1201,16 @@
 
                 if (burstT > 0) { burstT -= dt; if (burstT <= 0) { burstT = 0; burstCD = BURST_CD; } }
                 else if (burstCD > 0) burstCD = Math.max(0, burstCD - dt);
-                if (ghostT > 0) { ghostT -= dt; if (ghostT <= 0) { ghostT = 0; for (const b of balls) b.body.collisionFilter.mask = 5; } }
+                if (deadT > 0) { deadT -= dt; if (deadT <= 0) { deadT = 0; deadCD = DEAD_CD; } }
+                else if (deadCD > 0) deadCD = Math.max(0, deadCD - dt);
+                if ((deadT > 0) !== deadApplied) { deadApplied = deadT > 0; setDead(deadApplied); }
+                if (chaosT > 0) { chaosT -= dt; if (chaosT <= 0) { chaosT = 0; chaosCD = CHAOS_CD; } }
+                else if (chaosCD > 0) chaosCD = Math.max(0, chaosCD - dt);
+                if (gravT > 0) { gravT -= dt; if (gravT <= 0) { gravT = 0; gravCD = GRAV_CD; } }
+                else if (gravCD > 0) gravCD = Math.max(0, gravCD - dt);
+                engine.gravity.scale = GRAVITY_SCALE * (gravT > 0 ? GRAV_MULT : 1);
+                if (ghostT > 0) { ghostT -= dt; if (ghostT <= 0) { ghostT = 0; ghostCD = GHOST_CD; for (const b of balls) b.body.collisionFilter.mask = 5; } }
+                else if (ghostCD > 0) ghostCD = Math.max(0, ghostCD - dt);
 
                 const al = L('auto');                          // auto dropper: keeps trying until a ball slot is free
                 if (al > 0 && autoOn) {
@@ -1231,6 +1218,18 @@
                     if (autoT >= autoInterval(al) && launch(true)) autoT = 0;
                 }
                 Engine.update(engine, dt);
+
+                // Chaos Balls: whatever the physics just decided, throw the ball in a random direction at a random speed
+                for (const b of balls) {
+                    if (!b.chaos) continue;
+                    b.chaos = false;
+                    if (chaosT <= 0) continue;
+                    const v = b.body.velocity, sp = Math.hypot(v.x, v.y);
+                    const s = Math.min(MAX_SPEED, Math.max(2.5, sp * rand(0.7, 1.4)));
+                    const a = rand(0, 6.2832);
+                    Body.setVelocity(b.body, { x: s * Math.cos(a), y: s * Math.sin(a) });
+                    burst(b.body.position.x, b.body.position.y, '#ff2bd6', 3);
+                }
 
                 const bs = bucketLayout();
                 for (let i = balls.length - 1; i >= 0; i--) {
@@ -1241,7 +1240,7 @@
                     b.still = sp < 0.15 ? b.still + dt : 0;
                     if (ghostT > 0) {          // ghost balls do not collide with pegs: detect the overlaps ourselves
                         for (const pg of state.pegs) {
-                            const dx = p.x - pg.x, dy = p.y - pg.y, rr = b.r + PEG_R;
+                            const dx = p.x - pg.x, dy = p.y - pg.y, rr = b.r + pg.r;
                             if (dx * dx + dy * dy < rr * rr) { if (!b.touch.has(pg)) { b.touch.add(pg); hitPeg(b, pg); } }
                             else b.touch.delete(pg);
                         }
@@ -1297,8 +1296,11 @@
             let camY = 0, camVel = 0;
             let padTop = 70, padBot = 100;
 
+            let hudH = -1;
             function measurePads() {
-                padTop = hudEl.offsetHeight - 6;
+                const h = hudEl.offsetHeight;
+                if (h !== hudH) { hudH = h; app.style.setProperty('--hudH', h + 'px'); }   // the shop starts right below the HUD
+                padTop = h - 6;
                 if (!app.classList.contains('ov')) padBot = barEl.offsetHeight;   // measured only while the bar is in its normal state
             }
             // If the world fits between the HUD and the button bar it is centred and cannot be dragged.
@@ -1380,8 +1382,8 @@
             function onTap(w) {
                 // 1) tap a peg: pick it back up
                 for (const p of state.pegs) {
-                    if (Math.hypot(w.x - p.x, w.y - p.y) < PEG_R + 8) {
-                        if (p.type === 'dual') { toast('Dual pegs cannot be picked up'); return; }
+                    if (Math.hypot(w.x - p.x, w.y - p.y) < p.r + 8) {
+                        if (p.type === 'dual') { toast('Blast pegs cannot be picked up'); return; }
                         removePeg(p);
                         toast('Peg picked up');
                         refreshUI();
@@ -1399,7 +1401,7 @@
                 }
                 // 3) otherwise, tapping the launcher launches
                 if (Math.hypot(w.x - launchX, w.y - LAUNCH_Y) < 40) { launch(); return; }
-                toast(state.pegs.length ? 'No pegs ready. Buy more in Upgrades.' : 'Launch balls into the bucket, then buy a peg!');
+                toast(state.pegs.length ? 'No pegs ready. Buy more in the Shop.' : 'Launch balls into the bucket, then buy a peg!');
             }
 
             /* =====================================================================
@@ -1439,6 +1441,29 @@
                     if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
                 }
                 ctx.closePath();
+            }
+
+            // a goo-covered peg wears a wavy green cap on its top side, like icing on a cake; it slowly slides off as the goo wears out
+            function pegPath(p, grow = 0) {
+                if (p.type === 'research') hexPath(p.x, p.y, p.r + 1 + grow); else { ctx.beginPath(); ctx.arc(p.x, p.y, p.r + grow, 0, TAU); }
+            }
+            function drawGooCap(p) {
+                const R = p.r + 1.5, cover = Math.min(1, p.gooT / 2500);
+                const edge = p.y - R * 1.25 + R * 1.45 * cover;              // full cover: the goo reaches just below the middle of the peg
+                const wave = x => Math.sin(x * 0.62 + simT / 260 + p.x) * 1.6 + Math.sin(x * 1.5 - simT / 380 + p.y) * 0.9;
+                ctx.save();
+                pegPath(p, 1.3); ctx.clip();                                  // slightly larger than the peg so the cap also covers the outline
+                ctx.beginPath();
+                ctx.moveTo(p.x - R - 1, p.y - R - 3);
+                ctx.lineTo(p.x + R + 1, p.y - R - 3);
+                for (let dx = R + 1; dx >= -R - 1; dx -= 1) ctx.lineTo(p.x + dx, edge + wave(p.x + dx));
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(107,255,31,.9)'; ctx.fill();
+                ctx.strokeStyle = 'rgba(220,255,190,.75)'; ctx.lineWidth = 1.2; ctx.stroke();   // bright rim along the wavy edge
+                ctx.fillStyle = 'rgba(255,255,255,.55)';                                        // little shine
+                ctx.beginPath(); ctx.ellipse(p.x - R * 0.35, p.y - R * 0.55, 2.4, 1.3, -0.5, 0, TAU); ctx.fill();
+                ctx.restore();
+                pegPath(p);                                                  // leave the peg outline as the current path for the code that follows
             }
 
             function render(dt) {
@@ -1492,34 +1517,36 @@
                 for (const p of state.pegs) {
                     if (p.y < viewTop || p.y > viewBot) continue;
                     const gg = p.gooT > 0;
-                    drawGlow(gg ? GOO_COL : pegCol(p), p.x, p.y, 46 + 22 * p.flash, Math.min(1, (gg ? 0.7 : 0.35) + 0.65 * p.flash));
+                    drawGlow(pegCol(p), p.x, p.y, 46 + 22 * p.flash, Math.min(1, 0.35 + 0.65 * p.flash));
+                    if (gg) drawGlow(GOO_COL, p.x, p.y - 4, 30, 0.35);          // faint green glow from the cap only
                 }
                 ctx.globalCompositeOperation = 'source-over';
                 // pegs: body pass
                 ctx.lineWidth = 2.5;
                 for (const p of state.pegs) {
                     if (p.y < viewTop || p.y > viewBot) continue;
-                    if (p.type === 'research') hexPath(p.x, p.y, PEG_R + 1); else { ctx.beginPath(); ctx.arc(p.x, p.y, PEG_R, 0, TAU); }
+                    // the peg keeps its own colour; goo is only a green cap drawn on top of it (top side green, bottom side original)
+                    pegPath(p);
                     ctx.fillStyle = '#0b0825'; ctx.fill();
-                    const goo = p.gooT > 0 && (p.gooT > 2000 || ((simT / 140) | 0) % 2 === 0);
-                    if (goo) { ctx.fillStyle = 'rgba(107,255,31,.38)'; ctx.fill(); }
                     if (p.dmg > 0.02) { ctx.fillStyle = `rgba(255,30,50,${p.dmg * 0.5})`; ctx.fill(); }
-                    ctx.strokeStyle = goo ? GOO_COL : pegCol(p); ctx.stroke();
-                    if (p.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${p.flash * 0.85})`; ctx.fill(); }
+                    ctx.strokeStyle = pegCol(p); ctx.stroke();
                     if (p.type === 'dual') {
                         ctx.fillStyle = '#ffd23a'; ctx.font = '800 10px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                         ctx.fillText(String(p.left), p.x, p.y + 0.5); ctx.textBaseline = 'alphabetic';
                     }
                     if (p.type === 'splitter') {            // a vertical split line marks the splitter
                         ctx.beginPath(); ctx.moveTo(p.x, p.y - 5); ctx.lineTo(p.x, p.y + 5);
-                        ctx.strokeStyle = goo ? GOO_COL : pegCol(p); ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 2.5;
+                        ctx.strokeStyle = pegCol(p); ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 2.5;
                     }
+                    if (p.gooT > 0) drawGooCap(p);          // covers the outline and everything else on the top side
+                    if (p.flash > 0) { pegPath(p); ctx.fillStyle = `rgba(255,255,255,${p.flash * 0.85})`; ctx.fill(); }
                 }
 
                 // mouse placement ghost
                 if (hover && ready() > 0 && !drag) {
                     const s = placeSpot(hover.x, hover.y);
-                    if (nextType() === 'research') hexPath(s.x, s.y, PEG_R + 1); else { ctx.beginPath(); ctx.arc(s.x, s.y, PEG_R, 0, TAU); }
+                    const hr = pegRadius(s.y);
+                    if (nextType() === 'research') hexPath(s.x, s.y, hr + 1); else { ctx.beginPath(); ctx.arc(s.x, s.y, hr, 0, TAU); }
                     ctx.strokeStyle = 'rgba(255,255,255,.7)';
                     ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
                 }
@@ -1622,16 +1649,16 @@
                UI
                ===================================================================== */
             const $ = id => document.getElementById(id);
-            const tabsEl = $('tabs'), tabMoney = $('tabMoney'), tabRp = $('tabRp'), tabGoo = $('tabGoo'), ovRp = $('ovRp'), ovRpNum = $('ovRpNum');
-            const ovGoo = $('ovGoo'), ovGooNum = $('ovGooNum'), gooBox = $('gooBox'), gooNum = $('gooNum');
+            const tabsEl = $('tabs'), tabMoney = $('tabMoney'), tabRp = $('tabRp'), tabGoo = $('tabGoo');
+            const gooBox = $('gooBox'), gooNum = $('gooNum');
             let curTab = 'money';
-            const tabEvil = $('tabEvil'), ovEvil = $('ovEvil'), ovEvilNum = $('ovEvilNum'), evilBox = $('evilBox'), evilNum = $('evilNum'), evilBtn = $('evilBtn'), btnsEl = $('btns');
+            const tabEvil = $('tabEvil'), evilBox = $('evilBox'), evilNum = $('evilNum'), evilBtn = $('evilBtn'), btnsEl = $('btns');
             const evilShow = () => evFmt(Math.floor(state.evil * 100) / 100);
             const rpShow = () => fmt(Math.floor(state.rp * 10) / 10);
             const gooShow = () => fmt(Math.floor(state.goo));
-            const rpBox = $('rpBox'), rpNum = $('rpNum'), rpRateEl = $('rpRate');
-            const moneyEl = $('money'), rateEl = $('rate'), ovMoney = $('ovMoney');
-            const stBalls = $('stBalls'), stPegs = $('stPegs'), stReady = $('stReady'), hintEl = $('hint');
+            const rpBox = $('rpBox'), rpNum = $('rpNum');
+            const moneyEl = $('money');
+            const stBalls = $('stBalls'), stPegs = $('stPegs'), hintEl = $('hint');
             const overlay = $('overlay'), upBtn = $('upBtn'), launchBtn = $('launchBtn'), listEl = $('list');
 
             const setText = (node, s) => { if (node._t !== s) { node._t = s; node.textContent = s; } };
@@ -1639,7 +1666,7 @@
             function buy(u) {
                 if (!isUnlocked(u) || isMaxed(u)) return false;
                 const c = cost(u);
-                if (u.badge && u.badge()) return false;            // temporary upgrades can be busy (active / cooling down)
+                if (u.timer && u.timer()) return false;            // temporary upgrades can be busy (active / cooling down)
                 if (wallet(u) < c) return false;
                 if (isRp(u)) state.rp -= c; else if (curOf(u) === 'goo') state.goo -= c; else if (curOf(u) === 'evil') state.evil -= c; else state.money -= c;
                 if (u.onBuy) u.onBuy(); else state.levels[u.id]++;
@@ -1707,12 +1734,9 @@
             function refreshUI() {
                 const now = performance.now();
                 while (earnLog.length && earnLog[0].t < now - 10000) earnLog.shift();
-                let sum = 0; for (const e of earnLog) sum += e.v;
-                const window_s = Math.min(10, Math.max(3, (now - t0) / 1000));
 
                 const m = '$' + fmt(Math.floor(state.money));
-                setText(moneyEl, m); setText(ovMoney, m);
-                setText(rateEl, '+' + fmt(sum / window_s) + '/s');
+                setText(moneyEl, m);
                 const hasRp = L('research') > 0;
                 rpBox.classList.toggle('on', hasRp);
                 const hasGoo = L('goo') > 0;
@@ -1726,13 +1750,9 @@
                 evilBtn.classList.toggle('active', evilOn);
                 setText(evilBtn, evilOn ? 'EVIL ON' : 'EVIL');
                 btnsEl.classList.toggle('three', hasEvil);
-                if (hasRp) {
-                    setText(rpNum, rpShow());
-                    setText(rpRateEl, '+' + rpRate(L('research')).toFixed(1) + '/s');
-                }
+                if (hasRp) setText(rpNum, rpShow());
                 setText(stBalls, `${fmt(ballLoad())}/${maxBalls()}`);
-                setText(stPegs, String(state.pegs.length));
-                setText(stReady, String(ready()));
+                setText(stPegs, `${state.pegs.length}/${state.pegs.length + ready()}`);   // placed / total that can be placed
                 const hasAuto = L('auto') > 0;
                 setText(launchBtn, hasAuto ? (autoOn ? 'AUTO: ON' : 'AUTO: OFF') : 'LAUNCH');
                 launchBtn.classList.toggle('autoon', hasAuto && autoOn);
@@ -1755,17 +1775,18 @@
                     setText(c.lvl, u.temp ? (u.status ? u.status() : '') : maxed ? `Lv ${l} · MAX` : `Lv ${l}`);
                     setText(c.desc, u.desc);
                     setText(c.stat, (maxed || u.temp) ? u.stat(l) : `${u.stat(l)}  →  ${u.stat(l + 1)}`);
-                    const bdg = u.badge ? u.badge() : '';
-                    const afford = !maxed && !bdg && wallet(u) >= cost(u);
+                    const tm = u.timer ? u.timer() : null;          // temporary upgrades: { active, s } while running or cooling down
+                    const afford = !maxed && !tm && wallet(u) >= cost(u);
                     if (afford) { if (isRp(u)) affordR = true; else if (curOf(u) === 'goo') affordG = true; else if (curOf(u) === 'evil') affordE = true; else affordM = true; }
-                    setText(c.bl, maxed ? 'MAXED' : bdg || 'BUY');
-                    setText(c.bc, maxed ? '✓' : priceText(u));
-                    c.btn.classList.toggle('cant', !afford && !maxed);
+                    if (tm) { setText(c.bl, ''); setText(c.bc, tm.s + 's'); }   // only the seconds left, nothing else
+                    else { setText(c.bl, maxed ? 'MAXED' : ''); setText(c.bc, maxed ? '✓' : priceText(u)); }
+                    c.btn.classList.toggle('active', !!(tm && tm.active));      // glowing, twinkling green while running
+                    c.btn.classList.toggle('cant', !afford && !maxed && !(tm && tm.active));
                     c.btn.classList.toggle('maxed', maxed);
                 }
                 const open = overlay.classList.contains('open');
                 upBtn.classList.toggle('alert', (affordM || affordR || affordG || affordE) && !open);
-                setText(upBtn, open ? 'CLOSE' : 'UPGRADES');
+                setText(upBtn, open ? 'CLOSE' : 'SHOP');
                 tabsEl.classList.toggle('on', hasRp);
                 if (!hasRp) curTab = 'money';
                 tabGoo.classList.toggle('on', hasGoo);
@@ -1774,19 +1795,13 @@
                 tabEvil.classList.toggle('on', hasEvil);
                 tabEvil.classList.toggle('sel', curTab === 'evil');
                 tabEvil.classList.toggle('alert', affordE && curTab !== 'evil');
-                ovEvil.classList.toggle('on', hasEvil);
-                if (hasEvil) setText(ovEvilNum, evilShow());
                 tabMoney.classList.toggle('alert', affordM && curTab !== 'money'); tabRp.classList.toggle('alert', affordR && curTab !== 'rp');
-                ovRp.classList.toggle('on', hasRp);
-                if (hasRp) setText(ovRpNum, rpShow());
-                ovGoo.classList.toggle('on', hasGoo);
-                if (hasGoo) setText(ovGooNum, gooShow());
 
                 let h = '', pulse = false;
                 if (now < toastUntil) h = toastText;
-                else if (ready() > 0) { h = `Tap the board to place a ${nextType() === 'research' ? 'research ' : nextType() === 'dual' ? 'dual ' : nextType() === 'splitter' ? 'splitter ' : ''}peg (${ready()} ready)`; pulse = true; }
+                else if (ready() > 0) { h = `Tap the board to place a ${nextType() === 'research' ? 'research ' : nextType() === 'dual' ? 'blast ' : nextType() === 'splitter' ? 'splitter ' : ''}peg (${ready()} ready)`; pulse = true; }
                 else if (state.pegs.length === 0) {
-                    h = state.money >= cost(UPGRADES[0]) ? 'Open Upgrades and buy a peg!' : 'Press LAUNCH when the cannon lines up with the bucket';
+                    h = state.money >= cost(UPGRADES[0]) ? 'Open the Shop and buy a peg!' : 'Press LAUNCH when the cannon lines up with the bucket';
                     pulse = true;
                 }
                 setText(hintEl, h);
@@ -1805,7 +1820,6 @@
                 refreshUI();
             }
             upBtn.addEventListener('click', () => overlay.classList.contains('open') ? closeOverlay() : openOverlay());
-            $('closeBtn').addEventListener('click', closeOverlay);
             launchBtn.addEventListener('click', () => {
                 if (L('auto') > 0) { autoOn = !autoOn; refreshUI(); save(); }   // with the Auto Dropper the button is the on/off switch
                 else launch();
@@ -1843,12 +1857,13 @@
                     if (Number.isFinite(d.money)) state.money = d.money;
                     if (Number.isFinite(d.total)) state.total = d.total;
                     if (Number.isFinite(d.rp)) state.rp = d.rp;
-                    if (Number.isFinite(d.goo)) state.goo = d.goo;
+                    if (Number.isFinite(d.goo)) state.goo = d.goo;       // trimmed to the goo limit once the levels are loaded
                     if (Number.isFinite(d.evil)) state.evil = d.evil;
                     if (typeof d.autoOn === 'boolean') autoOn = d.autoOn;
                     if (Array.isArray(d.dualReady)) state.dualReady = d.dualReady.filter(Number.isFinite).map(n => n | 0);
                     if (d.levels) for (const u of UPGRADES) if (Number.isFinite(d.levels[u.id])) state.levels[u.id] = d.levels[u.id] | 0;
                     worldH = worldHeight(L('depth'));
+                    state.goo = Math.min(state.goo, gooCap());
                     if (Array.isArray(d.pegs)) {
                         const lim = { basic: L('peg'), research: L('rpeg'), splitter: L('splitpeg') }, cnt = { basic: 0, research: 0, splitter: 0 };
                         for (const pt of d.pegs) {
