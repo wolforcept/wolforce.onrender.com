@@ -751,7 +751,7 @@
                     stat: l => `${l} owned`
                 },
                 {
-                    id: 'bucket', name: 'Bucket Value', color: '#ffd23a', base: 4, growth: 1.3, max: MONEY_MAX, unlock: 4,
+                    id: 'bucket', name: 'Bucket Value', color: '#ffd23a', base: 4, growth: 1.3, max: 10 * MONEY_MAX, unlock: 4,
                     desc: 'A ball landing in the bucket pays more.',
                     stat: l => `$${fmt(bucketValue(l))} per catch`
                 },
@@ -813,7 +813,7 @@
                     stat: l => `${worldHeight(l)} tall`
                 },
                 {
-                    id: 'cap', cur: 'rp', name: 'Upgrade Limit', color: '#ffd23a', base: 12, growth: 1.5, max: 15, unlock: 0,
+                    id: 'cap', cur: 'rp', name: 'Upgrade Limit', color: '#ffd23a', base: 12, growth: 3.7, max: 15, unlock: 0,
                     desc: 'Raises the maximum level of every money upgrade by 1 per level. New Peg has no limit anyway.',
                     stat: l => `money upgrades up to Lv ${MONEY_MAX + l}`
                 },
@@ -965,7 +965,7 @@
             const researchMult = l => 2 * Math.pow(5, Math.min(1, l / 10));
             const cost = (u, l = L(u.id)) => u.costFn ? u.costFn(l) : u.fixed ? u.base : Math.ceil(u.base * Math.pow(u.growth, l) * (u.cur === 'rp' ? researchMult(l) : 1));
             const isUnlocked = u => state.total >= u.unlock || L(u.id) > 0;
-            const maxOf = u => u.max > 0 && curOf(u) === 'money' ? u.max + L('cap') : u.max;   // money upgrades get +1 per Upgrade Limit level
+            const maxOf = u => u.max > 0 && curOf(u) === 'money' ? u.max + 5 * L('cap') : u.max;   // money upgrades get +1 per Upgrade Limit level
             const isMaxed = u => { const m = maxOf(u); return m > 0 && L(u.id) >= m; };
             const isRp = u => u.cur === 'rp';
             const curOf = u => u.cur || 'money';
