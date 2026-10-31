@@ -735,10 +735,14 @@
             const DEAD_MS = 10000, DEAD_REST = 0.02;                     // dead balls: duration, bounciness of every contact while active
             const CHAOS_MS = 10000, CHAOS_CD = 30000;                    // chaos balls: duration, cooldown
             const GHOST_CD = 30000, GRAV_CD = 30000, DEAD_CD = 30000;   // cooldowns of the temporary goo upgrades, counted after they end (ball burst: BURST_CD)
-            // temporary goo upgrades, keyed by upgrade id: how long they run (ms) and how long they recharge after they end (cd)
+            // repulsion field (evil): pegs that are too close push each other apart for a few seconds, evening out the gaps
+            const RELAX_COL = '#ff4fd8';
+            const RELAX_MS = 5000, RELAX_CD = 30000, RELAX_COST = 30;    // duration, cooldown, price in evil
+            const RELAX_MOVE = 1.2;                                      // fastest a peg moves (px per physics step)
+            // temporary upgrades, keyed by upgrade id: how long they run (ms) and how long they recharge after they end (cd)
             const TEMPS = {
                 burst: { ms: BURST_MS, cd: BURST_CD }, ghost: { ms: GHOST_MS, cd: GHOST_CD }, gravity: { ms: GRAV_MS, cd: GRAV_CD },
-                dead: { ms: DEAD_MS, cd: DEAD_CD }, chaos: { ms: CHAOS_MS, cd: CHAOS_CD },
+                dead: { ms: DEAD_MS, cd: DEAD_CD }, chaos: { ms: CHAOS_MS, cd: CHAOS_CD }, relax: { ms: RELAX_MS, cd: RELAX_CD },
             };
             // button state of a temporary upgrade: running, cooling down, or ready (null)
             const tmr = s => s.t > 0 ? { active: true, s: Math.ceil(s.t / 1000) } : s.cd > 0 ? { active: false, s: Math.ceil(s.cd / 1000) } : null;
@@ -768,6 +772,15 @@
             const BOMB_MULT = 10;                                        // payout multiplier when it lands in a bucket
             const BOMB_R = 70;                                           // pegs within this distance break when it explodes
             const BOMB_EVIL_BASE = 5, BOMB_EVIL_PEG = 10;                // evil from an explosion: base + per broken peg (times Dark Harvest)
+
+            /* ---- electric ball: charges up as it hits pegs, then discharges an arc that jumps from peg to peg ---- */
+            const ZAP_COL = '#4dd2ff';
+            const ZAP_COST = 25;                                         // evil, fixed price
+            const ZAP_HITS = 8;                                          // peg hits for a full charge
+            const ZAP_R = 60;                                            // how far the arc jumps from one peg to the next
+            const ZAP_BRANCH = 2;                                        // each tagged peg passes the arc on to this many pegs at most
+            const ZAP_MAX = 15;                                          // pegs tagged per discharge
+            const ZAP_DELAY = 70;                                        // ms per jump, so the arc can be seen travelling
 
             const UPGRADES = [
                 {
@@ -940,11 +953,23 @@
                     stat: l => `x${evilYield(l).toFixed(2)} Evil`
                 },
                 {
-                    id: 'bomb', cur: 'evil', temp: true, danger: true, name: 'Bomb Balls', color: BOMB_COL, base: BOMB_COST, growth: 1, max: 0, unlock: 0,
+                    id: 'bomb', cur: 'evil', temp: true, danger: true, watch: true, name: 'Bomb Balls', color: BOMB_COL, base: BOMB_COST, growth: 1, max: 0, unlock: 0,
                     desc: `Fires a red bomb ball (it does not count towards your ball limit). Everything it earns is kept inside it. If it lands in a bucket it pays out x${BOMB_MULT} of everything it holds. If its ${BOMB_FUSE / 1000}s fuse runs out first, or it is lost, it explodes: the loot is gone, pegs nearby break and must be placed again, and you get Evil instead.`,
                     status: () => 'one at a time',
                     stat: () => `${BOMB_FUSE / 1000}s fuse, x${BOMB_MULT} payout in a bucket`,
                     onBuy: (p, game) => game.launchBomb()
+                },
+                {
+                    id: 'relax', cur: 'evil', temp: true, danger: true, watch: true, name: 'Repulsion Field', color: RELAX_COL, base: RELAX_COST, growth: 1, max: 0, unlock: 0,
+                    desc: `For ${RELAX_MS / 1000} seconds every peg pushes away the pegs that are too close to it (the walls push back too), so crowded spots spread out and the gaps between pegs even out. Pegs keep their new places. Then it needs ${RELAX_CD / 1000} seconds to recharge.`,
+                    stat: () => `${RELAX_MS / 1000}s of spreading out`
+                },
+                {
+                    id: 'zap', cur: 'evil', temp: true, watch: true, act: ZAP_COL, name: 'Electric Ball', color: ZAP_COL, base: ZAP_COST, growth: 1, max: 0, unlock: 0,
+                    desc: `Fires an electric ball (it does not count towards your ball limit). Every peg it hits charges it up. After ${ZAP_HITS} hits it discharges: an arc jumps from that peg to the pegs nearby, and from those to more pegs, up to ${ZAP_MAX}. Every peg the arc touches counts as hit by the ball and pays out. Then it charges up again.`,
+                    status: () => 'one at a time',
+                    stat: () => `discharges every ${ZAP_HITS} hits, up to ${ZAP_MAX} pegs`,
+                    onBuy: (p, game) => game.launchZap()
                 },
             ];
 
@@ -994,7 +1019,7 @@
             }
 
             /* =====================================================================
-               TEMPORARY GOO UPGRADES: ms left running (t) and recharging (cd)
+               TEMPORARY UPGRADES (goo ones and the repulsion field): ms left running (t) and recharging (cd)
                ===================================================================== */
             class TempEffects {
                 constructor() {
@@ -1108,6 +1133,8 @@
                     return body;
                 }
                 remove(body) { Matter.Composite.remove(this.world, body); }
+                movePeg(body, x, y) { Matter.Body.setPosition(body, { x, y }); }
+                resizePeg(body, factor) { Matter.Body.scale(body, factor, factor); }
 
                 // velocities in px per 1/60 s, the units setVelocity takes (body.velocity is per 1/90 s physics step)
                 velocity(body) { return Matter.Body.getVelocity(body); }
@@ -1182,6 +1209,63 @@
                     return out;
                 }
 
+                // average distance from a peg to its nearest neighbour (counted as `far` when none is that close)
+                spacing(far) {
+                    if (this.list.length < 2) return far;
+                    const near = [];
+                    let sum = 0;
+                    for (const p of this.list) {
+                        let best = far;
+                        for (const q of this.near(p.x - far, p.y - far, p.x + far, p.y + far, near)) if (q !== p) best = Math.min(best, Math.hypot(q.x - p.x, q.y - p.y));
+                        sum += best;
+                    }
+                    return sum / this.list.length;
+                }
+
+                /* One step of repulsion relaxation: every pair of pegs closer than d0 pushes apart (harder the closer they are),
+                   and the edges of box push back like a peg would, so pegs spread inside the board instead of piling up at its edges.
+                   ease (0..1) scales the movement down as the effect ends. links collects the pushing pairs (for drawing). */
+                relaxStep(d0, ease, box, links) {
+                    const list = this.list, near = [], half = d0 / 2;
+                    links.length = 0;
+                    list.forEach((p, i) => { p.i = i; p.fx = 0; p.fy = 0; });
+                    for (const p of list) {
+                        if (p.dead) continue;
+                        for (const q of this.near(p.x - d0, p.y - d0, p.x + d0, p.y + d0, near)) {
+                            if (q.i <= p.i || q.dead) continue;      // each pair once
+                            let dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy);
+                            if (d >= d0) continue;
+                            if (d < 0.01) { dx = rand(-1, 1); dy = rand(-1, 1); d = Math.hypot(dx, dy) || 1; }   // right on top of each other: any direction
+                            const push = 1 - d / d0, ux = dx / d * push, uy = dy / d * push;
+                            p.fx -= ux; p.fy -= uy; q.fx += ux; q.fy += uy;
+                            if (links.length < 1200) links.push(p, q);
+                        }
+                    }
+                    const wall = gap => Math.max(0, 1 - gap / half);
+                    for (const p of list) {
+                        if (p.dead) continue;
+                        p.fx += wall(p.x - box.x0) - wall(box.x1 - p.x);
+                        p.fy += wall(p.y - box.y0) - wall(box.y1 - p.y);
+                        const f = Math.hypot(p.fx, p.fy);
+                        if (f < 1e-4) continue;
+                        const m = Math.min(RELAX_MOVE, f * d0 * 0.08) * ease;   // px this step
+                        p.x = Math.min(W - PEG_R, Math.max(PEG_R, p.x + p.fx / f * m));
+                        p.y = Math.min(box.yMax, Math.max(PEG_R, p.y + p.fy / f * m));
+                        this.physics.movePeg(p.body, p.x, p.y);
+                    }
+                    this.grid = null;
+                }
+                // after moving, every peg takes the size that belongs to its new depth
+                resettle() {
+                    for (const p of this.list) {
+                        const r = pegRadius(p.y);
+                        if (Math.abs(r - p.r) < 0.02) continue;
+                        this.physics.resizePeg(p.body, p.type === 'research' ? (r + 1) / (p.r + 1) : r / p.r);
+                        p.r = r;
+                    }
+                    this.grid = null;
+                }
+
                 // flashes fade, goo wears off, damage heals (heal = damage healed per second; 0 while evil is on)
                 tick(dt, heal) {
                     for (const pg of this.list) {
@@ -1235,6 +1319,7 @@
                     this.particles = [];
                     this.floaters = [];
                     this.rings = [];                     // expanding shockwaves
+                    this.bolts = [];                     // lightning between two points (the jagged path is redrawn every frame, so it flickers)
                     this.shake = 0;                      // screen shake strength (CSS px), fades out
                     this.flash = { color: '#fff', a: 0 };   // full-screen flash, fades out
                 }
@@ -1255,6 +1340,9 @@
                 ring(x, y, r0, r1, color, { life = 500, width = 4, fill = false } = {}) {
                     this.rings.push({ x, y, r0, r1, color, life, max: life, width, fill });
                 }
+                bolt(x1, y1, x2, y2, color, life = 320) {
+                    this.bolts.push({ x1, y1, x2, y2, color, life, max: life });
+                }
                 screen(color, alpha, shake) {
                     this.flash = { color, a: Math.max(this.flash.a, alpha) };
                     this.shake = Math.max(this.shake, shake);
@@ -1263,6 +1351,7 @@
                     this.shake = Math.max(0, this.shake - dt * 0.025);
                     this.flash.a = Math.max(0, this.flash.a - dt / 450);
                     for (let i = this.rings.length - 1; i >= 0; i--) if ((this.rings[i].life -= dt) <= 0) this.rings.splice(i, 1);
+                    for (let i = this.bolts.length - 1; i >= 0; i--) if ((this.bolts[i].life -= dt) <= 0) this.bolts.splice(i, 1);
                     for (let i = this.particles.length - 1; i >= 0; i--) {
                         const q = this.particles[i];
                         q.life -= dt; q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000; q.vy += 300 * dt / 1000;
@@ -1305,6 +1394,8 @@
                     this.pendingRemove = [];             // pegs and splits are handled after the physics step
                     this.pendingSplit = [];
                     this.uiDirty = false;                // the UI is refreshed on the next frame (never from inside a physics step)
+                    this.relax = null;                   // repulsion field in progress: { d0: target spacing, links: pushing pairs }
+                    this.arcs = [];                      // electric arc jumps still to land: { from, to: peg, at: simT, ball }
                 }
 
                 L(id) { return this.progress.L(id); }
@@ -1349,11 +1440,26 @@
                     return true;
                 }
 
-                // button state of a temporary upgrade ({ active, s } or null); the bomb is busy while one is in play
+                // button state of a temporary upgrade ({ active, s, text? } or null); the bomb and the electric ball are busy while one is in play
                 timer(id) {
-                    if (id !== 'bomb') return this.temps.timer(id);
-                    const b = this.balls.find(b => b.bomb);
-                    return b ? { active: true, s: Math.max(0, Math.ceil(b.fuse / 1000)) } : null;
+                    if (id === 'bomb') {
+                        const b = this.balls.find(b => b.bomb);
+                        return b ? { active: true, s: Math.max(0, Math.ceil(b.fuse / 1000)) } : null;
+                    }
+                    if (id === 'zap') {
+                        const b = this.balls.find(b => b.zap);
+                        return b ? { active: true, text: Math.round(b.charge * 100) + '%' } : null;
+                    }
+                    return this.temps.timer(id);
+                }
+
+                // the electric ball leaves the cannon like the bomb: outside the ball limit and it never splits
+                launchZap() {
+                    const r = Math.max(7, ballRadius(this.L('fat')));
+                    this.makeBall(this.launchX, LAUNCH_Y, r, 0, LAUNCH_SPEED, { zap: true, w: 0, split: true, charge: 0, glow: ZAP_COL });
+                    this.recoil = 1;
+                    this.effects.burst(this.launchX, LAUNCH_Y + 6, ZAP_COL, 14, { speed: [60, 160], angle: [0.3, 2.84] });
+                    this.uiDirty = true;
                 }
 
                 // A bomb ball leaves the cannon like any ball, but outside the ball limit (w: 0) and it never splits.
@@ -1397,15 +1503,19 @@
                         if (!b.ball) { b = pr.bodyB; o = pr.bodyA; }
                         if (!b.ball) continue;
                         if (this.temps.running('chaos') && !pr.isSensor) b.ball.chaos = true;   // randomised right after this physics step (a ghost passing through a peg is no bounce)
-                        if (o.peg) this.hitPeg(b.ball, o.peg);
+                        if (o.peg && this.hitPeg(b.ball, o.peg) && b.ball.zap) this.chargeZap(b.ball, o.peg);
                     }
                 }
 
-                hitPeg(ball, peg) {
+                // a ball hits a peg and the peg pays out; arc = tagged by an electric arc (no anti-farming check, no charge)
+                // returns false when the hit does not count
+                hitPeg(ball, peg, arc = false) {
                     const fx = this.effects;
-                    if (peg.dead) return;
-                    if (ball.lastPeg === peg && this.simT - ball.lastT < 200) return;   // no farming one peg while resting on it
-                    ball.lastPeg = peg; ball.lastT = this.simT;
+                    if (peg.dead) return false;
+                    if (!arc) {
+                        if (ball.lastPeg === peg && this.simT - ball.lastT < 200) return false;   // no farming one peg while resting on it
+                        ball.lastPeg = peg; ball.lastT = this.simT;
+                    }
                     peg.flash = 1;
                     if (ball.goo && ++ball.gooHits >= GOOBALL_PEGS) ball.expired = true;   // gooballs burn out after enough pegs
 
@@ -1445,7 +1555,7 @@
                         fx.float(peg.x, peg.y - 12, '+$' + fmt(v), '#ffd23a', { big: true, life: 900, always: true });
                         fx.float(peg.x, peg.y - 28, '+' + fmt(RP_PEG * DUAL_MULT) + ' RP', '#8a5bff', { big: true, life: 900, always: true });
                         if (--peg.left <= 0) { peg.dead = true; this.pendingRemove.push(peg); }
-                        return;
+                        return true;
                     }
 
                     if (peg.type === 'research') {
@@ -1453,7 +1563,7 @@
                         this.earn(ball, 'rp', RP_PEG);
                         fx.burst(peg.x, peg.y, peg.color, 6);
                         fx.float(peg.x, peg.y - 12, '+' + fmt(RP_PEG) + ' RP', peg.color);
-                        return;
+                        return true;
                     }
 
                     let v = (1 + this.L('ball')) * (1 + 0.5 * this.L('power')) * (1 + 0.05 * this.L('combo') * ball.hits) * this.goldMul(ball);
@@ -1464,6 +1574,55 @@
                     const col = gold ? GOLD : peg.color;
                     fx.burst(peg.x, peg.y, col, gold ? 10 : 5);
                     fx.float(peg.x, peg.y - 12, '+' + fmt(v), col, { big: gold });
+                    return true;
+                }
+
+                // every real hit charges the electric ball; a full charge discharges from the peg it just hit
+                chargeZap(ball, peg) {
+                    ball.charge = Math.min(1, ball.charge + 1 / ZAP_HITS);
+                    if (ball.charge < 1) return;
+                    ball.charge = 0;
+                    this.discharge(ball, peg);
+                }
+
+                /* The arc spreads outward in waves: every tagged peg passes it on to its nearest untagged pegs within ZAP_R
+                   (at most ZAP_BRANCH each, ZAP_MAX in total). Each wave lands ZAP_DELAY ms after the one before. */
+                discharge(ball, src) {
+                    const fx = this.effects, seen = new Set([src]), near = [], bp = ball.body.position;
+                    let wave = [src], depth = 0, tagged = 0;
+                    while (wave.length && tagged < ZAP_MAX) {
+                        depth++;
+                        const next = [];
+                        for (const from of wave) {
+                            const cands = this.pegs.near(from.x - ZAP_R, from.y - ZAP_R, from.x + ZAP_R, from.y + ZAP_R, near)
+                                .filter(q => !seen.has(q) && !q.dead && Math.hypot(q.x - from.x, q.y - from.y) <= ZAP_R)
+                                .sort((a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y));
+                            for (const q of cands.slice(0, ZAP_BRANCH)) {
+                                if (tagged >= ZAP_MAX) break;
+                                seen.add(q); next.push(q); tagged++;
+                                this.arcs.push({ from, to: q, at: this.simT + depth * ZAP_DELAY, ball });
+                            }
+                        }
+                        wave = next;
+                    }
+                    fx.bolt(bp.x, bp.y, src.x, src.y, ZAP_COL, 260);
+                    fx.ring(src.x, src.y, 4, ZAP_R, ZAP_COL, { life: 420, width: 3, fill: true });
+                    fx.burst(src.x, src.y, '#eaffff', 12, { speed: [80, 220], size: 9, always: true });
+                    fx.float(src.x, src.y - 22, tagged ? `ZAP x${tagged}` : 'ZAP', ZAP_COL, { big: true, life: 900, always: true });
+                    fx.screen(ZAP_COL, 0.12, 2);
+                }
+
+                // arc jumps that are due land now: lightning, sparks, and a hit just as if the ball had hit the peg
+                updateArcs() {
+                    for (let i = this.arcs.length - 1; i >= 0; i--) {
+                        const a = this.arcs[i];
+                        if (a.at > this.simT) continue;
+                        this.arcs.splice(i, 1);
+                        if (a.to.dead || !this.pegs.list.includes(a.to)) continue;   // broken or picked up meanwhile
+                        this.effects.bolt(a.from.x, a.from.y, a.to.x, a.to.y, ZAP_COL);
+                        this.effects.burst(a.to.x, a.to.y, ZAP_COL, 6, { speed: [60, 180], size: 8 });
+                        this.hitPeg(a.ball, a.to, true);
+                    }
                 }
 
                 /* A full-size ball that hits a splitter peg becomes two half-size balls (deferred until the physics step is over). */
@@ -1535,6 +1694,27 @@
                     this.dropBall(ball);
                 }
 
+                // Repulsion field: while it runs, pegs push apart until no two are closer than d0. d0 is set when it starts,
+                // a bit above the current average gap to the nearest peg, so crowded spots spread out but the board keeps its density.
+                updateRelax() {
+                    const s = this.temps.s.relax, pegs = this.pegs, fx = this.effects;
+                    if (s.t > 0) {
+                        if (!this.relax) {
+                            this.relax = { d0: Math.min(70, Math.max(2 * PEG_R + 8, pegs.spacing(80) * 1.25)), links: [] };
+                            const live = pegs.list.length || 1, cx = pegs.list.reduce((a, p) => a + p.x, 0) / live, cy = pegs.list.reduce((a, p) => a + p.y, 0) / live;
+                            fx.ring(cx, cy, 10, 260, RELAX_COL, { life: 900, width: 5 });
+                            fx.ring(cx, cy, 10, 160, RELAX_COL, { life: 700, width: 3, fill: true });
+                            fx.screen(RELAX_COL, 0.18, 2);
+                        }
+                        const box = { x0: PEG_R + 2, x1: W - PEG_R - 2, y0: PEG_R + 2, y1: this.worldH - 50, yMax: this.worldH - PEG_R };
+                        pegs.relaxStep(this.relax.d0, Math.min(1, s.t / 1500), box, this.relax.links);   // eases out over the last 1.5 s
+                    } else if (this.relax) {
+                        pegs.resettle();
+                        this.relax = null;
+                        this.uiDirty = true;
+                    }
+                }
+
                 // Gravity pegs: every ball within reach is pulled gently towards the peg's centre; the closer the ball, the stronger the pull.
                 applyGravityPegs() {
                     const ph = this.physics;
@@ -1604,6 +1784,7 @@
                     this.recoil = Math.max(0, this.recoil - dt / 220);
 
                     this.temps.tick(dt);
+                    this.updateRelax();
                     this.physics.setGravity(this.temps.running('gravity') ? GRAV_MULT : 1);
                     if (this.temps.running('ghost')) for (const b of this.balls) b.ghost = true;
 
@@ -1617,6 +1798,7 @@
                     this.physics.update(dt);
                     this.applyChaos();
                     this.updateBalls(dt);
+                    this.updateArcs();
 
                     while (this.pendingSplit.length) { const s = this.pendingSplit.pop(); this.splitBall(s.ball, s.peg); }
                     while (this.pendingRemove.length) {
@@ -1919,6 +2101,7 @@
                 // one cached sprite per peg (glow + body); the bigger flash glow, goo caps and blast counters only where needed
                 drawPegs(k, top, bot) {
                     const ctx = this.ctx, camY = this.camera.y, pegs = this.game.pegs.list;
+                    this.drawRelaxLinks();
                     ctx.setTransform(1, 0, 0, 1, 0, 0);
                     for (const p of pegs) {
                         if (p.y < top || p.y > bot) continue;
@@ -1943,6 +2126,21 @@
                         if (p.gooT > 0) this.drawGooCap(p);
                         if (p.flash > 0) { this.pegPath(p); ctx.fillStyle = `rgba(255,255,255,${p.flash * 0.85})`; ctx.fill(); }
                     }
+                }
+
+                // repulsion field: a glowing line between every pair of pegs that are pushing each other apart (under the pegs)
+                drawRelaxLinks() {
+                    const relax = this.game.relax, ctx = this.ctx;
+                    if (!relax || !relax.links.length) return;
+                    const L = relax.links, ease = Math.min(1, this.game.temps.s.relax.t / 1500);
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.strokeStyle = RELAX_COL; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+                    ctx.globalAlpha = 0.5 * ease;
+                    ctx.beginPath();
+                    for (let i = 0; i < L.length; i += 2) { ctx.moveTo(L[i].x, L[i].y); ctx.lineTo(L[i + 1].x, L[i + 1].y); }
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                    ctx.globalCompositeOperation = 'source-over';
                 }
 
                 // mouse placement preview
@@ -1978,6 +2176,8 @@
                         if (b.bomb) {                    // a big red glow that throbs faster as the fuse burns down
                             const pulse = 0.5 + 0.5 * Math.sin(b.phase);
                             this.glow(BOMB_COL, x, y, b.r * (6 + 3 * pulse), 0.75 + 0.25 * pulse);
+                        } else if (b.zap) {              // a flickering blue glow that grows with the charge
+                            this.glow(ZAP_COL, x, y, b.r * (5 + 3 * b.charge) * rand(0.9, 1.1), 0.8 + 0.2 * b.charge);
                         } else this.glow(col, x, y, b.r * 5, 0.9);
                     }
                     ctx.globalCompositeOperation = 'source-over';
@@ -1986,6 +2186,7 @@
                         if (y < top || y > bot) continue;
                         ctx.globalAlpha = b.ghost ? 0.5 : 1;  // ghost balls are see-through
                         if (b.bomb) { this.drawBomb(b, x, y); continue; }
+                        if (b.zap) { this.drawZap(b, x, y); continue; }
                         ctx.fillStyle = b.goo ? GOO_COL : b.gold ? GOLD : '#fff';
                         ctx.beginPath(); ctx.arc(x, y, b.r * 0.78, 0, TAU); ctx.fill();
                     }
@@ -2013,9 +2214,57 @@
                     if (loot) { ctx.font = FONT_SMALL; ctx.fillStyle = '#ffd23a'; ctx.fillText(loot, this.onBoard(loot, x), y - r - 26); }
                 }
 
+                // white-hot core, a ring that fills up with the charge, and sparks crackling around it once it is half charged
+                drawZap(b, x, y) {
+                    const ctx = this.ctx, r = b.r;
+                    ctx.fillStyle = '#e8fbff';
+                    ctx.beginPath(); ctx.arc(x, y, r * 0.8, 0, TAU); ctx.fill();
+                    ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+                    ctx.strokeStyle = 'rgba(77,210,255,.25)';
+                    ctx.beginPath(); ctx.arc(x, y, r + 3.5, 0, TAU); ctx.stroke();
+                    ctx.strokeStyle = ZAP_COL;
+                    ctx.beginPath(); ctx.arc(x, y, r + 3.5, -Math.PI / 2, -Math.PI / 2 + TAU * b.charge); ctx.stroke();
+                    if (b.charge >= 0.5) {
+                        ctx.globalCompositeOperation = 'lighter';
+                        ctx.strokeStyle = '#bff0ff'; ctx.lineWidth = 1.2;
+                        for (let i = 0, n = Math.round(b.charge * 4); i < n; i++) {
+                            const a = rand(0, TAU), r0 = r + 2, r1 = r + rand(6, 11), m = (r0 + r1) / 2, wob = rand(-0.35, 0.35);
+                            ctx.beginPath();
+                            ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0);
+                            ctx.lineTo(x + Math.cos(a + wob) * m, y + Math.sin(a + wob) * m);
+                            ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1);
+                            ctx.stroke();
+                        }
+                        ctx.globalCompositeOperation = 'source-over';
+                    }
+                }
+
+                // lightning: a fresh jagged path every frame (so it flickers), a wide coloured glow under a thin white core
+                drawBolts() {
+                    const ctx = this.ctx, pts = [];
+                    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                    for (const bl of this.game.effects.bolts) {
+                        const dx = bl.x2 - bl.x1, dy = bl.y2 - bl.y1, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
+                        const n = Math.max(2, Math.ceil(d / 9)), amp = Math.min(6, d * 0.15), a = bl.life / bl.max;
+                        pts.length = 0;
+                        for (let i = 0; i <= n; i++) {
+                            const t = i / n, off = i === 0 || i === n ? 0 : rand(-amp, amp);
+                            pts.push(bl.x1 + dx * t + nx * off, bl.y1 + dy * t + ny * off);
+                        }
+                        for (const [col, w, alpha] of [[bl.color, 5, 0.4 * a], ['#f2fdff', 1.6, a]]) {
+                            ctx.strokeStyle = col; ctx.lineWidth = w; ctx.globalAlpha = alpha;
+                            ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
+                            for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+                            ctx.stroke();
+                        }
+                    }
+                    ctx.globalAlpha = 1;
+                }
+
                 drawEffects(top, bot) {
                     const ctx = this.ctx, fx = this.game.effects;
                     ctx.globalCompositeOperation = 'lighter';
+                    this.drawBolts();
                     for (const q of fx.particles) {
                         if (q.y < top || q.y > bot) continue;
                         this.glow(q.color, q.x, q.y, q.size, q.life / q.max);
@@ -2238,6 +2487,7 @@
                     ref.btn.addEventListener('click', () => { if (suppress) { suppress = false; return; } this.buy(u); });
                     ref.btn.addEventListener('contextmenu', e => e.preventDefault());
                     if (u.danger) ref.btn.classList.add('danger');   // glows red instead of green while running
+                    if (u.act) ref.btn.style.setProperty('--act', u.act);   // or in its own colour
 
                     this.d.list.appendChild(el);
                     return ref;
@@ -2251,7 +2501,7 @@
 
                 buy(u) {
                     if (!this.game.buy(u)) return false;
-                    if (u.id === 'bomb') this.closeShop();   // the shop covers the board: get out of the way so the bomb can be watched
+                    if (u.watch) this.closeShop();           // something to watch happens on the board: get the shop out of the way
                     else this.refresh();
                     return true;
                 }
@@ -2358,7 +2608,7 @@
                         const tm = game.timer(u.id);
                         const afford = !maxed && !tm && p.wallet(u) >= p.cost(u);
                         if (afford) canAfford[curOf(u)] = true;
-                        if (tm) { setText(c.bl, ''); setText(c.bc, tm.s + 's'); }   // only the seconds left, nothing else
+                        if (tm) { setText(c.bl, ''); setText(c.bc, tm.text || tm.s + 's'); }   // only the seconds left (or the electric ball's charge)
                         else { setText(c.bl, maxed ? 'MAXED' : ''); setText(c.bc, maxed ? '✓' : p.priceText(u)); }
                         c.btn.classList.toggle('active', !!(tm && tm.active));      // glowing, twinkling green while running
                         c.btn.classList.toggle('cant', !afford && !maxed && !(tm && tm.active));
