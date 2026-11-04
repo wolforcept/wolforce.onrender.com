@@ -508,7 +508,8 @@
             --k: var(--evil)
         }
 
-        #upBtn.alert::after {
+        #upBtn.alert::after,
+        #gooBtn.alert::after {
             content: "";
             position: absolute;
             top: 2px;
@@ -522,7 +523,9 @@
         }
 
         /* ---------- upgrades overlay (sits above the button bar so you can keep launching) ---------- */
-        #overlay {
+        #overlay,
+        #settings,
+        #powers {
             position: absolute;
             top: 0;
             left: 0;
@@ -540,7 +543,9 @@
             transition: transform .26s ease, visibility 0s .26s;
         }
 
-        #overlay.open {
+        #overlay.open,
+        #settings.open,
+        #powers.open {
             transform: none;
             visibility: visible;
             transition: transform .26s ease, visibility 0s 0s
@@ -549,7 +554,7 @@
         #tabs {
             display: none;
             gap: 8px;
-            padding: 10px 12px 0
+            padding: 0 12px 10px
         }
 
         #tabs.on {
@@ -584,24 +589,6 @@
             --k: var(--violet)
         }
 
-        #tabGoo {
-            --k: var(--goo);
-            display: none
-        }
-
-        #tabGoo.on {
-            display: block
-        }
-
-        #tabEvil {
-            --k: var(--evil);
-            display: none
-        }
-
-        #tabEvil.on {
-            display: block
-        }
-
         .tab.alert::after {
             content: "";
             position: absolute;
@@ -618,7 +605,9 @@
             display: none
         }
 
-        #list {
+        #list,
+        #setList,
+        #powList {
             flex: 1;
             overflow-y: auto;
             overscroll-behavior: contain;
@@ -708,12 +697,14 @@
             letter-spacing: 2px
         }
 
+        /* one price per line when an upgrade costs several currencies */
         .buy .bc {
             font-size: 15px;
             font-weight: 800;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 4px
+            gap: 2px
         }
 
         /* a price: the currency icon, then the amount */
@@ -800,16 +791,113 @@
             }
         }
 
-        #resetBtn {
-            display: block;
-            margin: 22px auto 0;
-            padding: 10px 16px;
-            border-radius: 10px;
-            border: 1px solid #4a4670;
-            background: none;
-            color: var(--dim);
+        /* ---------- settings screen: the same sliding panel and cards as the shop ---------- */
+        #setTitle,
+        #powTitle {
+            padding: 14px 14px 0;
+            font: 800 12px/1 system-ui, sans-serif;
+            letter-spacing: 3px;
+            color: var(--dim)
+        }
+
+        /* feedback line (the hint under the board is hidden while a screen is open) */
+        #setMsg {
+            min-height: 24px;
+            padding: 8px 14px 0;
             font-size: 12px;
-            cursor: pointer;
+            font-weight: 700;
+            color: var(--lime);
+            text-shadow: 0 0 8px rgba(182, 255, 46, .5)
+        }
+
+        #setMsg.err {
+            color: var(--evil);
+            text-shadow: 0 0 8px rgba(255, 42, 61, .5)
+        }
+
+        /* a setting: text on top, its buttons in a row below */
+        .card.set {
+            grid-template-columns: 1fr
+        }
+
+        .acts {
+            display: flex;
+            gap: 8px
+        }
+
+        .acts .buy {
+            flex: 1 1 0;
+            min-width: 0;
+            min-height: 46px
+        }
+
+        .acts .buy .bc {
+            font-size: 13px;
+            letter-spacing: 1px
+        }
+        /* ---------- scrollbars: thin, soft neon, no Windows look (violet, red in evil mode) ---------- */
+        #list,
+        #setList,
+        #powList {
+            --sb: 138, 91, 255;
+            scrollbar-width: thin;
+            /* Firefox */
+            scrollbar-color: rgba(var(--sb), .6) transparent
+        }
+
+        #app.evil #list,
+        #app.evil #setList,
+        #app.evil #powList {
+            --sb: 255, 42, 61
+        }
+
+        /* Chrome, Edge, Safari: a slim glowing thumb on a barely visible track */
+        @supports selector(::-webkit-scrollbar) {
+
+            #list,
+            #setList,
+            #powList {
+                scrollbar-width: auto;
+                scrollbar-color: auto
+            }
+
+            #list::-webkit-scrollbar,
+            #setList::-webkit-scrollbar,
+            #powList::-webkit-scrollbar {
+                width: 10px
+            }
+
+            #list::-webkit-scrollbar-track,
+            #setList::-webkit-scrollbar-track,
+            #powList::-webkit-scrollbar-track {
+                margin: 6px 0;
+                background: transparent
+            }
+
+            #list::-webkit-scrollbar-thumb,
+            #setList::-webkit-scrollbar-thumb,
+            #powList::-webkit-scrollbar-thumb {
+                border: 3px solid transparent;
+                border-radius: 8px;
+                background: rgba(var(--sb), .5) padding-box;
+                box-shadow: 0 0 8px rgba(var(--sb), .45)
+            }
+
+            #list::-webkit-scrollbar-thumb:hover,
+            #setList::-webkit-scrollbar-thumb:hover,
+            #powList::-webkit-scrollbar-thumb:hover,
+            #list::-webkit-scrollbar-thumb:active,
+            #setList::-webkit-scrollbar-thumb:active,
+            #powList::-webkit-scrollbar-thumb:active {
+                background: rgba(var(--sb), .9) padding-box;
+                box-shadow: 0 0 12px rgba(var(--sb), .8)
+            }
+
+            #list::-webkit-scrollbar-corner,
+            #setList::-webkit-scrollbar-corner,
+            #powList::-webkit-scrollbar-corner {
+                background: transparent
+            }
         }
     </style>
 </head>
@@ -877,19 +965,27 @@
         </div>
 
         <div id="overlay" aria-hidden="true">
-            <div id="tabs">
-                <button class="tab sel" id="tabMoney" type="button">MONEY</button>
-                <button class="tab" id="tabRp" type="button">RESEARCH</button>
-                <button class="tab" id="tabGoo" type="button">GOO</button>
-                <button class="tab" id="tabEvil" type="button">EVIL</button>
-            </div>
             <div id="list"></div>
+            <!-- tabs sit at the bottom, just above the shop button -->
+            <div id="tabs">
+                <button class="tab sel" id="tabMoney" type="button">UPGRADES</button>
+                <button class="tab" id="tabRp" type="button">RESEARCH</button>
+            </div>
+        </div>
+
+        <!-- settings and powers: slide up like the shop; only one screen is open at a time -->
+        <div id="settings" aria-hidden="true">
+            <div id="setTitle">SETTINGS</div>
+            <div id="setMsg"></div>
+            <div id="setList"></div>
+        </div>
+        <div id="powers" aria-hidden="true">
+            <div id="powTitle">POWERS</div>
+            <div id="powList"></div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-    <script src="engine.js?v=4"></script>
-    <script src="game.js?v=20"></script>
+    <script src="dist/game.js?v=1"></script>
 </body>
 
 </html>
