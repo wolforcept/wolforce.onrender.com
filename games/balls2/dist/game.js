@@ -682,7 +682,7 @@
                     precision = Common.clamp(precision, qualityMin, qualityMax);
                     if (precision % 2 === 1)
                       precision += 1;
-                    var alpha = Math.acos(Vector.dot(prevNormal, nextNormal)), theta = alpha / precision;
+                    var alpha2 = Math.acos(Vector.dot(prevNormal, nextNormal)), theta = alpha2 / precision;
                     for (var j = 0; j < precision; j++) {
                       newVertices.push(Vector.add(Vector.rotate(radiusVector, theta * j), scaledVertex));
                     }
@@ -4808,35 +4808,725 @@
     }
   });
 
-  // src/util/Format.ts
-  var SUF = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
-  function fmt(n) {
-    if (!isFinite(n)) return "\u221E";
-    if (n < 1e3) return n >= 100 || Math.abs(n - Math.round(n)) < 0.05 ? String(Math.round(n)) : n.toFixed(1);
-    const e = Math.floor(Math.log10(n) / 3);
-    if (e >= SUF.length) return n.toExponential(2);
-    const v = n / Math.pow(1e3, e);
-    return (v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : v.toFixed(0)) + SUF[e];
+  // src/config/Colors.ts
+  var COLORS = {
+    // the things in the game: each colour is used wherever its thing shows up (counter, section, cards, pegs, payouts, effects)
+    theme: {
+      money: "#ffd23a",
+      // money icon and prices, gold balls, blast pegs, charged alchemy pegs, bomb payouts
+      moneyRim: "#fff3b0",
+      // money icon
+      moneyRing: "#c99a00",
+      // money icon
+      research: "#8a5bff",
+      // research points, research pegs, the Research button and section
+      goo: "#6bff1f",
+      // phlegm goo: counter, gooballs, goo caps, the Goo section, powers running
+      gooLight: "#dcffbe",
+      // the rim of a goo cap
+      evil: "#ff2a3d",
+      // evil: counter, section, switch, damaged pegs, the bomb ball
+      bucket: "#b6ff2e",
+      // buckets, what lands in them, the Bucket section
+      bucketBetween: "#ff9d1a",
+      // the buckets between the middle and the edges
+      bucketOuter: "#ffd23a",
+      // the outermost buckets
+      pegs: "#ffffff",
+      // plain pegs, the Pegs section
+      balls: "#ee8aee",
+      // the Balls section
+      world: "#19f5ff",
+      // the World section
+      splitter: "#4da3ff",
+      // splitter pegs
+      gravity: "#2effb0",
+      // gravity pegs and their reach
+      alchemy: "#8a6a12",
+      // an alchemy peg that has not charged up
+      electric: "#4dd2ff",
+      // the electric ball, its arcs and power card
+      electricLight: "#e8fbff",
+      // its core, sparks and the white inside lightning
+      repulsion: "#ff4fd8",
+      // repulsion field
+      chaos: "#ff2bd6",
+      // chaos ball sparks
+      cannon: "#ff9d1a",
+      cannonBody: "#1a1038",
+      explosion: "#ff9d1a",
+      // the bomb going off: fire, BOOM, broken pegs
+      explosionLight: "#ffd23a"
+      // its bright core and fuse
+    },
+    // the round buttons at the bottom (research uses theme.research)
+    button: {
+      settings: "#f2f0ff",
+      edit: "#b6ff2e",
+      // and DONE in edit mode
+      shop: "#ff2bd6",
+      powers: "#19f5ff"
+    },
+    // the screens and text
+    ui: {
+      page: "#03020c",
+      // around the game, and the dimmed outside of the board
+      background: "#07051a",
+      // the game, the top and bottom bars
+      backgroundGlow: "#1a1252",
+      // the light at the top of the board
+      frame: "#8a5bff",
+      // the glow around the game, the board grid and edges, bar edges, scrollbars
+      overlay: "#050314",
+      // the screens over the board, and the bottom bar meanwhile
+      panel: "#100c2e",
+      // cards, peg chips, rows, tips
+      panelEdge: "#c9c4ff",
+      // the top edge of the settings panel
+      text: "#e8e6ff",
+      strong: "#ffffff",
+      // bold text and white details (buy buttons, stats, switches, flashes)
+      label: "#8b86b8",
+      // titles, levels, BALLS / PEGS, depth numbers
+      description: "#b9b5e0",
+      // card and tip descriptions
+      stat: "#ff2bd6",
+      // the BALLS and PEGS numbers
+      locked: "#5d5a82",
+      // locked cards, buttons and the Locked section
+      positive: "#b6ff2e",
+      // the hint line, "something to buy" dots, success messages, free pegs
+      error: "#ff2a3d",
+      // error messages
+      negative: "#ff5a6a",
+      // what a lost ball had, a spot where a peg cannot go
+      boardEditing: "#19f5ff",
+      // the board edge in edit mode
+      drain: "#ff2bd6",
+      // the floor line
+      autoLaunch: "#19f5ff",
+      // its switch
+      shadow: "#000000"
+    },
+    // the system screen's cards
+    system: {
+      fullscreen: "#19f5ff",
+      powers: "#6bff1f",
+      exportSave: "#b6ff2e",
+      importSave: "#8a5bff",
+      reset: "#ff2a3d"
+    },
+    // the board turned red while Evil is on
+    evilMode: {
+      backgroundGlow: "#9c0f22",
+      background: "#3d0510",
+      vignette: "#ff1432",
+      bars: "#2a0409"
+    },
+    // a few details
+    detail: {
+      pegBody: "#0b0825",
+      // the inside of every peg
+      bombHot: "#ffd0d4",
+      // the bomb blinking in its last seconds
+      bombTimer: "#ff6b78"
+    }
+  };
+  var BALL_GLOWS = ["#3d8bff", "#4da3ff", "#19a8ff", "#5b7bff", "#7a4dff", "#8a5bff", "#a56bff", "#b78cff"];
+  function alpha(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
   }
-  var secs = (ms) => (ms / 1e3).toFixed(ms < 1e3 ? 2 : 1) + "s";
-  var evFmt = (n) => n < 100 ? n.toFixed(2) : fmt(n);
+  var kebab = (s) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+  var cssName = (group, name) => `--${kebab(group)}-${kebab(name)}`;
+  var cssColors = () => Object.entries(COLORS).flatMap(([group, colors]) => Object.entries(colors).map(([name, value]) => [cssName(group, name), value]));
+  function applyCssColors(root) {
+    for (const [name, value] of cssColors()) root.style.setProperty(name, value);
+  }
 
-  // src/config/Currencies.ts
-  var RES_COL = { money: "#ffffff", research: "#8a5bff", goo: "#6bff1f", evil: "#ff2a3d" };
-  var CUR_FIELD = { money: "money", research: "rp", goo: "goo", evil: "evil" };
-  var COST_TEXT = { money: (a) => "$" + fmt(a), research: (a) => fmt(a) + " RP", goo: (a) => fmt(a) + " GOO", evil: (a) => fmt(a) + " EVIL" };
-  var costText = (c) => entries(c).map(([cur, a]) => COST_TEXT[cur](a)).join(" + ");
-  var entries = (o) => Object.entries(o);
-  var isCurrency = (c) => c in CUR_FIELD;
+  // src/engine/Settings.ts
+  var STEP = 1e3 / 90;
+  var MAX_STEPS = 3;
+  var DPR_TIERS = [2, 1.5, 1.25, 1];
+  var DEBUG = typeof location !== "undefined" && /[?&]debug\b/.test(location.search);
+
+  // src/config/World.ts
+  var W = 360;
+  var PEG_R = 9;
+  var PEG_SHRINK = 0.15;
+  var SHRINK_DEPTH = 1500;
+  var pegRadius = (y) => PEG_R * (1 - PEG_SHRINK * Math.min(1, (Math.max(0, y) / SHRINK_DEPTH) ** 2));
+  var LAUNCH_Y = 38;
+  var BUCKET_X = W / 2;
+  var LAUNCH_SPEED = 3;
+  var SWEEP_MS = 3600;
+  var SWEEP_MARGIN = 26;
+  var MAX_SPEED = 22;
+  var BALL_MAX_AGE = 12e4;
+  var GRAVITY_SCALE = 4e-4;
+  var G_STEP = GRAVITY_SCALE * STEP * (1e3 / 60);
+  var randGlow = () => BALL_GLOWS[Math.random() * BALL_GLOWS.length | 0];
+  var LAUNCH_SPREAD = 1;
+
+  // src/engine/Camera.ts
+  var Camera = class {
+    constructor(worldH) {
+      __publicField(this, "worldH");
+      __publicField(this, "y");
+      __publicField(this, "vel");
+      __publicField(this, "scale");
+      __publicField(this, "viewH");
+      __publicField(this, "padTop");
+      __publicField(this, "padBot");
+      this.worldH = worldH;
+      this.y = 0;
+      this.vel = 0;
+      this.scale = 1;
+      this.viewH = 640;
+      this.padTop = 70;
+      this.padBot = 100;
+    }
+    // If the world fits between the HUD and the button bar it is centred and cannot be dragged.
+    range() {
+      const s = this.scale, worldH = this.worldH();
+      const lo = -this.padTop / s, hi = worldH + this.padBot / s - this.viewH / s;
+      if (hi >= lo) return [lo, hi];
+      const free = this.viewH - this.padTop - this.padBot;
+      const c = -(this.padTop + (free - worldH * s) / 2) / s;
+      return [c, c];
+    }
+    clamp() {
+      const [lo, hi] = this.range();
+      this.y = Math.min(hi, Math.max(lo, this.y));
+    }
+    // momentum scrolling after a drag is let go
+    coast(dt, dragging) {
+      if (!dragging && Math.abs(this.vel) > 4) {
+        this.y += this.vel * dt / 1e3;
+        this.vel *= 0.04 ** (dt / 1e3);
+        const [lo, hi] = this.range();
+        if (this.y < lo || this.y > hi) this.vel = 0;
+      } else if (!dragging) this.vel = 0;
+      this.clamp();
+    }
+  };
+
+  // src/engine/Input.ts
+  var Input = class {
+    constructor(canvas, camera, target) {
+      __publicField(this, "canvas");
+      __publicField(this, "camera");
+      __publicField(this, "target");
+      __publicField(this, "drag");
+      __publicField(this, "hover");
+      this.canvas = canvas;
+      this.camera = camera;
+      this.target = target;
+      this.drag = null;
+      this.hover = null;
+      canvas.addEventListener("pointerdown", (e) => {
+        canvas.setPointerCapture(e.pointerId);
+        const item = target.grab(this.toWorld(e.clientX, e.clientY));
+        this.drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, cam0: camera.y, lastX: e.clientX, lastY: e.clientY, lastT: performance.now(), moved: false, item };
+        camera.vel = 0;
+      });
+      canvas.addEventListener("pointermove", (e) => this.move(e));
+      canvas.addEventListener("pointerup", (e) => this.end(e, false));
+      canvas.addEventListener("pointercancel", (e) => this.end(e, true));
+      canvas.addEventListener("pointerleave", (e) => {
+        if (e.pointerType === "mouse") this.hover = null;
+      });
+      canvas.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * camera.viewH : e.deltaY;
+        camera.vel = 0;
+        camera.y += px / camera.scale;
+        camera.clamp();
+        this.hover = this.toWorld(e.clientX, e.clientY);
+      }, { passive: false });
+    }
+    get dragging() {
+      return !!this.drag;
+    }
+    toWorld(cx, cy) {
+      const r = this.canvas.getBoundingClientRect();
+      return { x: (cx - r.left) / this.camera.scale, y: (cy - r.top) / this.camera.scale + this.camera.y };
+    }
+    move(e) {
+      const drag = this.drag, cam = this.camera;
+      if (e.pointerType === "mouse") this.hover = this.toWorld(e.clientX, e.clientY);
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+      if (!drag.moved && Math.hypot(dx, dy) > 8) drag.moved = true;
+      if (!drag.moved) return;
+      if (drag.item) {
+        drag.lastX = e.clientX;
+        drag.lastY = e.clientY;
+        this.target.dragTo(drag.item, this.toWorld(e.clientX, e.clientY));
+        return;
+      }
+      cam.y = drag.cam0 - dy / cam.scale;
+      cam.clamp();
+      const now = performance.now(), dt = now - drag.lastT;
+      if (dt > 0) {
+        const v = (drag.lastY - e.clientY) / cam.scale / dt * 1e3;
+        cam.vel = cam.vel * 0.5 + v * 0.5;
+      }
+      drag.lastY = e.clientY;
+      drag.lastT = now;
+    }
+    end(e, cancelled) {
+      const d = this.drag;
+      if (!d || e.pointerId !== d.id) return;
+      this.drag = null;
+      if (d.item && d.moved) {
+        this.target.drop(d.item);
+        return;
+      }
+      if (cancelled) return;
+      if (!d.moved) {
+        this.camera.vel = 0;
+        this.target.tap(this.toWorld(e.clientX, e.clientY));
+      } else if (performance.now() - d.lastT > 90) this.camera.vel = 0;
+    }
+    // while an item is dragged near the top or bottom of the visible board, the board scrolls along
+    update(dt) {
+      const d = this.drag;
+      if (!d?.item || !d.moved) return;
+      const cam = this.camera, y = d.lastY - this.canvas.getBoundingClientRect().top, edge = 48;
+      const dir = y < cam.padTop + edge ? -1 : y > cam.viewH - cam.padBot - edge ? 1 : 0;
+      if (!dir) return;
+      cam.y += dir * 420 / cam.scale * dt / 1e3;
+      cam.clamp();
+      this.target.dragTo(d.item, this.toWorld(d.lastX, d.lastY));
+    }
+  };
+
+  // src/util/Canvas.ts
+  var TAU = Math.PI * 2;
+  var FONT_BIG = "800 15px system-ui,sans-serif";
+  var FONT_SMALL = "700 11px system-ui,sans-serif";
+  var FONT_HUGE = "900 24px system-ui,sans-serif";
+  var mixCache = {};
+  function mixCol(a, b, t) {
+    const k = a + b + t;
+    if (mixCache[k]) return mixCache[k];
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ch = (s) => Math.round((pa >> s & 255) * (1 - t) + (pb >> s & 255) * t);
+    return mixCache[k] = `#${(1 << 24 | ch(16) << 16 | ch(8) << 8 | ch(0)).toString(16).slice(1)}`;
+  }
+  var glowCache = {};
+  function glowSprite(color) {
+    if (glowCache[color]) return glowCache[color];
+    const c = document.createElement("canvas");
+    c.width = c.height = 64;
+    const g = context2d(c);
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, `${color}ff`);
+    gr.addColorStop(0.35, `${color}77`);
+    gr.addColorStop(1, `${color}00`);
+    g.fillStyle = gr;
+    g.fillRect(0, 0, 64, 64);
+    return glowCache[color] = c;
+  }
+  function hexPath(g, x, y, r) {
+    g.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3 + Math.PI / 6, px = x + r * Math.cos(a), py = y + r * Math.sin(a);
+      if (i) g.lineTo(px, py);
+      else g.moveTo(px, py);
+    }
+    g.closePath();
+  }
+  function context2d(c) {
+    const g = c.getContext("2d");
+    if (!g) throw new Error("2D canvas not available");
+    return g;
+  }
+
+  // src/util/MathUtil.ts
+  var rand = (a, b) => a + Math.random() * (b - a);
+  var soft = (start, limit, rate, l) => limit - (limit - start) * rate ** l;
+
+  // src/engine/Renderer.ts
+  var Renderer = class {
+    constructor(canvas, camera, worldW) {
+      __publicField(this, "canvas");
+      __publicField(this, "ctx");
+      __publicField(this, "camera");
+      __publicField(this, "worldW");
+      __publicField(this, "dpr");
+      __publicField(this, "cssW");
+      __publicField(this, "tier");
+      __publicField(this, "sprites");
+      __publicField(this, "icons");
+      __publicField(this, "partCache");
+      __publicField(this, "ox");
+      __publicField(this, "oy");
+      this.canvas = canvas;
+      this.ctx = context2d(canvas);
+      this.camera = camera;
+      this.worldW = worldW;
+      this.dpr = 1;
+      this.cssW = 360;
+      this.tier = navigator.deviceMemory && navigator.deviceMemory <= 4 ? 1 : 0;
+      this.sprites = {};
+      this.icons = {};
+      this.partCache = /* @__PURE__ */ new Map();
+      this.ox = 0;
+      this.oy = 0;
+    }
+    resize() {
+      const r = this.canvas.getBoundingClientRect();
+      this.cssW = r.width;
+      this.dpr = Math.min(window.devicePixelRatio || 1, DPR_TIERS[this.tier]);
+      this.canvas.width = Math.round(r.width * this.dpr);
+      this.canvas.height = Math.round(r.height * this.dpr);
+      this.camera.scale = r.width / this.worldW;
+      this.camera.viewH = r.height;
+      this.sprites = {};
+    }
+    // one quality tier down (call resize() after); false when already at the lowest
+    lowerQuality() {
+      if (this.tier >= DPR_TIERS.length - 1) return false;
+      this.tier++;
+      return true;
+    }
+    glow(color, x, y, size, alpha2) {
+      const ctx = this.ctx;
+      ctx.globalAlpha = alpha2;
+      ctx.drawImage(glowSprite(color), x - size / 2, y - size / 2, size, size);
+      ctx.globalAlpha = 1;
+    }
+    // the old shadowBlur glow, faked with a wide faint stroke under the real one (shadowBlur is very slow on phones)
+    glowStroke(color, width, glowW, glowA) {
+      const ctx = this.ctx;
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = glowA;
+      ctx.lineWidth = glowW;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = width;
+      ctx.stroke();
+    }
+    // a: how far we are between the last two physics steps (0..1), so moving things are drawn smoothly at any refresh rate
+    render(a, scene) {
+      const { ctx, camera } = this, k = this.dpr * camera.scale, shake = scene.effects.shake * this.dpr;
+      this.ox = shake ? rand(-shake, shake) : 0;
+      this.oy = shake ? rand(-shake, shake) : 0;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.worldTransform(k);
+      const top = camera.y - 40, bot = camera.y + camera.viewH / camera.scale + 40;
+      scene.draw(a, k, top, bot);
+      this.drawFlash(scene.effects);
+    }
+    // world units -> device pixels, scrolled by the camera and offset by the screen shake
+    worldTransform(k) {
+      this.ctx.setTransform(k, 0, 0, k, this.ox, this.oy - this.camera.y * k);
+    }
+    drawFlash(fx) {
+      const f = fx.flash, ctx = this.ctx;
+      if (f.a <= 0) return;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = f.a;
+      ctx.fillStyle = f.color;
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.globalAlpha = 1;
+    }
+    // lightning: a fresh jagged path every frame (so it flickers), a wide coloured glow under a thin white core
+    drawBolts(fx) {
+      const ctx = this.ctx, pts = [];
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      for (const bl of fx.bolts) {
+        const dx = bl.x2 - bl.x1, dy = bl.y2 - bl.y1, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
+        const n = Math.max(2, Math.ceil(d / 9)), amp = Math.min(6, d * 0.15), a = bl.life / bl.max;
+        pts.length = 0;
+        for (let i = 0; i <= n; i++) {
+          const t = i / n, off = i === 0 || i === n ? 0 : rand(-amp, amp);
+          pts.push(bl.x1 + dx * t + nx * off, bl.y1 + dy * t + ny * off);
+        }
+        for (const [col, w, alpha2] of [[bl.color, 5, 0.4 * a], [COLORS.theme.electricLight, 1.6, a]]) {
+          ctx.strokeStyle = col;
+          ctx.lineWidth = w;
+          ctx.globalAlpha = alpha2;
+          ctx.beginPath();
+          ctx.moveTo(pts[0], pts[1]);
+          for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+    drawEffects(fx, top, bot) {
+      const ctx = this.ctx;
+      ctx.globalCompositeOperation = "lighter";
+      this.drawBolts(fx);
+      for (const q of fx.particles) {
+        if (q.y < top || q.y > bot) continue;
+        this.glow(q.color, q.x, q.y, q.size, q.life / q.max);
+      }
+      for (const g of fx.rings) {
+        const life = g.life / g.max, rr = g.r0 + (g.r1 - g.r0) * (1 - life ** 3);
+        if (g.fill) this.glow(g.color, g.x, g.y, rr * 2, 0.7 * life);
+        ctx.globalAlpha = life;
+        ctx.strokeStyle = g.color;
+        ctx.lineWidth = g.width * (0.4 + 0.6 * life);
+        ctx.beginPath();
+        ctx.arc(g.x, g.y, rr, 0, TAU);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.textAlign = "center";
+      let lastFont = "";
+      for (const f of fx.floaters) {
+        if (f.y < top || f.y > bot) continue;
+        ctx.globalAlpha = Math.min(1, f.life / f.max * 1.6) * (f.dim ? 0.55 : 1);
+        const font = f.huge ? FONT_HUGE : f.big ? FONT_BIG : FONT_SMALL;
+        if (font !== lastFont) {
+          ctx.font = lastFont = font;
+        }
+        ctx.fillStyle = f.color;
+        this.richText(f.text, f.x, f.y);
+      }
+      ctx.globalAlpha = 1;
+    }
+    // x for centred text, moved in so the whole text stays inside the world's width (uses the current font)
+    onBoard(text, x) {
+      const half = this.ctx.measureText(text).width / 2 + 3;
+      return Math.min(this.worldW - half, Math.max(half, x));
+    }
+    // a text split into its words and {name} icons (cached: the same texts come back every frame)
+    textParts(text) {
+      let parts = this.partCache.get(text);
+      if (parts) return parts;
+      parts = text.split(/\{([a-zA-Z]+)\}/).map((s, i) => i % 2 && this.icons[s] ? { icon: this.icons[s] } : i % 2 ? `{${s}}` : s).filter((p) => p !== "");
+      if (this.partCache.size > 400) this.partCache.clear();
+      this.partCache.set(text, parts);
+      return parts;
+    }
+    // centred text with {name} icons (from this.icons, at the current font's size), kept inside the world's width;
+    // the text takes the current fillStyle, the icons keep their own colours
+    richText(text, x, y) {
+      const ctx = this.ctx;
+      if (!text.includes("{")) {
+        ctx.textAlign = "center";
+        ctx.fillText(text, this.onBoard(text, x), y);
+        return;
+      }
+      const parts = this.textParts(text), px = Number(/(\d+(?:\.\d+)?)px/.exec(ctx.font)?.[1] ?? 12), size = px * 1.05, gap = px * 0.1;
+      const widths = parts.map((p) => typeof p === "string" ? ctx.measureText(p).width : size + 2 * gap);
+      const total = widths.reduce((a, w) => a + w, 0);
+      let left = Math.min(this.worldW - 3 - total, Math.max(3, x - total / 2));
+      ctx.textAlign = "left";
+      parts.forEach((p, i) => {
+        if (typeof p === "string") ctx.fillText(p, left, y);
+        else ctx.drawImage(p.icon, left + gap, y - px * 0.86, size, size);
+        left += widths[i];
+      });
+      ctx.textAlign = "center";
+    }
+    // the ?debug readout, in a bar just above the buttons
+    drawDebug(text) {
+      const ctx = this.ctx, y = this.camera.viewH - this.camera.padBot;
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      ctx.fillStyle = alpha(COLORS.ui.shadow, 0.7);
+      ctx.fillRect(0, y - 18, this.cssW, 18);
+      ctx.fillStyle = COLORS.ui.strong;
+      ctx.font = "600 11px system-ui,sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(text, 6, y - 5);
+    }
+  };
+
+  // src/engine/Effects.ts
+  var Effects = class {
+    constructor() {
+      __publicField(this, "particles");
+      __publicField(this, "floaters");
+      __publicField(this, "rings");
+      __publicField(this, "bolts");
+      __publicField(this, "shake");
+      __publicField(this, "flash");
+      this.particles = [];
+      this.floaters = [];
+      this.rings = [];
+      this.bolts = [];
+      this.shake = 0;
+      this.flash = { color: COLORS.ui.strong, a: 0 };
+    }
+    // speed in px/s, angle range in radians (default all around; canvas y points down, so pi..2pi is upwards)
+    // always = may go past the normal particle cap (big moments only)
+    burst(x, y, color, n, { speed = [40, 130], angle = [0, 6.283], size = 10, life = 450, always = false } = {}) {
+      for (let i = 0; i < n && this.particles.length < (always ? 400 : 250); i++) {
+        const a = rand(angle[0], angle[1]), s = rand(speed[0], speed[1]);
+        this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life, max: life, color, size });
+      }
+    }
+    // small numbers are skipped when 30 are already showing; always = shown anyway (big rewards)
+    // dim = drawn fainter (rewards a ball collected, not paid out yet)
+    float(x, y, text, color, { big = false, huge = false, dim = false, life = 800, always = false } = {}) {
+      if (!always && this.floaters.length >= 30) return;
+      this.floaters.push({ x, y, text, color, big, huge, dim, life, max: life });
+    }
+    // a ring growing from r0 to r1; fill = also a soft glowing disc inside it
+    ring(x, y, r0, r1, color, { life = 500, width = 4, fill = false } = {}) {
+      this.rings.push({ x, y, r0, r1, color, life, max: life, width, fill });
+    }
+    bolt(x1, y1, x2, y2, color, life = 320) {
+      this.bolts.push({ x1, y1, x2, y2, color, life, max: life });
+    }
+    screen(color, alpha2, shake) {
+      this.flash = { color, a: Math.max(this.flash.a, alpha2) };
+      this.shake = Math.max(this.shake, shake);
+    }
+    tick(dt) {
+      this.shake = Math.max(0, this.shake - dt * 0.025);
+      this.flash.a = Math.max(0, this.flash.a - dt / 450);
+      for (let i = this.rings.length - 1; i >= 0; i--) if ((this.rings[i].life -= dt) <= 0) this.rings.splice(i, 1);
+      for (let i = this.bolts.length - 1; i >= 0; i--) if ((this.bolts[i].life -= dt) <= 0) this.bolts.splice(i, 1);
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        const q = this.particles[i];
+        q.life -= dt;
+        q.x += q.vx * dt / 1e3;
+        q.y += q.vy * dt / 1e3;
+        q.vy += 300 * dt / 1e3;
+        if (q.life <= 0) this.particles.splice(i, 1);
+      }
+      for (let i = this.floaters.length - 1; i >= 0; i--) {
+        const f = this.floaters[i];
+        f.life -= dt;
+        f.y -= 28 * dt / 1e3;
+        if (f.life <= 0) this.floaters.splice(i, 1);
+      }
+    }
+  };
+
+  // src/engine/Physics.ts
+  var import_matter_js = __toESM(require_matter(), 1);
+  var Physics = class {
+    constructor(hooks, { width, gravityScale }) {
+      __publicField(this, "engine");
+      __publicField(this, "world");
+      __publicField(this, "walls");
+      __publicField(this, "gravityScale");
+      const { Engine, Bodies, Composite } = import_matter_js.default;
+      this.engine = Engine.create();
+      this.engine.gravity.y = 1;
+      this.engine.gravity.scale = this.gravityScale = gravityScale;
+      this.world = this.engine.world;
+      const o = { isStatic: true, restitution: 0.5, friction: 0, label: "wall", collisionFilter: { category: 4, mask: 4294967295, group: 0 } };
+      this.walls = [
+        Bodies.rectangle(-30, 5e5, 60, 1e6, o),
+        // left (very tall: the board has no maximum height)
+        Bodies.rectangle(width + 30, 5e5, 60, 1e6, o),
+        // right
+        Bodies.rectangle(width / 2, -30, width + 200, 60, o)
+        // ceiling
+      ];
+      Composite.add(this.world, this.walls);
+      this.installDetector(hooks);
+      this.installContactRules(hooks);
+    }
+    // Matter's detector sweeps over every body on every step, which gets slow with hundreds of static bodies.
+    // Only movers ever collide (movers ignore each other, the rest is static), so check just the movers against nearby static bodies and the walls.
+    installDetector({ movers, staticNear }) {
+      const Detector = import_matter_js.default.Detector, Collision = import_matter_js.default.Collision;
+      if (!(Detector && Collision?.collides)) return;
+      const walls = this.walls;
+      Detector.collisions = (detector) => {
+        const out = [], pairs = detector.pairs;
+        const test = (A, B) => {
+          const a = A.bounds, b = B.bounds;
+          if (b.min.x > a.max.x || b.max.x < a.min.x || b.min.y > a.max.y || b.max.y < a.min.y) return;
+          if (!Detector.canCollide(A.collisionFilter, B.collisionFilter)) return;
+          const c = Collision.collides(A, B, pairs);
+          if (c) out.push(c);
+        };
+        for (const m of movers) {
+          const A = m.body, a = A.bounds;
+          for (const w of walls) test(A, w);
+          for (const s of staticNear(a.min.x, a.min.y, a.max.x, a.max.y)) test(A, s.body);
+        }
+        return out;
+      };
+    }
+    installContactRules({ onPairs }) {
+      const Pairs = import_matter_js.default.Pairs, update = Pairs.update;
+      Pairs.update = (pairs, collisions, timestamp) => {
+        update(pairs, collisions, timestamp);
+        onPairs(pairs.list);
+      };
+    }
+    onCollisionStart(fn) {
+      import_matter_js.default.Events.on(this.engine, "collisionStart", (ev) => fn(ev.pairs));
+    }
+    // new bodies are B once the game has attached its own fields
+    addPeg(x, y, r, hex) {
+      const { Bodies, Composite } = import_matter_js.default;
+      const po = { isStatic: true, restitution: 0.5, friction: 0, label: "peg" };
+      const body = hex ? Bodies.polygon(x, y, 6, r + 1, po) : Bodies.circle(x, y, r, po);
+      Composite.add(this.world, body);
+      return body;
+    }
+    // Balls never collide with each other: category 2 is not in their mask (1 = pegs, 4 = walls).
+    addBall(x, y, r, vx, vy, bounce) {
+      const body = import_matter_js.default.Bodies.circle(x, y, r, {
+        restitution: bounce,
+        friction: 0,
+        frictionStatic: 0,
+        frictionAir: 0,
+        density: 2e-3,
+        collisionFilter: { category: 2, mask: 5 },
+        label: "ball"
+      });
+      import_matter_js.default.Body.setVelocity(body, { x: vx, y: vy });
+      import_matter_js.default.Composite.add(this.world, body);
+      return body;
+    }
+    remove(body) {
+      import_matter_js.default.Composite.remove(this.world, body);
+    }
+    movePeg(body, x, y) {
+      import_matter_js.default.Body.setPosition(body, { x, y });
+    }
+    resizePeg(body, factor) {
+      import_matter_js.default.Body.scale(body, factor, factor);
+    }
+    // velocities in px per 1/60 s, the units setVelocity takes (body.velocity is per 1/90 s physics step)
+    velocity(body) {
+      return import_matter_js.default.Body.getVelocity(body);
+    }
+    setVelocity(body, x, y) {
+      import_matter_js.default.Body.setVelocity(body, { x, y });
+    }
+    setGravity(mult) {
+      this.engine.gravity.scale = this.gravityScale * mult;
+    }
+    update(dt) {
+      import_matter_js.default.Engine.update(this.engine, dt);
+    }
+  };
 
   // src/upgrades/Types.ts
   var defineIn = (list) => (id, u) => {
     list.push({ id, ...u });
   };
 
-  // src/util/MathUtil.ts
-  var rand = (a, b) => a + Math.random() * (b - a);
-  var soft = (start, limit, rate, l) => limit - (limit - start) * Math.pow(rate, l);
+  // src/util/Format.ts
+  var SUF = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
+  function fmt(n) {
+    if (!Number.isFinite(n)) return "\u221E";
+    if (n < 1e3) return n >= 100 || Math.abs(n - Math.round(n)) < 0.05 ? String(Math.round(n)) : n.toFixed(1);
+    const e = Math.floor(Math.log10(n) / 3);
+    if (e >= SUF.length) return n.toExponential(2);
+    const v = n / 1e3 ** e;
+    return (v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : v.toFixed(0)) + SUF[e];
+  }
+  var secs = (ms) => `${(ms / 1e3).toFixed(ms < 1e3 ? 2 : 1)}s`;
+  var evFmt = (n) => n < 100 ? n.toFixed(2) : fmt(n);
 
   // src/upgrades/MoneyUpgrades.ts
   var MONEY_MAX = 5;
@@ -4845,15 +5535,17 @@
   var upgrade = defineIn(MONEY_UPGRADES);
   var bucketValue = (l) => 1 + l;
   upgrade("bucket_value", {
+    section: "bucket",
     tab: "money",
     name: "Bucket Value",
     max: 10 * MONEY_MAX,
     costs: { money: { base: 5, growth: 1.3 } },
     desc: "Increases the value of the buckets.",
-    stat: (l) => `$${fmt(bucketValue(l))} per catch`
+    stat: (l) => `{money}${fmt(bucketValue(l))} per catch`
   });
   var START_SLOTS = 3;
   upgrade("peg_slots", {
+    section: "pegs",
     tab: "money",
     name: "Peg Slots",
     max: 0,
@@ -4863,15 +5555,17 @@
     stat: (l) => `${START_SLOTS + l} slots`
   });
   upgrade("peg_value", {
+    section: "pegs",
     tab: "money",
     name: "Peg Value",
     max: MONEY_MAX,
     required: [{ id: "peg_slots", level: 5 }],
     costs: { money: { base: 20, growth: 1.5 } },
     desc: "Increases the added value of pegs.",
-    stat: (l) => `$${fmt(1 + l)} per hit`
+    stat: (l) => `{money}${fmt(1 + l)} per hit`
   });
   upgrade("extra_ball", {
+    section: "balls",
     tab: "money",
     name: "Extra Ball",
     max: MONEY_MAX,
@@ -4881,6 +5575,7 @@
     stat: (l) => `${1 + l} ball${l ? "s" : ""} at once`
   });
   upgrade("peg_power", {
+    section: "pegs",
     tab: "money",
     name: "Peg Power",
     max: MONEY_MAX,
@@ -4891,6 +5586,7 @@
   });
   var bucketW = (l) => soft(160, 280, 0.89, l);
   upgrade("wide_bucket", {
+    section: "bucket",
     tab: "money",
     name: "Wide Bucket",
     max: MONEY_MAX,
@@ -4903,6 +5599,7 @@
   var LAB_MIN = 50;
   var labInterval = (l) => LAB_MIN + (LAB_FIRST - LAB_MIN) / l;
   upgrade("research_lab", {
+    section: "research",
     tab: "money",
     name: "Research Lab",
     max: MONEY_MAX,
@@ -4916,26 +5613,29 @@
     stat: (l) => l ? `1 tick every ${secs(labInterval(l))}` : "no research"
   });
   upgrade("research_batch", {
+    section: "research",
     tab: "money",
     name: "Research Batch",
     max: MONEY_MAX,
     required: [{ id: "research_lab", level: 3 }],
     costs: { money: { base: 25e3, growth: 3 } },
     desc: "Every tick of the Research Lab gives more research points.",
-    stat: (l) => `${1 + l} RP per tick`
+    stat: (l) => `{research}${1 + l} per tick`
   });
   var RP_PEG = 1;
   var rpPerHit = (l) => RP_PEG * (1 + l);
   upgrade("research_pegs_value", {
+    section: "pegs",
     tab: "money",
     name: "Research Pegs Value",
     max: MONEY_MAX,
     required: [{ id: "research_pegs" }],
     costs: { money: { base: 3e3, growth: 1.9 } },
     desc: "Research Peg's hits are worth more.",
-    stat: (l) => `${fmt(rpPerHit(l))} RP per hit`
+    stat: (l) => `{research}${fmt(rpPerHit(l))} per hit`
   });
   upgrade("combo_chain", {
+    section: "pegs",
     tab: "money",
     name: "Combo Chain",
     max: MONEY_MAX,
@@ -4947,21 +5647,21 @@
   var ALCH_MS = 1e4;
   var ALCH_MIN = 1;
   var alchMax = (l) => 100 + 50 * l;
-  var ALCH_DARK = "#8a6a12";
-  var ALCH_BRIGHT = "#ffd23a";
   upgrade("alchemy_pegs_value", {
+    section: "pegs",
     tab: "money",
     name: "Alchemy Pegs Value",
     max: MONEY_MAX,
     required: [{ id: "alchemy" }],
     costs: { money: { base: 2500, growth: 1.9 }, research: { base: 8, growth: 1.5 } },
     desc: "Alchemy pegs charge up to a higher value (same minimum, same time to charge).",
-    stat: (l) => `up to $${fmt(alchMax(l))} per hit`
+    stat: (l) => `up to {money}${fmt(alchMax(l))} per hit`
   });
   var DUAL_HITS = 5;
   var DUAL_MULT = 100;
   var blastHits = (l) => DUAL_HITS + l;
   upgrade("blast_peg_hits", {
+    section: "pegs",
     tab: "money",
     name: "Blast Peg Hits",
     max: MONEY_MAX,
@@ -4972,6 +5672,7 @@
   });
   var restitution = (l) => soft(0.5, 0.9, 0.96, l);
   upgrade("bouncy_balls", {
+    section: "balls",
     tab: "money",
     name: "Bouncy Balls",
     max: 0,
@@ -4982,6 +5683,7 @@
   });
   var ballRadius = (l) => soft(6, 14, 0.93, l);
   upgrade("fat_balls", {
+    section: "balls",
     tab: "money",
     name: "Fat Balls",
     max: MONEY_MAX,
@@ -4990,8 +5692,9 @@
     desc: "Bigger balls are harder to miss with.",
     stat: (l) => `radius ${ballRadius(l).toFixed(1)} (max 14)`
   });
-  var worldHeight = (l) => Math.round(360 + 191 * Math.pow(l, 0.85));
+  var worldHeight = (l) => Math.round(360 + 191 * l ** 0.85);
   upgrade("deeper_world", {
+    section: "world",
     tab: "money",
     name: "Deeper World",
     max: 0,
@@ -5000,8 +5703,9 @@
     desc: "Makes the board taller still: more room below the launcher for pegs. Every level adds a little less height than the last, but there is no limit.",
     stat: (l) => `${worldHeight(l)} tall`
   });
-  var autoInterval = (l) => 2e3 * Math.pow(0.85, l - 1);
+  var autoInterval = (l) => 2e3 * 0.85 ** (l - 1);
   upgrade("faster_dropper", {
+    section: "balls",
     tab: "money",
     name: "Faster Dropper",
     max: 13,
@@ -5015,6 +5719,7 @@
   var midMult = (l) => 1 + 0.5 * l;
   var edgeMult = (l) => 1 / (1 + 0.1 * l);
   upgrade("extra_buckets", {
+    section: "bucket",
     tab: "money",
     required: [{ id: "more_buckets" }],
     name: "Extra Buckets",
@@ -5026,17 +5731,19 @@
   var GOLD_CHANCE = 0.05;
   var goldMult = (l) => l <= 0 ? 1 : 2 + 0.25 * (l - 1);
   upgrade("gold_ball_value", {
+    section: "balls",
     tab: "money",
     required: [{ id: "gold_balls" }],
     name: "Gold Ball Value",
     max: 11,
     costs: { money: { base: 5e3, growth: 1.5 } },
     desc: "Gold balls multiply the money they earn even more.",
-    stat: (l) => `x${goldMult(1 + l).toFixed(2)} money`
+    stat: (l) => `x${goldMult(1 + l).toFixed(2)} {money}`
   });
   var GOO_MAX = 10;
-  var gooChance = (l) => l <= 0 ? 0 : 0.01 + 0.04 * (1 - Math.pow(0.75, l - 1)) / (1 - Math.pow(0.75, GOO_MAX - 1));
+  var gooChance = (l) => l <= 0 ? 0 : 0.01 + 0.04 * (1 - 0.75 ** (l - 1)) / (1 - 0.75 ** (GOO_MAX - 1));
   upgrade("more_gooballs", {
+    section: "goo",
     tab: "money",
     required: [{ id: "phlegm_goo" }],
     name: "More Gooballs",
@@ -5047,6 +5754,7 @@
   });
   var gooballPegs = (l) => 10 + 2 * l;
   upgrade("lasting_goo", {
+    section: "goo",
     tab: "money",
     required: [{ id: "phlegm_goo" }],
     name: "Lasting Goo",
@@ -5057,16 +5765,18 @@
   });
   var gooPerHit = (l) => 1 + l;
   upgrade("rich_phlegm", {
+    section: "goo",
     tab: "money",
     name: "Rich Phlegm",
     max: 0,
     required: [{ id: "phlegm_goo" }],
-    costs: { money: { base: 1e5, growth: 5 } },
+    costs: { money: { base: 1e5, growth: 5 }, goo: { base: 33, growth: 2 } },
     desc: "Every hit on a goo-coated peg produces more Phlegm Goo.",
-    stat: (l) => `${gooPerHit(l)} goo per hit`
+    stat: (l) => `{goo}${gooPerHit(l)} per hit`
   });
   upgrade("higher_limit", {
     // uncapped: its own maximum is not raised by Upgrade Limit (otherwise every level would raise it further)
+    section: "world",
     tab: "money",
     required: [{ id: "upgrade_limit" }],
     uncapped: true,
@@ -5077,58 +5787,21 @@
     stat: (l) => `money upgrades +${CAP_STEP * l} levels`
   });
 
-  // src/upgrades/PegKinds.ts
-  var PEG_KINDS = {
-    basic: { name: "Peg", color: "#ffffff", costs: { money: 10 }, desc: "Every hit adds more money." },
-    research: { name: "Research", color: "#8a5bff", costs: { money: 150 }, unlock: "research_pegs", desc: "Every hit adds research points." },
-    splitter: { name: "Splitter", color: "#4da3ff", costs: { money: 400 }, unlock: "splitter_pegs", desc: "Splits balls in half." },
-    gravity: { name: "Gravity", color: "#2effb0", costs: { money: 600 }, unlock: "gravity_pegs", desc: `Pulls balls towards it.` },
-    alchemy: { name: "Alchemy", color: ALCH_DARK, costs: { money: 500 }, unlock: "alchemy", desc: `Slowly turns to gold: from ${ALCH_MIN} to ${alchMax(0)} money in ${ALCH_MS / 1e3}s. A hit pays it out and starts it over.` },
-    dual: { name: "Blast", color: "#ffd23a", costs: { money: 1e3 }, unlock: "blast_pegs", desc: `Pays money AND research points at x${DUAL_MULT} for ${DUAL_HITS} hits (more with Blast Peg Hits), then it is used up.` }
-  };
-  var PEG_TYPES = Object.keys(PEG_KINDS);
-  for (const t of PEG_TYPES) for (const c in PEG_KINDS[t].costs) if (!isCurrency(c)) console.error(`Peg type "${t}" costs an unknown currency "${c}"`);
-
-  // src/engine/Settings.ts
-  var STEP = 1e3 / 90;
-  var MAX_STEPS = 3;
-  var DPR_TIERS = [2, 1.5, 1.25, 1];
-  var DEBUG = typeof location !== "undefined" && /[?&]debug\b/.test(location.search);
-
-  // src/config/World.ts
-  var W = 360;
-  var PEG_R = 9;
-  var PEG_SHRINK = 0.15;
-  var SHRINK_DEPTH = 1500;
-  var pegRadius = (y) => PEG_R * (1 - PEG_SHRINK * Math.min(1, Math.pow(Math.max(0, y) / SHRINK_DEPTH, 2)));
-  var LAUNCH_Y = 38;
-  var BUCKET_X = W / 2;
-  var LAUNCH_SPEED = 3;
-  var SWEEP_MS = 3600;
-  var SWEEP_MARGIN = 26;
-  var MAX_SPEED = 22;
-  var BALL_MAX_AGE = 12e4;
-  var GRAVITY_SCALE = 4e-4;
-  var G_STEP = GRAVITY_SCALE * STEP * (1e3 / 60);
-  var GOLD = "#ffd23a";
-  var BALL_GLOWS = ["#3d8bff", "#4da3ff", "#19a8ff", "#5b7bff", "#7a4dff", "#8a5bff", "#a56bff", "#b78cff"];
-  var randGlow = () => BALL_GLOWS[Math.random() * BALL_GLOWS.length | 0];
-  var LAUNCH_SPREAD = 1;
-  var GOO_COL = "#6bff1f";
-
   // src/upgrades/ResearchUpgrades.ts
   var RESEARCH_UPGRADES = [];
   var upgrade2 = defineIn(RESEARCH_UPGRADES);
   upgrade2("research_pegs", {
+    section: "pegs",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "Research Pegs",
     max: 1,
     costs: { research: { base: 10 } },
-    desc: `Unlocks hexagonal research pegs in edit mode. Balls that hit them earn research points (+${RP_PEG} RP per hit) instead of money.`,
+    desc: `Unlocks hexagonal research pegs in edit mode. Balls that hit them earn research points (+{research}${RP_PEG} per hit) instead of money.`,
     stat: () => "research pegs in edit mode"
   });
   upgrade2("auto_dropper", {
+    section: "balls",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "Auto Dropper",
@@ -5138,6 +5811,7 @@
     stat: () => `1 ball every ${(autoInterval(1) / 1e3).toFixed(2)}s \xB7 unlocks Faster Dropper`
   });
   upgrade2("combo_theory", {
+    section: "pegs",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "Combo Theory",
@@ -5147,6 +5821,7 @@
     stat: () => "unlocks Combo Chain"
   });
   upgrade2("world_size", {
+    section: "world",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "World Size",
@@ -5156,6 +5831,7 @@
     stat: () => "unlocks Deeper World"
   });
   upgrade2("alchemy", {
+    section: "pegs",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "Alchemy",
@@ -5165,6 +5841,7 @@
     stat: () => "alchemy pegs in edit mode"
   });
   upgrade2("upgrade_limit", {
+    section: "world",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "Upgrade Limit",
@@ -5174,6 +5851,7 @@
     stat: () => "unlocks Higher Limit"
   });
   upgrade2("elastic_balls", {
+    section: "balls",
     tab: "research",
     required: [{ id: "research_lab" }, { id: "phlegm_goo", level: 2 }],
     name: "Elastic Balls",
@@ -5183,6 +5861,7 @@
     stat: () => "unlocks Bouncy Balls"
   });
   upgrade2("ball_inflation", {
+    section: "balls",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "Ball Inflation",
@@ -5192,6 +5871,7 @@
     stat: () => "unlocks Fat Balls"
   });
   upgrade2("splitter_pegs", {
+    section: "pegs",
     tab: "research",
     required: [{ id: "research_pegs" }],
     name: "Splitter Pegs",
@@ -5203,6 +5883,7 @@
   var GRAVPEG_R = 90;
   var GRAVPEG_PULL = 0.7 * G_STEP;
   upgrade2("gravity_pegs", {
+    section: "pegs",
     tab: "research",
     required: [{ id: "splitter_pegs" }],
     name: "Gravity Pegs",
@@ -5212,6 +5893,7 @@
     stat: () => "gravity pegs in edit mode"
   });
   upgrade2("blast_pegs", {
+    section: "pegs",
     tab: "research",
     name: "Blast Pegs",
     max: 1,
@@ -5221,15 +5903,17 @@
     stat: () => "blast pegs in edit mode"
   });
   upgrade2("gold_balls", {
+    section: "balls",
     tab: "research",
     required: [{ id: "research_lab" }, { id: "alchemy" }],
     name: "Gold Balls",
     max: 1,
     costs: { research: { base: 3e3 } },
     desc: `${GOLD_CHANCE * 100}% of launched balls are gold, and all the money a gold ball earns (pegs and buckets) is multiplied. Unlocks Gold Ball Value in the Money tab.`,
-    stat: () => `x${goldMult(1).toFixed(2)} money \xB7 unlocks Gold Ball Value`
+    stat: () => `x${goldMult(1).toFixed(2)} {money} \xB7 unlocks Gold Ball Value`
   });
   upgrade2("more_buckets", {
+    section: "bucket",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "More Buckets",
@@ -5240,6 +5924,7 @@
   });
   var GOO_PEG_MS = 12e3;
   upgrade2("phlegm_goo", {
+    section: "goo",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "Phlegm Goo",
@@ -5248,13 +5933,13 @@
     desc: "Unlocks Phlegm Goo and the Goo tab. Some balls become gooballs (they vanish after touching a few pegs): pegs they hit turn into goo pegs for a while, and any other ball hitting a goo peg produces Phlegm Goo. Unlocks More Gooballs, Lasting Goo and Rich Phlegm in the Money tab.",
     stat: () => `${(gooChance(1) * 100).toFixed(1)}% gooball chance \xB7 unlocks More Gooballs`
   });
-  var EVIL_COL = "#ff2a3d";
   var EVIL_COST = 1e6;
   var EVIL_GOO = 500;
   var EVIL_BASE = 0.01;
   var EVIL_KILL = 50;
   var EVIL_DMG = 0.05;
   upgrade2("evil", {
+    section: "evil",
     tab: "research",
     required: [{ id: "phlegm_goo" }],
     name: "Evil",
@@ -5269,18 +5954,23 @@
   var upgrade3 = defineIn(GOO_EVIL_UPGRADES);
   var GOO_BASE_CAP = 100;
   var GOO_CAP_GROWTH = 1.35;
-  var gooCap = (l) => Math.round(GOO_BASE_CAP * GOO_CAP_GROWTH ** l / 10) * 10;
+  var gooCap = (l) => {
+    const step = l > 4 ? 100 : 10;
+    return Math.round(GOO_BASE_CAP * GOO_CAP_GROWTH ** l / step) * step;
+  };
   upgrade3("goo_tank", {
+    section: "goo",
     required: [{ id: "phlegm_goo" }],
     name: "Goo Tank",
     tab: "money",
     max: 0,
-    costs: { goo: { fn: (l) => gooCap(l) } },
-    desc: `Raises the most Phlegm Goo you can hold by ${Math.round((GOO_CAP_GROWTH - 1) * 100)}%. It always costs a full tank: as much goo as your current limit.`,
-    stat: (l) => `holds up to ${gooCap(l)} goo`
+    costs: { goo: { fn: (l) => gooCap(l) / 2 } },
+    desc: `Raises the most Phlegm Goo you can hold by ${Math.round((GOO_CAP_GROWTH - 1) * 100)}%. It always costs half a tank: half your current limit.`,
+    stat: (l) => `holds up to {goo}${gooCap(l)}`
   });
-  var evilDmg = (l) => EVIL_DMG * (0.1 + 0.9 * Math.pow(0.9778, l));
+  var evilDmg = (l) => EVIL_DMG * (0.1 + 0.9 * 0.9778 ** l);
   upgrade3("sturdy_pegs", {
+    section: "evil",
     required: [{ id: "evil" }],
     name: "Sturdy Pegs",
     tab: "money",
@@ -5292,6 +5982,7 @@
   var evilRegen = (l) => 0.02 * (1 + 0.6 * l);
   upgrade3("fast_healing", {
     // uncapped: Upgrade Limit only raises the upgrades paid in money
+    section: "evil",
     required: [{ id: "evil" }],
     name: "Fast Healing",
     tab: "money",
@@ -5303,6 +5994,7 @@
   });
   var evilYield = (l) => 1 + 0.25 * l;
   upgrade3("dark_harvest", {
+    section: "evil",
     required: [{ id: "evil" }],
     name: "Dark Harvest",
     tab: "money",
@@ -5310,8 +6002,30 @@
     uncapped: true,
     costs: { evil: { base: 50, growth: 1.7 } },
     desc: "Every hit and every destroyed peg yields more Evil.",
-    stat: (l) => `x${evilYield(l).toFixed(2)} Evil`
+    stat: (l) => `x${evilYield(l).toFixed(2)} {evil}`
   });
+
+  // src/config/Currencies.ts
+  var RES_COL = { money: COLORS.ui.strong, research: COLORS.theme.research, goo: COLORS.theme.goo, evil: COLORS.theme.evil };
+  var CUR_FIELD = { money: "money", research: "rp", goo: "goo", evil: "evil" };
+  var CURRENCIES = Object.keys(CUR_FIELD);
+  var sym = (c) => `{${c}}`;
+  var costText = (c) => entries(c).map(([cur, a]) => `${sym(cur)}${fmt(a)}`).join(" + ");
+  var entries = (o) => Object.entries(o);
+  var isCurrency = (c) => c in CUR_FIELD;
+
+  // src/upgrades/Sections.ts
+  var SECTIONS = [
+    { section: "bucket", name: "Bucket", color: COLORS.theme.bucket },
+    { section: "pegs", name: "Pegs", color: COLORS.theme.pegs },
+    { section: "balls", name: "Balls", color: COLORS.theme.balls },
+    { section: "research", name: "Research", color: COLORS.theme.research },
+    { section: "world", name: "World", color: COLORS.theme.world },
+    { section: "goo", name: "Goo", color: COLORS.theme.goo },
+    { section: "evil", name: "Evil", color: COLORS.theme.evil }
+  ];
+  var SECTION_COLOR = Object.fromEntries(SECTIONS.map((s) => [s.section, s.color]));
+  var LOCKED_SECTION = { name: "Locked", color: COLORS.ui.locked };
 
   // src/upgrades/Registry.ts
   var UPGRADES = [...MONEY_UPGRADES, ...RESEARCH_UPGRADES, ...GOO_EVIL_UPGRADES];
@@ -5323,6 +6037,7 @@
       seen.add(u.id);
       for (const r of u.required || []) if (!byId2[r.id]) out.push(`Upgrade "${u.id}" requires "${r.id}", which does not exist`);
       if (u.tab !== "money" && u.tab !== "research") out.push(`Upgrade "${u.id}" has no valid tab (got "${u.tab}")`);
+      if (!SECTIONS.some((s) => s.section === u.section)) out.push(`Upgrade "${u.id}" has no valid section (got "${u.section}")`);
       const curs = Object.keys(u.costs || {});
       if (!curs.length) out.push(`Upgrade "${u.id}" has no costs`);
       for (const c of curs) if (!isCurrency(c)) out.push(`Upgrade "${u.id}" costs an unknown currency "${c}"`);
@@ -5330,91 +6045,6 @@
     return out;
   }
   for (const problem of upgradeProblems(UPGRADES)) console.error(problem);
-
-  // src/game/Progress.ts
-  var Progress = class {
-    constructor() {
-      __publicField(this, "money");
-      __publicField(this, "rp");
-      __publicField(this, "goo");
-      __publicField(this, "evil");
-      __publicField(this, "freePegs");
-      __publicField(this, "levels");
-      this.money = 0;
-      this.rp = 0;
-      this.goo = 0;
-      this.evil = 0;
-      this.freePegs = { basic: 0, research: 0, splitter: 0, gravity: 0, alchemy: 0, dual: 0 };
-      this.levels = {};
-      for (const u of UPGRADES) this.levels[u.id] = 0;
-    }
-    L(id) {
-      return this.levels[id] | 0;
-    }
-    slots() {
-      return START_SLOTS + this.L("peg_slots");
-    }
-    unlocked(type) {
-      const k = PEG_KINDS[type];
-      return !k.unlock || this.L(k.unlock) > 0;
-    }
-    gain(v) {
-      this.money += v;
-    }
-    gooCap() {
-      return gooCap(this.L("goo_tank"));
-    }
-    addGoo(n) {
-      this.goo = Math.min(this.gooCap(), this.goo + n);
-    }
-    // { currency: amount } for buying level l + 1; a currency is only charged from its minLevel on
-    price(u, l = this.L(u.id)) {
-      const out = {};
-      for (const [cur, c] of entries(u.costs)) {
-        const from = c.minLevel || 0;
-        if (l < from) continue;
-        const amount = "fn" in c ? c.fn(l) : Math.ceil(c.base * Math.pow(c.growth ?? 1, l - from));
-        if (amount > 0) out[cur] = amount;
-      }
-      return out;
-    }
-    // costs = { currency: amount }
-    has(costs) {
-      return entries(costs).every(([cur, a]) => this[CUR_FIELD[cur]] >= a);
-    }
-    spend(costs, sign = 1) {
-      for (const [cur, a] of entries(costs)) this[CUR_FIELD[cur]] -= sign * a;
-    }
-    refund(costs) {
-      this.spend(costs, -1);
-    }
-    canAfford(u) {
-      return this.has(this.price(u));
-    }
-    pay(u) {
-      this.spend(this.price(u));
-    }
-    // buyable once every required upgrade has its level (anything already owned stays unlocked)
-    missing(u) {
-      return (u.required || []).filter((r) => this.L(r.id) < (r.level || 1));
-    }
-    isUnlocked(u) {
-      return this.L(u.id) > 0 || !this.missing(u).length;
-    }
-    // names only the missing requirements that are discovered themselves (a still-locked one would just be another '???')
-    lockReason(u) {
-      const known = this.missing(u).filter((r) => this.isUnlocked(UPGRADE_BY_ID[r.id]));
-      return known.length ? "Requires: " + known.map((r) => UPGRADE_BY_ID[r.id].name + ((r.level || 1) > 1 ? ` Lv ${r.level}` : "")).join(", ") : "";
-    }
-    // money upgrades with a max level get +CAP_STEP per Upgrade Limit level (research + Higher Limit), except the uncapped ones
-    maxOf(u) {
-      return u.max > 0 && u.tab === "money" && !u.uncapped ? u.max + CAP_STEP * this.L("higher_limit") : u.max;
-    }
-    isMaxed(u) {
-      const m = this.maxOf(u);
-      return m > 0 && this.L(u.id) >= m;
-    }
-  };
 
   // src/upgrades/Powers.ts
   var POWER_BY_ID = {};
@@ -5478,7 +6108,6 @@
     desc: `For ${BURST_MS / 1e3} seconds you can have 10x as many balls in play. Then it needs ${BURST_CD / 1e3} seconds to recharge.`,
     stat: () => `x10 ball limit for ${BURST_MS / 1e3}s`
   });
-  var BOMB_COL = "#ff2a3d";
   var BOMB_COSTS = { evil: 40, goo: 150 };
   var BOMB_FUSE = 1e4;
   var BOMB_MULT = 10;
@@ -5493,9 +6122,8 @@
     desc: `Fires a red bomb ball (it does not count towards your ball limit). If it lands in a bucket it pays out x${BOMB_MULT} of everything it collected. If its ${BOMB_FUSE / 1e3}s fuse runs out first, or it is lost, it explodes: the loot is gone, pegs nearby break and must be placed again, and you get Evil instead.`,
     status: () => "one at a time",
     stat: () => `${BOMB_FUSE / 1e3}s fuse, x${BOMB_MULT} payout in a bucket`,
-    use: (game) => game.launchBomb()
+    use: (game) => game.bomb.launch()
   });
-  var RELAX_COL = "#ff4fd8";
   var RELAX_MS = 5e3;
   var RELAX_CD = 3e4;
   var RELAX_MOVE = 1.2;
@@ -5509,7 +6137,6 @@
     desc: `For ${RELAX_MS / 1e3} seconds every peg pushes away the pegs that are too close to it (the walls push back too), so crowded spots spread out and the gaps between pegs even out. Pegs keep their new places. Then it needs ${RELAX_CD / 1e3} seconds to recharge.`,
     stat: () => `${RELAX_MS / 1e3}s of spreading out`
   });
-  var ZAP_COL = "#4dd2ff";
   var ZAP_COSTS = { evil: 25, goo: 100 };
   var ZAP_HITS = 8;
   var ZAP_R = 60;
@@ -5518,13 +6145,13 @@
   var ZAP_DELAY = 70;
   power("electric_ball", {
     required: [{ id: "evil" }],
-    act: ZAP_COL,
+    act: COLORS.theme.electric,
     name: "Electric Ball",
     costs: ZAP_COSTS,
     desc: `Fires an electric ball (it does not count towards your ball limit). Every peg it hits charges it up. After ${ZAP_HITS} hits it discharges: an arc jumps from that peg to the pegs nearby, and from those to more pegs, up to ${ZAP_MAX}. Every peg the arc touches counts as hit by the ball, and the electric ball collects the rewards. Then it charges up again.`,
     status: () => "one at a time",
     stat: () => `discharges every ${ZAP_HITS} hits, up to ${ZAP_MAX} pegs`,
-    use: (game) => game.launchZap()
+    use: (game) => game.zap.launch()
   });
   var POWERS = Object.values(POWER_BY_ID);
   for (const pw of POWERS) {
@@ -5533,269 +6160,58 @@
     if (!pw.ms === !pw.use) console.error(`Power "${pw.id}" needs either ms/cd or use`);
   }
 
-  // src/game/TempEffects.ts
-  var tmr = (s) => s.t > 0 ? { active: true, s: Math.ceil(s.t / 1e3) } : s.cd > 0 ? { active: false, s: Math.ceil(s.cd / 1e3) } : null;
-  var TempEffects = class {
-    constructor() {
-      __publicField(this, "s");
-      this.s = {};
-      for (const pw of POWERS) if (pw.ms) this.s[pw.id] = { t: 0, cd: 0 };
-    }
-    running(id) {
-      return this.s[id].t > 0;
-    }
-    start(id) {
-      this.s[id].t = POWER_BY_ID[id].ms ?? 0;
-    }
-    timer(id) {
-      return this.s[id] ? tmr(this.s[id]) : null;
-    }
-    // { active, s } while running or cooling down; null for the others
-    tick(dt) {
-      for (const id in this.s) {
-        const s = this.s[id];
-        if (s.t > 0) {
-          s.t -= dt;
-          if (s.t <= 0) {
-            s.t = 0;
-            s.cd = POWER_BY_ID[id].cd ?? 0;
-          }
-        } else if (s.cd > 0) s.cd = Math.max(0, s.cd - dt);
-      }
-    }
-    toSave() {
-      return Object.fromEntries(Object.keys(this.s).map((id) => [id, [this.s[id].t, this.s[id].cd]]));
-    }
-    // no balls survive a reload, so an effect that was still running is not resumed: its time left plus the full cooldown is owed instead
-    load(timers) {
-      for (const id in this.s) {
-        const t = timers[id];
-        if (!Array.isArray(t)) continue;
-        const run = Number.isFinite(t[0]) ? Math.max(0, t[0]) : 0, left = Number.isFinite(t[1]) ? Math.max(0, t[1]) : 0;
-        this.s[id].cd = Math.min(run > 0 ? run + (POWER_BY_ID[id].cd ?? 0) : left, 6e5);
-      }
-    }
-  };
-
-  // src/engine/Effects.ts
-  var Effects = class {
-    constructor() {
-      __publicField(this, "particles");
-      __publicField(this, "floaters");
-      __publicField(this, "rings");
-      __publicField(this, "bolts");
-      __publicField(this, "shake");
+  // src/game/Buckets.ts
+  var Buckets = class {
+    constructor(progress) {
+      __publicField(this, "progress");
+      __publicField(this, "key");
+      __publicField(this, "cache");
       __publicField(this, "flash");
-      this.particles = [];
-      this.floaters = [];
-      this.rings = [];
-      this.bolts = [];
-      this.shake = 0;
-      this.flash = { color: "#fff", a: 0 };
+      this.progress = progress;
+      this.key = "";
+      this.cache = [];
+      this.flash = [0, 0, 0, 0, 0, 0, 0];
     }
-    // speed in px/s, angle range in radians (default all around; canvas y points down, so pi..2pi is upwards)
-    // always = may go past the normal particle cap (big moments only)
-    burst(x, y, color, n, { speed = [40, 130], angle = [0, 6.283], size = 10, life = 450, always = false } = {}) {
-      for (let i = 0; i < n && this.particles.length < (always ? 400 : 250); i++) {
-        const a = rand(angle[0], angle[1]), s = rand(speed[0], speed[1]);
-        this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life, max: life, color, size });
+    layout() {
+      const p = this.progress, key = `${p.L("extra_buckets")},${p.L("wide_bucket")}`;
+      if (key !== this.key) {
+        this.key = key;
+        this.cache = this.build();
       }
+      return this.cache;
     }
-    // small numbers are skipped when 30 are already showing; always = shown anyway (big rewards)
-    // dim = drawn fainter (rewards a ball collected, not paid out yet)
-    float(x, y, text, color, { big = false, huge = false, dim = false, life = 800, always = false } = {}) {
-      if (!always && this.floaters.length >= 30) return;
-      this.floaters.push({ x, y, text, color, big, huge, dim, life, max: life });
+    build() {
+      const p = this.progress, l = p.L("extra_buckets"), n = bucketCount(l), w = bucketW(p.L("wide_bucket")) / n, pitch = w + BUCKET_GAP;
+      const span = w * n + BUCKET_GAP * (n - 1), x0 = BUCKET_X - span / 2;
+      const cm = (n - 1) / 2, mid = midMult(l), edge = edgeMult(l), out = [];
+      const inner = n % 2 === 0 ? 0.5 : 0;
+      for (let i = 0; i < n; i++) {
+        const d = Math.abs(i - cm);
+        const t = cm > inner ? (d - inner) / (cm - inner) : 0;
+        out.push({ cx: x0 + w / 2 + pitch * i, w, t, mult: n === 1 ? 1 : mid ** (1 - t) * edge ** t });
+      }
+      return out;
     }
-    // a ring growing from r0 to r1; fill = also a soft glowing disc inside it
-    ring(x, y, r0, r1, color, { life = 500, width = 4, fill = false } = {}) {
-      this.rings.push({ x, y, r0, r1, color, life, max: life, width, fill });
-    }
-    bolt(x1, y1, x2, y2, color, life = 320) {
-      this.bolts.push({ x1, y1, x2, y2, color, life, max: life });
-    }
-    screen(color, alpha, shake) {
-      this.flash = { color, a: Math.max(this.flash.a, alpha) };
-      this.shake = Math.max(this.shake, shake);
+    indexAt(bs, x) {
+      for (let i = 0; i < bs.length; i++) if (Math.abs(x - bs[i].cx) < bs[i].w / 2 - 2) return i;
+      return -1;
     }
     tick(dt) {
-      this.shake = Math.max(0, this.shake - dt * 0.025);
-      this.flash.a = Math.max(0, this.flash.a - dt / 450);
-      for (let i = this.rings.length - 1; i >= 0; i--) if ((this.rings[i].life -= dt) <= 0) this.rings.splice(i, 1);
-      for (let i = this.bolts.length - 1; i >= 0; i--) if ((this.bolts[i].life -= dt) <= 0) this.bolts.splice(i, 1);
-      for (let i = this.particles.length - 1; i >= 0; i--) {
-        const q = this.particles[i];
-        q.life -= dt;
-        q.x += q.vx * dt / 1e3;
-        q.y += q.vy * dt / 1e3;
-        q.vy += 300 * dt / 1e3;
-        if (q.life <= 0) this.particles.splice(i, 1);
-      }
-      for (let i = this.floaters.length - 1; i >= 0; i--) {
-        const f = this.floaters[i];
-        f.life -= dt;
-        f.y -= 28 * dt / 1e3;
-        if (f.life <= 0) this.floaters.splice(i, 1);
-      }
+      for (let i = 0; i < this.flash.length; i++) this.flash[i] = Math.max(0, this.flash[i] - dt / 260);
     }
   };
 
-  // src/engine/Physics.ts
-  var import_matter_js = __toESM(require_matter(), 1);
-  var Physics = class {
-    constructor(hooks) {
-      __publicField(this, "engine");
-      __publicField(this, "world");
-      __publicField(this, "walls");
-      const { Engine, Bodies, Composite } = import_matter_js.default;
-      this.engine = Engine.create();
-      this.engine.gravity.y = 1;
-      this.engine.gravity.scale = GRAVITY_SCALE;
-      this.world = this.engine.world;
-      const o = { isStatic: true, restitution: 0.5, friction: 0, label: "wall", collisionFilter: { category: 4, mask: 4294967295, group: 0 } };
-      this.walls = [
-        Bodies.rectangle(-30, 5e5, 60, 1e6, o),
-        // left (very tall: the board has no maximum height)
-        Bodies.rectangle(W + 30, 5e5, 60, 1e6, o),
-        // right
-        Bodies.rectangle(W / 2, -30, W + 200, 60, o)
-        // ceiling
-      ];
-      Composite.add(this.world, this.walls);
-      this.installDetector(hooks);
-      this.installContactRules(hooks);
-    }
-    // Matter's detector sweeps over every body on every step, which gets slow with hundreds of pegs.
-    // Only balls ever collide (balls ignore each other, pegs and walls are static), so check just the balls against nearby pegs and the walls.
-    installDetector({ balls, pegsNear }) {
-      const Detector = import_matter_js.default.Detector, Collision = import_matter_js.default.Collision;
-      if (!(Detector && Collision && Collision.collides)) return;
-      const walls = this.walls, near = [];
-      Detector.collisions = function(detector) {
-        const out = [], pairs = detector.pairs;
-        const test = (A, B) => {
-          const a = A.bounds, b = B.bounds;
-          if (b.min.x > a.max.x || b.max.x < a.min.x || b.min.y > a.max.y || b.max.y < a.min.y) return;
-          if (!Detector.canCollide(A.collisionFilter, B.collisionFilter)) return;
-          const c = Collision.collides(A, B, pairs);
-          if (c) out.push(c);
-        };
-        for (const ball of balls) {
-          const A = ball.body, a = A.bounds;
-          for (const w of walls) test(A, w);
-          for (const p of pegsNear(a.min.x, a.min.y, a.max.x, a.max.y, near)) test(A, p.body);
-        }
-        return out;
-      };
-    }
-    // Game rules for contacts, applied each step right after Matter sets up its contact pairs and before it resolves them:
-    // a ghost ball's contact with a peg becomes a sensor (no push, but the hit is still reported), and Dead Balls takes the bounce out of every contact.
-    installContactRules({ balls, deadBalls }) {
-      const Pairs = import_matter_js.default.Pairs, update = Pairs.update;
-      Pairs.update = function(pairs, collisions, timestamp) {
-        update(pairs, collisions, timestamp);
-        const dead = deadBalls();
-        for (const b of balls) b.inPeg = false;
-        for (const pr of pairs.list) {
-          const ball = pr.bodyA.ball || pr.bodyB.ball;
-          if (!pr.isActive || !ball) continue;
-          const onPeg = !!(pr.bodyA.peg || pr.bodyB.peg);
-          if (onPeg) ball.inPeg = true;
-          pr.isSensor = onPeg && ball.ghost;
-          if (dead) pr.restitution = DEAD_REST;
-        }
-      };
-    }
-    onCollisionStart(fn) {
-      import_matter_js.default.Events.on(this.engine, "collisionStart", (ev) => fn(ev.pairs));
-    }
-    addPeg(x, y, r, hex) {
-      const { Bodies, Composite } = import_matter_js.default;
-      const po = { isStatic: true, restitution: 0.5, friction: 0, label: "peg" };
-      const body = hex ? Bodies.polygon(x, y, 6, r + 1, po) : Bodies.circle(x, y, r, po);
-      Composite.add(this.world, body);
-      return body;
-    }
-    // Balls never collide with each other: category 2 is not in their mask (1 = pegs, 4 = walls).
-    addBall(x, y, r, vx, vy, bounce) {
-      const body = import_matter_js.default.Bodies.circle(x, y, r, {
-        restitution: bounce,
-        friction: 0,
-        frictionStatic: 0,
-        frictionAir: 0,
-        density: 2e-3,
-        collisionFilter: { category: 2, mask: 5 },
-        label: "ball"
-      });
-      import_matter_js.default.Body.setVelocity(body, { x: vx, y: vy });
-      import_matter_js.default.Composite.add(this.world, body);
-      return body;
-    }
-    remove(body) {
-      import_matter_js.default.Composite.remove(this.world, body);
-    }
-    movePeg(body, x, y) {
-      import_matter_js.default.Body.setPosition(body, { x, y });
-    }
-    resizePeg(body, factor) {
-      import_matter_js.default.Body.scale(body, factor, factor);
-    }
-    // velocities in px per 1/60 s, the units setVelocity takes (body.velocity is per 1/90 s physics step)
-    velocity(body) {
-      return import_matter_js.default.Body.getVelocity(body);
-    }
-    setVelocity(body, x, y) {
-      import_matter_js.default.Body.setVelocity(body, { x, y });
-    }
-    setGravity(mult) {
-      this.engine.gravity.scale = GRAVITY_SCALE * mult;
-    }
-    update(dt) {
-      import_matter_js.default.Engine.update(this.engine, dt);
-    }
+  // src/upgrades/PegKinds.ts
+  var PEG_KINDS = {
+    basic: { name: "Peg", color: COLORS.theme.pegs, costs: { money: 10 }, desc: "Every hit adds more money." },
+    research: { name: "Research", color: COLORS.theme.research, costs: { money: 150 }, unlock: "research_pegs", desc: "Every hit adds research points." },
+    splitter: { name: "Splitter", color: COLORS.theme.splitter, costs: { money: 400 }, unlock: "splitter_pegs", desc: "Splits balls in half." },
+    gravity: { name: "Gravity", color: COLORS.theme.gravity, costs: { money: 600 }, unlock: "gravity_pegs", desc: `Pulls balls towards it.` },
+    alchemy: { name: "Alchemy", color: COLORS.theme.alchemy, costs: { money: 500 }, unlock: "alchemy", desc: `Slowly turns to gold: from {money}${ALCH_MIN} to {money}${alchMax(0)} in ${ALCH_MS / 1e3}s. A hit pays it out and starts it over.` },
+    dual: { name: "Blast", color: COLORS.theme.money, costs: { money: 1e3 }, unlock: "blast_pegs", desc: `Pays money AND research points at x${DUAL_MULT} for ${DUAL_HITS} hits (more with Blast Peg Hits), then it is used up.` }
   };
-
-  // src/util/Canvas.ts
-  var TAU = Math.PI * 2;
-  var FONT_BIG = "800 15px system-ui,sans-serif";
-  var FONT_SMALL = "700 11px system-ui,sans-serif";
-  var FONT_HUGE = "900 24px system-ui,sans-serif";
-  var mixCache = {};
-  function mixCol(a, b, t) {
-    const k = a + b + t;
-    if (mixCache[k]) return mixCache[k];
-    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
-    const ch = (s) => Math.round((pa >> s & 255) * (1 - t) + (pb >> s & 255) * t);
-    return mixCache[k] = "#" + (1 << 24 | ch(16) << 16 | ch(8) << 8 | ch(0)).toString(16).slice(1);
-  }
-  var glowCache = {};
-  function glowSprite(color) {
-    if (glowCache[color]) return glowCache[color];
-    const c = document.createElement("canvas");
-    c.width = c.height = 64;
-    const g = context2d(c);
-    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    gr.addColorStop(0, color + "ff");
-    gr.addColorStop(0.35, color + "77");
-    gr.addColorStop(1, color + "00");
-    g.fillStyle = gr;
-    g.fillRect(0, 0, 64, 64);
-    return glowCache[color] = c;
-  }
-  function hexPath(g, x, y, r) {
-    g.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const a = i * Math.PI / 3 + Math.PI / 6, px = x + r * Math.cos(a), py = y + r * Math.sin(a);
-      if (i) g.lineTo(px, py);
-      else g.moveTo(px, py);
-    }
-    g.closePath();
-  }
-  function context2d(c) {
-    const g = c.getContext("2d");
-    if (!g) throw new Error("2D canvas not available");
-    return g;
-  }
+  var PEG_TYPES = Object.keys(PEG_KINDS);
+  for (const t of PEG_TYPES) for (const c in PEG_KINDS[t].costs) if (!isCurrency(c)) console.error(`Peg type "${t}" costs an unknown currency "${c}"`);
 
   // src/game/PegBoard.ts
   var CELL = 32;
@@ -5923,8 +6339,8 @@
         const f = Math.hypot(p.fx, p.fy);
         if (f < 1e-4) continue;
         const m = Math.min(RELAX_MOVE, f * d0 * 0.08) * ease;
-        p.x = Math.min(W - PEG_R, Math.max(PEG_R, p.x + p.fx / f * m));
-        p.y = Math.min(box.yMax, Math.max(PEG_R, p.y + p.fy / f * m));
+        p.x = Math.min(W, Math.max(0, p.x + p.fx / f * m));
+        p.y = Math.min(box.yMax, Math.max(0, p.y + p.fy / f * m));
         this.physics.movePeg(p.body, p.x, p.y);
       }
       this.grid = null;
@@ -5945,7 +6361,7 @@
       for (const pg of this.list) {
         if (pg.type === "alchemy" && pg.charge < 1) {
           pg.charge = Math.min(1, pg.charge + dt / ALCH_MS);
-          pg.color = mixCol(ALCH_DARK, ALCH_BRIGHT, Math.round(pg.charge * 10) / 10);
+          pg.color = mixCol(COLORS.theme.alchemy, COLORS.theme.money, Math.round(pg.charge * 10) / 10);
         }
         if (pg.flash > 0) pg.flash = Math.max(0, pg.flash - dt / 220);
         if (pg.gooT > 0) pg.gooT = Math.max(0, pg.gooT - dt);
@@ -5954,139 +6370,1126 @@
     }
   };
 
-  // src/game/Buckets.ts
-  var Buckets = class {
-    constructor(progress) {
-      __publicField(this, "progress");
-      __publicField(this, "key");
-      __publicField(this, "cache");
-      __publicField(this, "flash");
-      this.progress = progress;
-      this.key = "";
-      this.cache = [];
-      this.flash = [0, 0, 0, 0, 0, 0, 0];
+  // src/game/Progress.ts
+  var Progress = class {
+    constructor() {
+      __publicField(this, "money");
+      __publicField(this, "rp");
+      __publicField(this, "goo");
+      __publicField(this, "evil");
+      __publicField(this, "freePegs");
+      __publicField(this, "levels");
+      this.money = 0;
+      this.rp = 0;
+      this.goo = 0;
+      this.evil = 0;
+      this.freePegs = { basic: 0, research: 0, splitter: 0, gravity: 0, alchemy: 0, dual: 0 };
+      this.levels = {};
+      for (const u of UPGRADES) this.levels[u.id] = 0;
     }
-    layout() {
-      const p = this.progress, key = p.L("extra_buckets") + "," + p.L("wide_bucket");
-      if (key !== this.key) {
-        this.key = key;
-        this.cache = this.build();
-      }
-      return this.cache;
+    L(id) {
+      return this.levels[id] | 0;
     }
-    build() {
-      const p = this.progress, l = p.L("extra_buckets"), n = bucketCount(l), w = bucketW(p.L("wide_bucket")) / n, pitch = w + BUCKET_GAP;
-      const span = w * n + BUCKET_GAP * (n - 1), x0 = BUCKET_X - span / 2;
-      const cm = (n - 1) / 2, mid = midMult(l), edge = edgeMult(l), out = [];
-      const inner = n % 2 === 0 ? 0.5 : 0;
-      for (let i = 0; i < n; i++) {
-        const d = Math.abs(i - cm);
-        const t = cm > inner ? (d - inner) / (cm - inner) : 0;
-        out.push({ cx: x0 + w / 2 + pitch * i, w, t, mult: n === 1 ? 1 : Math.pow(mid, 1 - t) * Math.pow(edge, t) });
+    slots() {
+      return START_SLOTS + this.L("peg_slots");
+    }
+    unlocked(type) {
+      const k = PEG_KINDS[type];
+      return !k.unlock || this.L(k.unlock) > 0;
+    }
+    gain(v) {
+      this.money += v;
+    }
+    gooCap() {
+      return gooCap(this.L("goo_tank"));
+    }
+    addGoo(n) {
+      this.goo = Math.min(this.gooCap(), this.goo + n);
+    }
+    // { currency: amount } for buying level l + 1; a currency is only charged from its minLevel on
+    price(u, l = this.L(u.id)) {
+      const out = {};
+      for (const [cur, c] of entries(u.costs)) {
+        const from = c.minLevel || 0;
+        if (l < from) continue;
+        const amount = "fn" in c ? c.fn(l) : Math.ceil(c.base * (c.growth ?? 1) ** (l - from));
+        if (amount > 0) out[cur] = amount;
       }
       return out;
     }
-    indexAt(bs, x) {
-      for (let i = 0; i < bs.length; i++) if (Math.abs(x - bs[i].cx) < bs[i].w / 2 - 2) return i;
-      return -1;
+    // costs = { currency: amount }
+    has(costs) {
+      return entries(costs).every(([cur, a]) => this[CUR_FIELD[cur]] >= a);
     }
-    tick(dt) {
-      for (let i = 0; i < this.flash.length; i++) this.flash[i] = Math.max(0, this.flash[i] - dt / 260);
+    spend(costs, sign = 1) {
+      for (const [cur, a] of entries(costs)) this[CUR_FIELD[cur]] -= sign * a;
+    }
+    refund(costs) {
+      this.spend(costs, -1);
+    }
+    canAfford(u) {
+      return this.has(this.price(u));
+    }
+    pay(u) {
+      this.spend(this.price(u));
+    }
+    // buyable once every required upgrade has its level (anything already owned stays unlocked)
+    missing(u) {
+      return (u.required || []).filter((r) => this.L(r.id) < (r.level || 1));
+    }
+    isUnlocked(u) {
+      return this.L(u.id) > 0 || !this.missing(u).length;
+    }
+    // names only the missing requirements that are discovered themselves (a still-locked one would just be another '???')
+    lockReason(u) {
+      const known = this.missing(u).filter((r) => this.isUnlocked(UPGRADE_BY_ID[r.id]));
+      return known.length ? `Requires: ${known.map((r) => UPGRADE_BY_ID[r.id].name + ((r.level || 1) > 1 ? ` Lv ${r.level}` : "")).join(", ")}` : "";
+    }
+    // money upgrades with a max level get +CAP_STEP per Upgrade Limit level (research + Higher Limit), except the uncapped ones
+    maxOf(u) {
+      return u.max > 0 && u.tab === "money" && !u.uncapped ? u.max + CAP_STEP * this.L("higher_limit") : u.max;
+    }
+    isMaxed(u) {
+      const m = this.maxOf(u);
+      return m > 0 && this.L(u.id) >= m;
     }
   };
 
-  // src/engine/Renderer.ts
-  var Renderer = class {
-    constructor(canvas, game, camera) {
-      __publicField(this, "canvas");
-      __publicField(this, "ctx");
+  // src/game/systems/BallSystem.ts
+  var shown = (lines) => lines.filter((l) => !!l);
+  var BallSystem = class {
+    constructor(game) {
       __publicField(this, "game");
-      __publicField(this, "camera");
-      __publicField(this, "dpr");
-      __publicField(this, "cssW");
-      __publicField(this, "tier");
-      __publicField(this, "sprites");
-      __publicField(this, "ox");
-      __publicField(this, "oy");
-      this.canvas = canvas;
-      this.ctx = context2d(canvas);
       this.game = game;
-      this.camera = camera;
-      this.dpr = 1;
-      this.cssW = 360;
-      this.tier = navigator.deviceMemory && navigator.deviceMemory <= 4 ? 1 : 0;
-      this.sprites = {};
-      this.ox = 0;
-      this.oy = 0;
     }
-    resize() {
-      const r = this.canvas.getBoundingClientRect();
-      this.cssW = r.width;
-      this.dpr = Math.min(window.devicePixelRatio || 1, DPR_TIERS[this.tier]);
-      this.canvas.width = Math.round(r.width * this.dpr);
-      this.canvas.height = Math.round(r.height * this.dpr);
-      this.camera.scale = r.width / W;
-      this.camera.viewH = r.height;
-      this.sprites = {};
+    maxBalls() {
+      return (1 + this.game.L("extra_ball")) * (this.game.temps.running("ball_burst") ? 10 : 1);
     }
-    // one quality tier down (call resize() after); false when already at the lowest
-    lowerQuality() {
-      if (this.tier >= DPR_TIERS.length - 1) return false;
-      this.tier++;
+    load() {
+      return this.game.balls.reduce((a, b) => a + b.w, 0);
+    }
+    // half-size balls count 0.5
+    goldMul(b) {
+      return b.gold ? goldMult(1 + this.game.L("gold_ball_value")) : 1;
+    }
+    /* The cannon hangs from the ceiling and sweeps left and right all the time. It fires straight down
+       from wherever it is. Returns false when every ball slot is taken. */
+    launch() {
+      const g = this.game;
+      if (g.editing || this.load() + 1 > this.maxBalls()) return false;
+      const half = LAUNCH_SPREAD * Math.PI / 180 / 2;
+      const th = rand(-half, half);
+      const isGoo = Math.random() < (g.L("phlegm_goo") ? gooChance(1 + g.L("more_gooballs")) : 0);
+      const isGold = !isGoo && g.L("gold_balls") > 0 && Math.random() < GOLD_CHANCE;
+      this.make(g.launchX, LAUNCH_Y, ballRadius(g.L("fat_balls")), LAUNCH_SPEED * Math.sin(th), LAUNCH_SPEED * Math.cos(th), { goo: isGoo, gold: isGold });
+      g.recoil = 1;
+      g.uiDirty = true;
       return true;
     }
-    glow(color, x, y, size, alpha) {
-      const ctx = this.ctx;
-      ctx.globalAlpha = alpha;
-      ctx.drawImage(glowSprite(color), x - size / 2, y - size / 2, size, size);
+    // a ball body plus its game state
+    make(x, y, r, vx, vy, props) {
+      const g = this.game, body = g.physics.addBall(x, y, r, vx, vy, restitution(g.L("bouncy_balls")));
+      const ball = Object.assign({
+        body,
+        r,
+        px: x,
+        py: y,
+        hits: 0,
+        age: 0,
+        still: 0,
+        tick: 0,
+        trail: [],
+        lastPeg: null,
+        lastT: 0,
+        goo: false,
+        gold: false,
+        gooHits: 0,
+        expired: false,
+        w: 1,
+        split: false,
+        glow: randGlow(),
+        ghost: g.temps.running("ghost_balls"),
+        inPeg: false,
+        chaos: false,
+        bomb: false,
+        fuse: 0,
+        phase: 0,
+        zap: false,
+        charge: 0,
+        stash: { money: 0, rp: 0, goo: 0, evil: 0 }
+        // the haul: paid out in a bucket, lost any other way
+      }, props);
+      body.ball = ball;
+      g.balls.push(ball);
+      return ball;
+    }
+    drop(ball) {
+      const g = this.game;
+      g.physics.remove(ball.body);
+      g.balls.splice(g.balls.indexOf(ball), 1);
+    }
+    /* A full-size ball that hits a splitter peg becomes two half-size balls (deferred until the physics step is over). */
+    split(ball, peg) {
+      const g = this.game;
+      if (g.balls.indexOf(ball) < 0) return;
+      const p = ball.body.position, v = g.physics.velocity(ball.body), r = ball.r / 2;
+      const base = Math.atan2(v.y, v.x), sp = Math.max(Math.hypot(v.x, v.y), 3);
+      this.drop(ball);
+      for (const sg of [-1, 1]) {
+        const a = base + sg * 0.5;
+        this.make(p.x, p.y, r, sp * Math.cos(a), sp * Math.sin(a), {
+          hits: ball.hits,
+          age: ball.age,
+          lastPeg: peg,
+          lastT: g.simT,
+          goo: ball.goo,
+          gold: ball.gold,
+          gooHits: ball.gooHits,
+          w: 0.5,
+          split: true,
+          glow: ball.glow,
+          ghost: ball.ghost,
+          stash: Object.fromEntries(entries(ball.stash).map(([cur, v2]) => [cur, v2 / 2]))
+          // each half carries half the haul
+        });
+      }
+      g.effects.burst(peg.x, peg.y, peg.color, 8);
+      g.uiDirty = true;
+    }
+    // the ball made it: its haul is paid out as is, plus the bucket's own catch value (bucket and gold multipliers apply to that)
+    catch(ball, bk, idx) {
+      const g = this.game, s = ball.stash, p = g.progress, fx = g.effects, x = ball.body.position.x, y = g.rimY();
+      const money = s.money + bucketValue(g.L("bucket_value")) * bk.mult * this.goldMul(ball);
+      p.gain(money);
+      p.rp += s.rp;
+      p.addGoo(s.goo);
+      p.evil += s.evil;
+      g.buckets.flash[idx] = 1;
+      fx.burst(x, y + 4, COLORS.theme.bucket, 10);
+      const lines = shown([
+        [`+{money}${fmt(money)}`, COLORS.theme.bucket],
+        s.rp && [`+{research}${fmt(s.rp)}`, COLORS.theme.research],
+        s.goo && [`+{goo}${fmt(s.goo)}`, COLORS.theme.goo],
+        s.evil && [`+{evil}${evFmt(s.evil)}`, COLORS.theme.evil]
+      ]);
+      lines.forEach(([text, col], i) => {
+        fx.float(x, y - 8 - 17 * i, text, col, { big: true, life: 1e3, always: true });
+      });
+      this.drop(ball);
+    }
+    // the ball left play any other way: its haul is gone (a faint red note shows what was lost)
+    lose(ball) {
+      const g = this.game, s = ball.stash, p = ball.body.position;
+      const lost = [s.money && `{money}${fmt(s.money)}`, s.rp && `{research}${fmt(s.rp)}`, s.goo && `{goo}${fmt(s.goo)}`, s.evil && `{evil}${evFmt(s.evil)}`].filter(Boolean);
+      if (lost.length) g.effects.float(p.x, Math.min(p.y, g.worldH - 12), `\u2212${lost.join(" \xB7 ")}`, COLORS.ui.negative, { life: 1e3 });
+      this.drop(ball);
+    }
+    // speed limit, trails, and every way a ball leaves play: caught, fallen out, too old, stuck, or a burnt-out gooball
+    update(dt) {
+      const g = this.game, ph = g.physics, bs = g.buckets.layout(), bomb = g.bomb;
+      for (let i = g.balls.length - 1; i >= 0; i--) {
+        const b = g.balls[i], p = b.body.position, v = ph.velocity(b.body);
+        const sp = Math.hypot(v.x, v.y);
+        if (sp > MAX_SPEED) ph.setVelocity(b.body, v.x / sp * MAX_SPEED, v.y / sp * MAX_SPEED);
+        b.age += dt;
+        b.still = sp < 0.225 ? b.still + dt : 0;
+        if (b.ghost && !g.temps.running("ghost_balls") && !b.inPeg) b.ghost = false;
+        if ((++b.tick & 1) === 0) {
+          b.trail.push(p.x, p.y);
+          if (b.trail.length > 14) b.trail.splice(0, 2);
+        }
+        if (b.bomb) bomb.burn(b, dt);
+        const bi = v.y > 0 && b.age > 250 && p.y >= g.catchY() ? g.buckets.indexAt(bs, p.x) : -1;
+        if (bi >= 0) {
+          if (b.bomb) bomb.cash(b, bs[bi], bi);
+          else this.catch(b, bs[bi], bi);
+        } else if (p.y > g.worldH + 40 || b.age > BALL_MAX_AGE || b.still > 1500 || b.expired) {
+          if (b.bomb) {
+            bomb.explode(b);
+            continue;
+          }
+          if (b.expired) g.effects.burst(p.x, p.y, COLORS.theme.goo, 12);
+          this.lose(b);
+        } else if (b.bomb && b.fuse <= 0) {
+          bomb.explode(b);
+        }
+      }
+    }
+  };
+
+  // src/game/PegColor.ts
+  var pegCol = (p) => p.dmg > 0.02 ? mixCol(p.color, COLORS.theme.evil, Math.round(p.dmg * 10) / 10) : p.color;
+
+  // src/game/systems/BombBall.ts
+  var BombBall = class {
+    constructor(game) {
+      __publicField(this, "game");
+      this.game = game;
+    }
+    // A bomb ball leaves the cannon like any ball, but outside the ball limit (w: 0) and it never splits.
+    launch() {
+      const g = this.game, r = Math.max(8, ballRadius(g.L("fat_balls")));
+      g.ballSystem.make(g.launchX, LAUNCH_Y, r, 0, LAUNCH_SPEED, {
+        bomb: true,
+        w: 0,
+        split: true,
+        fuse: BOMB_FUSE,
+        phase: 0,
+        glow: COLORS.theme.evil
+      });
+      g.recoil = 1;
+      g.effects.burst(g.launchX, LAUNCH_Y + 6, COLORS.theme.evil, 14, { speed: [60, 160], angle: [0.3, 2.84] });
+      g.uiDirty = true;
+    }
+    // the fuse burns, and the glow pulses faster as it gets short
+    burn(b, dt) {
+      b.fuse -= dt;
+      b.phase += dt * (0.0126 + 0.038 * (1 - Math.max(0, b.fuse) / BOMB_FUSE));
+    }
+    // the bomb made it: the bucket's own value goes into the stash too, then everything is paid out x10
+    cash(ball, bk, idx) {
+      const g = this.game, s = ball.stash, p = g.progress, fx = g.effects, x = ball.body.position.x, y = g.rimY(), m = BOMB_MULT;
+      s.money += bucketValue(g.L("bucket_value")) * bk.mult;
+      p.gain(s.money * m);
+      p.rp += s.rp * m;
+      p.addGoo(s.goo * m);
+      p.evil += s.evil * m;
+      g.buckets.flash[idx] = 1;
+      fx.ring(x, y, 6, 95, COLORS.theme.money, { life: 650, width: 6, fill: true });
+      fx.ring(x, y, 6, 150, COLORS.ui.strong, { life: 900, width: 3 });
+      fx.burst(x, y, COLORS.theme.money, 50, { speed: [140, 380], angle: [Math.PI * 1.12, Math.PI * 1.88], size: 13, life: 950, always: true });
+      fx.burst(x, y, COLORS.theme.bucket, 24, { speed: [100, 280], angle: [Math.PI * 1.2, Math.PI * 1.8], size: 10, life: 800, always: true });
+      fx.float(x, y - 26, `x${m}!`, COLORS.theme.money, { huge: true, life: 1400, always: true });
+      const lines = shown([
+        [`+{money}${fmt(s.money * m)}`, COLORS.theme.money],
+        s.rp && [`+{research}${fmt(s.rp * m)}`, COLORS.theme.research],
+        s.goo && [`+{goo}${fmt(s.goo * m)}`, COLORS.theme.goo],
+        s.evil && [`+{evil}${evFmt(s.evil * m)}`, COLORS.theme.evil]
+      ]);
+      lines.forEach(([text, col], i) => {
+        fx.float(x, y - 52 - 18 * i, text, col, { big: true, life: 1600, always: true });
+      });
+      fx.screen(COLORS.theme.money, 0.25, 4);
+      g.ballSystem.drop(ball);
+    }
+    // the fuse ran out (or the bomb was lost): the loot is gone, nearby pegs break, and it pays Evil instead
+    explode(ball) {
+      const g = this.game, { x, y } = ball.body.position, fx = g.effects;
+      let broken = 0;
+      for (const pg of g.pegs.near(x - BOMB_R, y - BOMB_R, x + BOMB_R, y + BOMB_R, [])) {
+        if (pg.dead || Math.hypot(pg.x - x, pg.y - y) > BOMB_R + pg.r) continue;
+        pg.dead = true;
+        pg.evilKill = true;
+        pg.flash = 1;
+        g.pendingRemove.push(pg);
+        broken++;
+        fx.burst(pg.x, pg.y, pegCol(pg), 10, { speed: [60, 200], size: 9, always: true });
+      }
+      const ev = (BOMB_EVIL_BASE + BOMB_EVIL_PEG * broken) * evilYield(g.L("dark_harvest"));
+      g.progress.evil += ev;
+      fx.ring(x, y, 4, BOMB_R, COLORS.theme.explosionLight, { life: 380, width: 7, fill: true });
+      fx.ring(x, y, 4, BOMB_R * 1.35, COLORS.theme.evil, { life: 650, width: 4 });
+      fx.burst(x, y, COLORS.theme.evil, 40, { speed: [90, 330], size: 15, life: 750, always: true });
+      fx.burst(x, y, COLORS.theme.explosion, 30, { speed: [60, 260], size: 12, life: 620, always: true });
+      fx.burst(x, y, COLORS.theme.explosionLight, 16, { speed: [30, 150], size: 17, life: 420, always: true });
+      fx.float(x, y - 8, "BOOM!", COLORS.theme.explosion, { huge: true, life: 1100, always: true });
+      fx.float(x, y - 34, `+{evil}${evFmt(ev)}`, COLORS.theme.evil, { big: true, life: 1500, always: true });
+      if (broken) fx.float(x, y - 52, `${broken} peg${broken > 1 ? "s" : ""} broken`, COLORS.theme.explosion, { life: 1500, always: true });
+      fx.screen(COLORS.theme.evil, 0.4, 9);
+      g.ballSystem.drop(ball);
+    }
+  };
+
+  // src/game/systems/Economy.ts
+  var Economy = class {
+    constructor(game) {
+      __publicField(this, "game");
+      this.game = game;
+    }
+    buy(u) {
+      const g = this.game, p = g.progress;
+      if (!p.isUnlocked(u) || p.isMaxed(u) || !p.canAfford(u)) return false;
+      p.pay(u);
+      p.levels[u.id]++;
+      if (u.id === "world_size" || u.id === "deeper_world") g.growWorld();
+      if (u.id === "blast_peg_hits") {
+        for (const pg of g.pegs.list) if (pg.type === "dual") pg.left++;
+      }
+      return true;
+    }
+    // launches a power: unlocked, not busy (running, recharging or its ball still out), and every cost paid
+    usePower(pw) {
+      const g = this.game, p = g.progress;
+      if (!p.isUnlocked(pw) || this.timer(pw.id) || !p.has(pw.costs)) return false;
+      p.spend(pw.costs);
+      if (pw.ms) g.temps.start(pw.id);
+      else if (pw.use) pw.use(g);
+      g.uiDirty = true;
+      return true;
+    }
+    // a power's state: { active, s } running / recharging, { active, text } for the electric ball's charge; null when ready
+    // (the bomb and the electric ball are busy while one is in play)
+    timer(id) {
+      const g = this.game;
+      if (id === "bomb_balls") {
+        const b = g.balls.find((b2) => b2.bomb);
+        return b ? { active: true, s: Math.max(0, Math.ceil(b.fuse / 1e3)) } : null;
+      }
+      if (id === "electric_ball") {
+        const b = g.balls.find((b2) => b2.zap);
+        return b ? { active: true, text: `${Math.round(b.charge * 100)}%` } : null;
+      }
+      return g.temps.timer(id);
+    }
+  };
+
+  // src/game/systems/EditMode.ts
+  var EditMode = class {
+    constructor(game) {
+      __publicField(this, "game");
+      this.game = game;
+    }
+    // Entering clears the board of balls (a bomb or electric ball in play is refunded) and freezes everything:
+    // App stops calling step(), so timers, cooldowns and passive research points wait too. Returns what was refunded.
+    enter() {
+      const g = this.game, p = g.progress, refund = {};
+      for (const b of [...g.balls]) {
+        const c = b.bomb ? BOMB_COSTS : b.zap ? ZAP_COSTS : null;
+        if (c) for (const [cur, a] of entries(c)) refund[cur] = (refund[cur] ?? 0) + a;
+        g.ballSystem.drop(b);
+      }
+      p.refund(refund);
+      p.goo = Math.min(p.goo, p.gooCap());
+      g.arcs.length = 0;
+      g.pendingSplit.length = 0;
+      const fx = g.effects;
+      fx.particles.length = fx.floaters.length = fx.rings.length = fx.bolts.length = 0;
+      fx.shake = 0;
+      fx.flash.a = 0;
+      for (const pg of g.pegs.list) pg.flash = 0;
+      g.editing = true;
+      g.uiDirty = true;
+      return refund;
+    }
+    exit() {
+      this.game.editing = false;
+      this.game.uiDirty = true;
+    }
+    // why a peg of this type cannot be placed right now (null when it can)
+    cantPlace(type) {
+      const g = this.game, p = g.progress, k = PEG_KINDS[type];
+      if (!p.unlocked(type)) return `Unlock ${k.name} pegs in Research first`;
+      if (g.pegs.used() >= p.slots()) return "Slots full: buy Peg Slots in the Shop";
+      if (!p.freePegs[type] && !p.has(k.costs)) return `Need ${costText(k.costs)} for ${type === "basic" ? "a peg" : `a ${k.name.toLowerCase()} peg`}`;
+      return null;
+    }
+    // places a peg (free ones first, then paid); returns why it could not, or null
+    placePeg(type, x, y) {
+      const why = this.cantPlace(type);
+      if (why) return why;
+      const g = this.game, p = g.progress, s = this.placeSpot(x, y);
+      const left = type === "dual" ? blastHits(g.L("blast_peg_hits")) : 0;
+      let peg;
+      if (p.freePegs[type] > 0) {
+        p.freePegs[type]--;
+        peg = g.pegs.add(s.x, s.y, type, left, 0, {}, true);
+      } else {
+        const c = { ...PEG_KINDS[type].costs };
+        p.spend(c);
+        peg = g.pegs.add(s.x, s.y, type, left, 0, c);
+      }
+      g.effects.burst(peg.x, peg.y, peg.color, 8, { speed: [30, 90] });
+      g.uiDirty = true;
+      return null;
+    }
+    // picking a peg up gives back what placing it took: its price or its free placement.
+    // A blast peg that was already hit only gives back the unused share of its price (a free one: nothing).
+    pickUp(peg) {
+      const g = this.game, p = g.progress, full = blastHits(g.L("blast_peg_hits")), used = peg.type === "dual" && peg.left < full;
+      const back = {};
+      if (!peg.free) for (const [cur, a] of entries(peg.paid)) {
+        const b = used ? Math.floor(a * peg.left / full) : a;
+        if (b > 0) back[cur] = b;
+      }
+      if (peg.free && !used) p.freePegs[peg.type]++;
+      p.refund(back);
+      g.pegs.remove(peg);
+      g.uiDirty = true;
+      return costText(back);
+    }
+    // dragging: the peg follows the pointer, and takes the size that belongs to its depth when it is let go
+    dragPeg(peg, x, y) {
+      const s = this.placeSpot(x, y);
+      this.game.pegs.move(peg, s.x, s.y);
+    }
+    dropPeg(peg) {
+      this.game.pegs.resettleOne(peg);
+    }
+    // Pegs can go anywhere on the board, the centre at most on the walls, ceiling or floor line (half the peg sticking out),
+    // so a tap in the dimmed area outside the board lands on the nearest border.
+    placeSpot(x, y) {
+      return { x: Math.min(W, Math.max(0, x)), y: Math.min(this.game.worldH, Math.max(0, y)) };
+    }
+  };
+
+  // src/game/systems/FieldEffects.ts
+  var FieldEffects = class {
+    constructor(game) {
+      __publicField(this, "game");
+      this.game = game;
+    }
+    // Repulsion field: while it runs, pegs push apart until no two are closer than d0. d0 is set when it starts,
+    // a bit above the current average gap to the nearest peg, so crowded spots spread out but the board keeps its density.
+    relax() {
+      const g = this.game, s = g.temps.s.repulsion_field, pegs = g.pegs, fx = g.effects;
+      if (s.t > 0) {
+        if (!g.relax) {
+          g.relax = { d0: Math.min(70, Math.max(2 * PEG_R + 8, pegs.spacing(80) * 1.25)), links: [] };
+          const live = pegs.list.length || 1, cx = pegs.list.reduce((a, p) => a + p.x, 0) / live, cy = pegs.list.reduce((a, p) => a + p.y, 0) / live;
+          fx.ring(cx, cy, 10, 260, COLORS.theme.repulsion, { life: 900, width: 5 });
+          fx.ring(cx, cy, 10, 160, COLORS.theme.repulsion, { life: 700, width: 3, fill: true });
+          fx.screen(COLORS.theme.repulsion, 0.18, 2);
+        }
+        const box = { x0: PEG_R + 2, x1: W - PEG_R - 2, y0: PEG_R + 2, y1: g.worldH - 50, yMax: g.worldH };
+        pegs.relaxStep(g.relax.d0, Math.min(1, s.t / 1500), box, g.relax.links);
+      } else if (g.relax) {
+        pegs.resettle();
+        g.relax = null;
+        g.uiDirty = true;
+      }
+    }
+    // Gravity pegs: every ball within reach is pulled gently towards the peg's centre; the closer the ball, the stronger the pull.
+    gravityPegs() {
+      const g = this.game, ph = g.physics;
+      for (const pg of g.pegs.gravity) {
+        if (pg.dead) continue;
+        for (const b of g.balls) {
+          const p = b.body.position;
+          const dx = pg.x - p.x, dy = pg.y - p.y, d = Math.hypot(dx, dy);
+          if (d >= GRAVPEG_R || d < 1) continue;
+          const f = GRAVPEG_PULL * (1 - d / GRAVPEG_R), v = ph.velocity(b.body);
+          ph.setVelocity(b.body, v.x + dx / d * f, v.y + dy / d * f);
+        }
+      }
+    }
+    // Chaos Balls: whatever the physics just decided, throw the ball in a random direction at a random speed
+    chaos() {
+      const g = this.game, ph = g.physics;
+      for (const b of g.balls) {
+        if (!b.chaos) continue;
+        b.chaos = false;
+        if (!g.temps.running("chaos_balls")) continue;
+        const v = ph.velocity(b.body), sp = Math.hypot(v.x, v.y);
+        const s = Math.min(MAX_SPEED, Math.max(2.5, sp * rand(0.7, 1.4)));
+        const a = rand(0, 6.2832);
+        ph.setVelocity(b.body, s * Math.cos(a), s * Math.sin(a));
+        g.effects.burst(b.body.position.x, b.body.position.y, COLORS.theme.chaos, 3);
+      }
+    }
+  };
+
+  // src/game/pegs/BasicPeg.ts
+  function payMoney(ctx, ball, peg, base, col, full) {
+    const v = base * (1 + 0.5 * ctx.L("peg_power")) * (1 + 0.05 * ctx.L("combo_chain") * ball.hits) * ctx.goldMul(ball);
+    ball.hits++;
+    ctx.earn(ball, "money", v);
+    ctx.fx.burst(peg.x, peg.y, col, full ? 10 : 5);
+    ctx.fx.float(peg.x, peg.y - 12, `+{money}${fmt(v)}`, col, { big: full });
+  }
+  var BasicPeg = class {
+    constructor() {
+      __publicField(this, "takesGoo", true);
+    }
+    onHit(ctx, ball, peg) {
+      payMoney(ctx, ball, peg, 1 + ctx.L("peg_value"), peg.color, false);
+    }
+  };
+
+  // src/game/pegs/AlchemyPeg.ts
+  var AlchemyPeg = class {
+    constructor() {
+      __publicField(this, "takesGoo", true);
+    }
+    onHit(ctx, ball, peg) {
+      const full = peg.charge >= 1;
+      const base = Math.round(ALCH_MIN + (alchMax(ctx.L("alchemy_pegs_value")) - ALCH_MIN) * peg.charge);
+      peg.charge = 0;
+      peg.color = COLORS.theme.alchemy;
+      payMoney(ctx, ball, peg, base, full ? COLORS.theme.money : mixCol(COLORS.theme.alchemy, COLORS.theme.money, 0.6), full);
+    }
+  };
+
+  // src/game/pegs/BlastPeg.ts
+  var BlastPeg = class {
+    constructor() {
+      __publicField(this, "takesGoo", false);
+    }
+    onHit(ctx, ball, peg) {
+      const v = DUAL_MULT * (1 + ctx.L("peg_value")) * (1 + 0.5 * ctx.L("peg_power")) * (1 + 0.05 * ctx.L("combo_chain") * ball.hits) * ctx.goldMul(ball);
+      ball.hits++;
+      ctx.earn(ball, "money", v);
+      const rp = rpPerHit(ctx.L("research_pegs_value")) * DUAL_MULT;
+      ctx.earn(ball, "rp", rp);
+      ctx.fx.burst(peg.x, peg.y, COLORS.theme.money, 10);
+      ctx.fx.float(peg.x, peg.y - 12, `+{money}${fmt(v)}`, COLORS.theme.money, { big: true, life: 900, always: true });
+      ctx.fx.float(peg.x, peg.y - 28, `+{research}${fmt(rp)}`, COLORS.theme.research, { big: true, life: 900, always: true });
+      if (--peg.left <= 0) ctx.breakPeg(peg);
+    }
+  };
+
+  // src/game/pegs/ResearchPeg.ts
+  var ResearchPeg = class {
+    constructor() {
+      __publicField(this, "takesGoo", true);
+    }
+    onHit(ctx, ball, peg) {
+      ball.hits++;
+      const rp = rpPerHit(ctx.L("research_pegs_value"));
+      ctx.earn(ball, "rp", rp);
+      ctx.fx.burst(peg.x, peg.y, peg.color, 6);
+      ctx.fx.float(peg.x, peg.y - 12, `+{research}${fmt(rp)}`, peg.color);
+    }
+  };
+
+  // src/game/pegs/SplitterPeg.ts
+  var SplitterPeg = class extends BasicPeg {
+    onHit(ctx, ball, peg) {
+      if (ball.w === 1 && !ball.split) {
+        ball.split = true;
+        ctx.queueSplit(ball, peg);
+      }
+      super.onHit(ctx, ball, peg);
+    }
+  };
+
+  // src/game/pegs/PegBehaviors.ts
+  var PEG_BEHAVIORS = {
+    basic: new BasicPeg(),
+    research: new ResearchPeg(),
+    splitter: new SplitterPeg(),
+    gravity: new BasicPeg(),
+    // its pull is a field effect (FieldEffects), its hit a basic one
+    alchemy: new AlchemyPeg(),
+    dual: new BlastPeg()
+  };
+
+  // src/game/systems/HitResolver.ts
+  var HitResolver = class {
+    constructor(game) {
+      __publicField(this, "game");
+      __publicField(this, "fx");
+      this.game = game;
+      const fx = game.effects;
+      this.fx = { burst: (...a) => fx.burst(...a), float: (x, y, text, color, o = {}) => fx.float(x, y, text, color, { ...o, dim: true }) };
+    }
+    L(id) {
+      return this.game.L(id);
+    }
+    goldMul(ball) {
+      return this.game.ballSystem.goldMul(ball);
+    }
+    // everything a ball earns goes into its haul (ball.stash); the player only gets it when the ball lands in a bucket
+    earn(ball, cur, v) {
+      ball.stash[cur] += v;
+    }
+    queueSplit(ball, peg) {
+      this.game.pendingSplit.push({ ball, peg });
+    }
+    breakPeg(peg) {
+      peg.dead = true;
+      this.game.pendingRemove.push(peg);
+    }
+    // Game rules for contacts, applied each step right after Matter sets up its contact pairs and before it resolves them:
+    // a ghost ball's contact with a peg becomes a sensor (no push, but the hit is still reported), and Dead Balls takes the bounce out of every contact.
+    contactRules(pairs) {
+      const g = this.game, dead = g.temps.running("dead_balls");
+      for (const b of g.balls) b.inPeg = false;
+      for (const pr of pairs) {
+        const ball = pr.bodyA.ball || pr.bodyB.ball;
+        if (!pr.isActive || !ball) continue;
+        const onPeg = !!(pr.bodyA.peg || pr.bodyB.peg);
+        if (onPeg) ball.inPeg = true;
+        pr.isSensor = onPeg && ball.ghost;
+        if (dead) pr.restitution = DEAD_REST;
+      }
+    }
+    onContacts(pairs) {
+      const g = this.game;
+      for (const pr of pairs) {
+        let b = pr.bodyA, o = pr.bodyB;
+        if (!b.ball) {
+          b = pr.bodyB;
+          o = pr.bodyA;
+        }
+        if (!b.ball) continue;
+        if (g.temps.running("chaos_balls") && !pr.isSensor) b.ball.chaos = true;
+        if (o.peg && this.hitPeg(b.ball, o.peg) && b.ball.zap) g.zap.charge(b.ball, o.peg);
+      }
+    }
+    // a ball hits a peg and the peg pays out; arc = tagged by an electric arc (no anti-farming check, no charge)
+    // returns false when the hit does not count
+    hitPeg(ball, peg, arc = false) {
+      const g = this.game, fx = this.fx;
+      if (peg.dead) return false;
+      if (!arc) {
+        if (ball.lastPeg === peg && g.simT - ball.lastT < 200) return false;
+        ball.lastPeg = peg;
+        ball.lastT = g.simT;
+      }
+      peg.flash = 1;
+      if (ball.goo && ++ball.gooHits >= gooballPegs(this.L("lasting_goo"))) ball.expired = true;
+      if (g.evilOn) {
+        const ey = evilYield(this.L("dark_harvest"));
+        const ev = (EVIL_BASE + (1 - EVIL_BASE) * peg.dmg) * ey;
+        this.earn(ball, "evil", ev);
+        peg.dmg += evilDmg(this.L("sturdy_pegs"));
+        if (ev >= 0.25) fx.float(peg.x - 10, peg.y - 22, `+{evil}${evFmt(ev)}`, COLORS.theme.evil);
+        if (peg.dmg >= 1) {
+          peg.dmg = 1;
+          peg.dead = true;
+          peg.evilKill = true;
+          g.pendingRemove.push(peg);
+          const ek = EVIL_KILL * ey;
+          this.earn(ball, "evil", ek);
+          fx.burst(peg.x, peg.y, COLORS.theme.evil, 24);
+          fx.float(peg.x, peg.y - 34, `+{evil}${evFmt(ek)}`, COLORS.theme.evil, { big: true, life: 1100, always: true });
+        }
+      }
+      const behavior = PEG_BEHAVIORS[peg.type];
+      if (behavior.takesGoo) {
+        if (ball.goo) peg.gooT = GOO_PEG_MS;
+        else if (peg.gooT > 0) {
+          const goo = gooPerHit(this.L("rich_phlegm"));
+          this.earn(ball, "goo", goo);
+          fx.float(peg.x + 10, peg.y - 22, `+{goo}${fmt(goo)}`, COLORS.theme.goo);
+        }
+      }
+      behavior.onHit(this, ball, peg);
+      return true;
+    }
+  };
+
+  // src/game/systems/ResearchLab.ts
+  var ResearchLab = class {
+    constructor(game) {
+      __publicField(this, "game");
+      this.game = game;
+    }
+    // every labInterval it gives 1 RP + Research Batch; several ticks in one step when the interval is shorter than a step
+    tick(dt) {
+      const g = this.game, l = g.L("research_lab");
+      if (!l) return;
+      const iv = labInterval(l);
+      g.labT += dt;
+      if (g.labT < iv) return;
+      const n = Math.floor(g.labT / iv);
+      g.labT -= n * iv;
+      g.progress.rp += n * (1 + g.L("research_batch"));
+    }
+  };
+
+  // src/game/systems/ZapBall.ts
+  var ZapBall = class {
+    constructor(game) {
+      __publicField(this, "game");
+      this.game = game;
+    }
+    // the electric ball leaves the cannon like the bomb: outside the ball limit and it never splits
+    launch() {
+      const g = this.game, r = Math.max(7, ballRadius(g.L("fat_balls")));
+      g.ballSystem.make(g.launchX, LAUNCH_Y, r, 0, LAUNCH_SPEED, { zap: true, w: 0, split: true, charge: 0, glow: COLORS.theme.electric });
+      g.recoil = 1;
+      g.effects.burst(g.launchX, LAUNCH_Y + 6, COLORS.theme.electric, 14, { speed: [60, 160], angle: [0.3, 2.84] });
+      g.uiDirty = true;
+    }
+    // every real hit charges the electric ball; a full charge discharges from the peg it just hit
+    charge(ball, peg) {
+      ball.charge = Math.min(1, ball.charge + 1 / ZAP_HITS);
+      if (ball.charge < 1) return;
+      ball.charge = 0;
+      this.discharge(ball, peg);
+    }
+    /* The arc spreads outward in waves: every tagged peg passes it on to its nearest untagged pegs within ZAP_R
+       (at most ZAP_BRANCH each, ZAP_MAX in total). Each wave lands ZAP_DELAY ms after the one before. */
+    discharge(ball, src) {
+      const g = this.game, fx = g.effects, seen = /* @__PURE__ */ new Set([src]), near = [], bp = ball.body.position;
+      let wave = [src], depth = 0, tagged = 0;
+      while (wave.length && tagged < ZAP_MAX) {
+        depth++;
+        const next = [];
+        for (const from of wave) {
+          const cands = g.pegs.near(from.x - ZAP_R, from.y - ZAP_R, from.x + ZAP_R, from.y + ZAP_R, near).filter((q) => !seen.has(q) && !q.dead && Math.hypot(q.x - from.x, q.y - from.y) <= ZAP_R).sort((a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y));
+          for (const q of cands.slice(0, ZAP_BRANCH)) {
+            if (tagged >= ZAP_MAX) break;
+            seen.add(q);
+            next.push(q);
+            tagged++;
+            g.arcs.push({ from, to: q, at: g.simT + depth * ZAP_DELAY, ball });
+          }
+        }
+        wave = next;
+      }
+      fx.bolt(bp.x, bp.y, src.x, src.y, COLORS.theme.electric, 260);
+      fx.ring(src.x, src.y, 4, ZAP_R, COLORS.theme.electric, { life: 420, width: 3, fill: true });
+      fx.burst(src.x, src.y, COLORS.theme.electricLight, 12, { speed: [80, 220], size: 9, always: true });
+      fx.float(src.x, src.y - 22, tagged ? `ZAP x${tagged}` : "ZAP", COLORS.theme.electric, { big: true, life: 900, always: true });
+      fx.screen(COLORS.theme.electric, 0.12, 2);
+    }
+    // arc jumps that are due land now: lightning, sparks, and a hit just as if the ball had hit the peg
+    updateArcs() {
+      const g = this.game;
+      for (let i = g.arcs.length - 1; i >= 0; i--) {
+        const a = g.arcs[i];
+        if (a.at > g.simT) continue;
+        g.arcs.splice(i, 1);
+        if (a.to.dead || !g.pegs.list.includes(a.to)) continue;
+        g.effects.bolt(a.from.x, a.from.y, a.to.x, a.to.y, COLORS.theme.electric);
+        g.effects.burst(a.to.x, a.to.y, COLORS.theme.electric, 6, { speed: [60, 180], size: 8 });
+        g.hits.hitPeg(a.ball, a.to, true);
+      }
+    }
+  };
+
+  // src/game/TempEffects.ts
+  var tmr = (s) => s.t > 0 ? { active: true, s: Math.ceil(s.t / 1e3) } : s.cd > 0 ? { active: false, s: Math.ceil(s.cd / 1e3) } : null;
+  var TempEffects = class {
+    constructor() {
+      __publicField(this, "s");
+      this.s = {};
+      for (const pw of POWERS) if (pw.ms) this.s[pw.id] = { t: 0, cd: 0 };
+    }
+    running(id) {
+      return this.s[id].t > 0;
+    }
+    start(id) {
+      this.s[id].t = POWER_BY_ID[id].ms ?? 0;
+    }
+    timer(id) {
+      return this.s[id] ? tmr(this.s[id]) : null;
+    }
+    // { active, s } while running or cooling down; null for the others
+    tick(dt) {
+      for (const id in this.s) {
+        const s = this.s[id];
+        if (s.t > 0) {
+          s.t -= dt;
+          if (s.t <= 0) {
+            s.t = 0;
+            s.cd = POWER_BY_ID[id].cd ?? 0;
+          }
+        } else if (s.cd > 0) s.cd = Math.max(0, s.cd - dt);
+      }
+    }
+    toSave() {
+      return Object.fromEntries(Object.keys(this.s).map((id) => [id, [this.s[id].t, this.s[id].cd]]));
+    }
+    // no balls survive a reload, so an effect that was still running is not resumed: its time left plus the full cooldown is owed instead
+    load(timers) {
+      for (const id in this.s) {
+        const t = timers[id];
+        if (!Array.isArray(t)) continue;
+        const run = Number.isFinite(t[0]) ? Math.max(0, t[0]) : 0, left = Number.isFinite(t[1]) ? Math.max(0, t[1]) : 0;
+        this.s[id].cd = Math.min(run > 0 ? run + (POWER_BY_ID[id].cd ?? 0) : left, 6e5);
+      }
+    }
+  };
+
+  // src/game/Game.ts
+  var Game = class {
+    constructor() {
+      __publicField(this, "progress");
+      __publicField(this, "temps");
+      __publicField(this, "effects");
+      __publicField(this, "balls");
+      __publicField(this, "physics");
+      __publicField(this, "pegs");
+      __publicField(this, "buckets");
+      __publicField(this, "worldH");
+      __publicField(this, "evilOn");
+      __publicField(this, "autoOn");
+      __publicField(this, "simT");
+      __publicField(this, "labT");
+      __publicField(this, "autoT");
+      __publicField(this, "recoil");
+      __publicField(this, "launchX");
+      __publicField(this, "prevLaunchX");
+      __publicField(this, "pendingRemove");
+      __publicField(this, "pendingSplit");
+      __publicField(this, "uiDirty");
+      __publicField(this, "relax");
+      __publicField(this, "arcs");
+      __publicField(this, "editing");
+      __publicField(this, "edit");
+      __publicField(this, "ballSystem");
+      __publicField(this, "hits");
+      __publicField(this, "economy");
+      __publicField(this, "bomb");
+      __publicField(this, "zap");
+      __publicField(this, "fields");
+      __publicField(this, "lab");
+      this.progress = new Progress();
+      this.temps = new TempEffects();
+      this.effects = new Effects();
+      this.balls = [];
+      const near = [];
+      this.physics = new Physics({
+        movers: this.balls,
+        staticNear: (x0, y0, x1, y1) => this.pegs.near(x0, y0, x1, y1, near),
+        onPairs: (pairs) => this.hits.contactRules(pairs)
+      }, { width: W, gravityScale: GRAVITY_SCALE });
+      this.pegs = new PegBoard(this.physics, this.progress);
+      this.buckets = new Buckets(this.progress);
+      this.physics.onCollisionStart((pairs) => this.hits.onContacts(pairs));
+      this.worldH = worldHeight(0);
+      this.evilOn = false;
+      this.autoOn = true;
+      this.simT = 0;
+      this.labT = 0;
+      this.autoT = 0;
+      this.recoil = 0;
+      this.launchX = W / 2;
+      this.prevLaunchX = this.launchX;
+      this.pendingRemove = [];
+      this.pendingSplit = [];
+      this.uiDirty = false;
+      this.relax = null;
+      this.arcs = [];
+      this.editing = false;
+      this.edit = new EditMode(this);
+      this.ballSystem = new BallSystem(this);
+      this.hits = new HitResolver(this);
+      this.economy = new Economy(this);
+      this.bomb = new BombBall(this);
+      this.zap = new ZapBall(this);
+      this.fields = new FieldEffects(this);
+      this.lab = new ResearchLab(this);
+    }
+    L(id) {
+      return this.progress.L(id);
+    }
+    // the launcher stays near the top; the bucket is anchored to the floor, because the world grows downward
+    rimY() {
+      return this.worldH - 36;
+    }
+    catchY() {
+      return this.worldH - 30;
+    }
+    // The world grows downward: the launcher and every peg stay where they are, the floor and bucket move down.
+    growWorld() {
+      this.worldH = worldHeight(this.L("deeper_world"));
+    }
+    step(dt) {
+      this.simT += dt;
+      this.lab.tick(dt);
+      this.prevLaunchX = this.launchX;
+      this.launchX = W / 2 + (W / 2 - SWEEP_MARGIN) * Math.sin(this.simT * Math.PI * 2 / SWEEP_MS);
+      this.recoil = Math.max(0, this.recoil - dt / 220);
+      this.temps.tick(dt);
+      this.fields.relax();
+      this.physics.setGravity(this.temps.running("heavy_gravity") ? GRAV_MULT : 1);
+      if (this.temps.running("ghost_balls")) for (const b of this.balls) b.ghost = true;
+      const al = this.L("auto_dropper") && 1 + this.L("faster_dropper");
+      if (al > 0 && this.autoOn) {
+        this.autoT = Math.min(this.autoT + dt, autoInterval(al));
+        if (this.autoT >= autoInterval(al) && this.ballSystem.launch()) this.autoT = 0;
+      }
+      for (const b of this.balls) {
+        b.px = b.body.position.x;
+        b.py = b.body.position.y;
+      }
+      this.fields.gravityPegs();
+      this.physics.update(dt);
+      this.fields.chaos();
+      this.ballSystem.update(dt);
+      this.zap.updateArcs();
+      while (this.pendingSplit.length) {
+        const s = this.pendingSplit.pop();
+        this.ballSystem.split(s.ball, s.peg);
+      }
+      while (this.pendingRemove.length) {
+        const pg = this.pendingRemove.pop();
+        if (pg.gone) continue;
+        pg.gone = true;
+        if (pg.evilKill) this.progress.freePegs[pg.type]++;
+        this.pegs.remove(pg);
+      }
+      this.buckets.tick(dt);
+      this.pegs.tick(dt, this.evilOn ? 0 : evilRegen(this.L("fast_healing")));
+      this.effects.tick(dt);
+    }
+  };
+
+  // src/config/CurrencyIcons.ts
+  var cssInk = (name) => `var(${cssName("theme", name)})`;
+  var colorInk = (name) => COLORS.theme[name];
+  var SHAPES = {
+    money: (ink) => `<circle cx="12" cy="12" r="9.5" style="fill:${ink("money")};stroke:${ink("moneyRim")};stroke-width:1.6"/><circle cx="12" cy="12" r="5.6" style="fill:none;stroke:${ink("moneyRing")};stroke-width:1.8"/>`,
+    research: (ink) => `<polygon points="12,2 21,7 21,17 12,22 3,17 3,7" style="fill:${ink("research")};fill-opacity:.25;stroke:${ink("research")};stroke-width:2.2;stroke-linejoin:round"/>`,
+    goo: (ink) => `<path d="M12 2.5C12 2.5 5.5 10 5.5 15a6.5 6.5 0 0 0 13 0C18.5 10 12 2.5 12 2.5Z" style="fill:${ink("goo")};fill-opacity:.3;stroke:${ink("goo")};stroke-width:2.2;stroke-linejoin:round"/>`,
+    evil: (ink) => `<polygon points="12,2.5 14.4,9.3 21.5,9.4 15.8,13.7 17.9,20.6 12,16.5 6.1,20.6 8.2,13.7 2.5,9.4 9.6,9.3" style="fill:${ink("evil")};fill-opacity:.3;stroke:${ink("evil")};stroke-width:2;stroke-linejoin:round"/>`
+  };
+  function currencySvg(c, ink, size) {
+    const dims = size ? ` width="${size}" height="${size}"` : "";
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"${dims}>${SHAPES[c](ink)}</svg>`;
+  }
+
+  // src/render/CurrencyImages.ts
+  var SIZE = 64;
+  function currencyImages() {
+    const out = {};
+    for (const c of CURRENCIES) {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = SIZE;
+      const img = new Image();
+      img.onload = () => context2d(canvas).drawImage(img, 0, 0, SIZE, SIZE);
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(currencySvg(c, colorInk, SIZE))}`;
+      out[c] = canvas;
+    }
+    return out;
+  }
+
+  // src/render/Layer.ts
+  var Layer = class {
+    constructor(r, game) {
+      __publicField(this, "r");
+      __publicField(this, "game");
+      this.r = r;
+      this.game = game;
+    }
+    get ctx() {
+      return this.r.ctx;
+    }
+  };
+
+  // src/render/BallLayer.ts
+  var BallLayer = class extends Layer {
+    drawBalls(a, top, bot) {
+      const ctx = this.ctx, balls = this.game.balls;
+      const pos = (b) => {
+        const p = b.body.position;
+        return [b.px + (p.x - b.px) * a, b.py + (p.y - b.py) * a];
+      };
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      for (const b of balls) {
+        const [x, y] = pos(b);
+        if (y < top || y > bot) continue;
+        const col = b.goo ? COLORS.theme.goo : b.gold ? COLORS.theme.money : b.glow;
+        const t = b.trail;
+        if (t.length >= 4) {
+          ctx.strokeStyle = col;
+          ctx.globalAlpha = 0.35;
+          ctx.lineWidth = b.r * 1.1;
+          ctx.beginPath();
+          ctx.moveTo(t[0], t[1]);
+          for (let i = 2; i < t.length; i += 2) ctx.lineTo(t[i], t[i + 1]);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        if (b.bomb) {
+          const pulse = 0.5 + 0.5 * Math.sin(b.phase);
+          this.r.glow(COLORS.theme.evil, x, y, b.r * (6 + 3 * pulse), 0.75 + 0.25 * pulse);
+        } else if (b.zap) {
+          this.r.glow(COLORS.theme.electric, x, y, b.r * (5 + 3 * b.charge) * rand(0.9, 1.1), 0.8 + 0.2 * b.charge);
+        } else this.r.glow(col, x, y, b.r * 5, 0.9);
+      }
+      ctx.globalCompositeOperation = "source-over";
+      for (const b of balls) {
+        const [x, y] = pos(b);
+        if (y < top || y > bot) continue;
+        ctx.globalAlpha = b.ghost ? 0.5 : 1;
+        if (b.bomb) {
+          this.drawBomb(b, x, y);
+          continue;
+        }
+        if (b.zap) {
+          this.drawZap(b, x, y);
+          continue;
+        }
+        ctx.fillStyle = b.goo ? COLORS.theme.goo : b.gold ? COLORS.theme.money : COLORS.ui.strong;
+        ctx.beginPath();
+        ctx.arc(x, y, b.r * 0.78, 0, TAU);
+        ctx.fill();
+      }
       ctx.globalAlpha = 1;
     }
-    // the old shadowBlur glow, faked with a wide faint stroke under the real one (shadowBlur is very slow on phones)
-    glowStroke(color, width, glowW, glowA) {
-      const ctx = this.ctx;
-      ctx.strokeStyle = color;
-      ctx.globalAlpha = glowA;
-      ctx.lineWidth = glowW;
+    // red bomb with a shine, a ring showing the fuse left, the seconds left and the loot inside
+    drawBomb(b, x, y) {
+      const ctx = this.ctx, r = b.r, left = Math.max(0, b.fuse) / BOMB_FUSE, secs2 = Math.ceil(Math.max(0, b.fuse) / 1e3);
+      const hot = left < 0.3 && Math.sin(b.phase * 2) > 0;
+      ctx.fillStyle = hot ? COLORS.detail.bombHot : COLORS.theme.evil;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.85, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = alpha(COLORS.ui.strong, 0.6);
+      ctx.beginPath();
+      ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.22, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = alpha(COLORS.theme.evil, 0.25);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, r + 3.5, 0, TAU);
       ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.lineWidth = width;
+      ctx.strokeStyle = left < 0.3 ? COLORS.ui.strong : COLORS.theme.explosionLight;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(x, y, r + 3.5, -Math.PI / 2, -Math.PI / 2 + TAU * left);
       ctx.stroke();
+      ctx.textAlign = "center";
+      ctx.font = FONT_BIG;
+      ctx.fillStyle = hot ? COLORS.ui.strong : COLORS.detail.bombTimer;
+      ctx.fillText(String(secs2), this.r.onBoard(String(secs2), x), y - r - 9);
+      const s = b.stash, loot = [s.money && `{money}${fmt(s.money)}`, s.rp && `{research}${fmt(s.rp)}`, s.evil && `{evil}${evFmt(s.evil)}`].filter(Boolean).join("  ");
+      if (loot) {
+        ctx.font = FONT_SMALL;
+        ctx.fillStyle = COLORS.theme.money;
+        this.r.richText(loot, x, y - r - 26);
+      }
     }
-    // a: how far we are between the last two physics steps (0..1), so balls and the cannon move smoothly at any refresh rate
-    // view: { hover, dragging, editType } from the input
-    render(a, view) {
-      const { ctx, game, camera } = this, k = this.dpr * camera.scale, shake = game.effects.shake * this.dpr;
-      this.ox = shake ? rand(-shake, shake) : 0;
-      this.oy = shake ? rand(-shake, shake) : 0;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.worldTransform(k);
-      const top = camera.y - 40, bot = camera.y + camera.viewH / camera.scale + 40;
-      this.drawScene(a, view, k, top, bot);
-      this.drawFlash();
+    // white-hot core, a ring that fills up with the charge, and sparks crackling around it once it is half charged
+    drawZap(b, x, y) {
+      const ctx = this.ctx, r = b.r;
+      ctx.fillStyle = COLORS.theme.electricLight;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.8, 0, TAU);
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = alpha(COLORS.theme.electric, 0.25);
+      ctx.beginPath();
+      ctx.arc(x, y, r + 3.5, 0, TAU);
+      ctx.stroke();
+      ctx.strokeStyle = COLORS.theme.electric;
+      ctx.beginPath();
+      ctx.arc(x, y, r + 3.5, -Math.PI / 2, -Math.PI / 2 + TAU * b.charge);
+      ctx.stroke();
+      if (b.charge >= 0.5) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = COLORS.theme.electricLight;
+        ctx.lineWidth = 1.2;
+        for (let i = 0, n = Math.round(b.charge * 4); i < n; i++) {
+          const a = rand(0, TAU), r0 = r + 2, r1 = r + rand(6, 11), m = (r0 + r1) / 2, wob = rand(-0.35, 0.35);
+          ctx.beginPath();
+          ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0);
+          ctx.lineTo(x + Math.cos(a + wob) * m, y + Math.sin(a + wob) * m);
+          ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1);
+          ctx.stroke();
+        }
+        ctx.globalCompositeOperation = "source-over";
+      }
     }
-    // the game draws its board here (overridden by GameRenderer in game.js)
-    drawScene(a, view, k, top, bot) {
-    }
-    // world units -> device pixels, scrolled by the camera and offset by the screen shake
-    worldTransform(k) {
-      this.ctx.setTransform(k, 0, 0, k, this.ox, this.oy - this.camera.y * k);
-    }
-    drawFlash() {
-      const f = this.game.effects.flash, ctx = this.ctx;
-      if (f.a <= 0) return;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalAlpha = f.a;
-      ctx.fillStyle = f.color;
-      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      ctx.globalAlpha = 1;
-    }
+  };
+
+  // src/render/BoardLayer.ts
+  var BoardLayer = class extends Layer {
     // grid, depth markers, the dimmed outside, walls, ceiling and drain line
     drawBoard(top, bot) {
       const ctx = this.ctx, worldH = this.game.worldH;
       const visTop = Math.max(0, top), visBot = Math.min(worldH, bot);
-      ctx.lineWidth = 1 / this.camera.scale;
-      ctx.strokeStyle = "rgba(138,91,255,.10)";
+      ctx.lineWidth = 1 / this.r.camera.scale;
+      ctx.strokeStyle = alpha(COLORS.ui.frame, 0.1);
       ctx.beginPath();
       for (let x = 40; x < W; x += 40) {
         ctx.moveTo(x, visTop);
@@ -6100,17 +7503,17 @@
       ctx.stroke();
       ctx.font = "600 9px system-ui,sans-serif";
       ctx.textAlign = "left";
-      ctx.fillStyle = "rgba(139,134,184,.55)";
+      ctx.fillStyle = alpha(COLORS.ui.label, 0.55);
       for (let y = 200; y < worldH; y += 200) {
         if (y < top || y > bot) continue;
-        ctx.strokeStyle = "rgba(138,91,255,.22)";
+        ctx.strokeStyle = alpha(COLORS.ui.frame, 0.22);
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(W, y);
         ctx.stroke();
         ctx.fillText(String(y), 6, y - 4);
       }
-      ctx.fillStyle = "rgba(2,1,10,.65)";
+      ctx.fillStyle = alpha(COLORS.ui.page, 0.65);
       ctx.fillRect(-10, worldH, W + 20, 4e3);
       ctx.fillRect(-10, -4e3, W + 20, 4e3);
       ctx.lineCap = "butt";
@@ -6123,109 +7526,90 @@
         ctx.moveTo(0, 0);
         ctx.lineTo(W, 0);
       }
-      this.glowStroke(this.game.editing ? "#19f5ff" : "#8a5bff", 2.5, 9, 0.22);
+      this.r.glowStroke(this.game.editing ? COLORS.ui.boardEditing : COLORS.ui.frame, 2.5, 9, 0.22);
       if (bot > worldH) {
         ctx.setLineDash([10, 8]);
         ctx.beginPath();
         ctx.moveTo(0, worldH);
         ctx.lineTo(W, worldH);
-        this.glowStroke("#ff2bd6", 2.5, 9, 0.22);
+        this.r.glowStroke(COLORS.ui.drain, 2.5, 9, 0.22);
         ctx.setLineDash([]);
       }
     }
-    // lightning: a fresh jagged path every frame (so it flickers), a wide coloured glow under a thin white core
-    drawBolts() {
-      const ctx = this.ctx, pts = [];
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      for (const bl of this.game.effects.bolts) {
-        const dx = bl.x2 - bl.x1, dy = bl.y2 - bl.y1, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
-        const n = Math.max(2, Math.ceil(d / 9)), amp = Math.min(6, d * 0.15), a = bl.life / bl.max;
-        pts.length = 0;
-        for (let i = 0; i <= n; i++) {
-          const t = i / n, off = i === 0 || i === n ? 0 : rand(-amp, amp);
-          pts.push(bl.x1 + dx * t + nx * off, bl.y1 + dy * t + ny * off);
-        }
-        for (const [col, w, alpha] of [[bl.color, 5, 0.4 * a], ["#f2fdff", 1.6, a]]) {
-          ctx.strokeStyle = col;
-          ctx.lineWidth = w;
-          ctx.globalAlpha = alpha;
-          ctx.beginPath();
-          ctx.moveTo(pts[0], pts[1]);
-          for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
-          ctx.stroke();
-        }
-      }
-      ctx.globalAlpha = 1;
-    }
-    drawEffects(top, bot) {
-      const ctx = this.ctx, fx = this.game.effects;
-      ctx.globalCompositeOperation = "lighter";
-      this.drawBolts();
-      for (const q of fx.particles) {
-        if (q.y < top || q.y > bot) continue;
-        this.glow(q.color, q.x, q.y, q.size, q.life / q.max);
-      }
-      for (const g of fx.rings) {
-        const life = g.life / g.max, rr = g.r0 + (g.r1 - g.r0) * (1 - Math.pow(life, 3));
-        if (g.fill) this.glow(g.color, g.x, g.y, rr * 2, 0.7 * life);
-        ctx.globalAlpha = life;
-        ctx.strokeStyle = g.color;
-        ctx.lineWidth = g.width * (0.4 + 0.6 * life);
+    drawBucket() {
+      const ctx = this.ctx, game = this.game, bs = game.buckets.layout(), n = bs.length;
+      const rim = game.rimY(), bot = game.worldH - 8, base = bucketValue(game.L("bucket_value"));
+      for (let i = 0; i < n; i++) {
+        const b = bs[i], fl = game.buckets.flash[i];
+        const col = n === 1 ? COLORS.theme.bucket : b.t < 0.01 ? COLORS.theme.bucketOuter : b.t > 0.99 ? COLORS.theme.bucket : COLORS.theme.bucketBetween;
+        const sl = Math.min(8, b.w * 0.15);
+        const x0 = b.cx - b.w / 2, x1 = b.cx + b.w / 2;
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(g.x, g.y, rr, 0, TAU);
-        ctx.stroke();
+        ctx.moveTo(x0, rim);
+        ctx.lineTo(x0 + sl, bot);
+        ctx.lineTo(x1 - sl, bot);
+        ctx.lineTo(x1, rim);
+        ctx.closePath();
+        ctx.globalAlpha = 0.08 + 0.3 * fl;
+        ctx.fillStyle = col;
+        ctx.fill();
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(x0, rim);
+        ctx.lineTo(x0 + sl, bot);
+        ctx.lineTo(x1 - sl, bot);
+        ctx.lineTo(x1, rim);
+        this.r.glowStroke(col, n > 1 ? 2.5 : 3, 9 + 6 * fl, 0.2 + 0.3 * fl);
+        ctx.restore();
+        ctx.textAlign = "center";
+        ctx.font = `800 ${Math.max(8, Math.min(12, b.w / 3.6))}px system-ui,sans-serif`;
+        ctx.fillStyle = col;
+        this.r.richText(`{money}${fmt(base * b.mult)}`, b.cx, rim + 17);
       }
-      ctx.globalAlpha = 1;
+    }
+    drawLauncher(x, visBot) {
+      const ctx = this.ctx, y = LAUNCH_Y, recoil = this.game.recoil;
+      ctx.save();
+      ctx.strokeStyle = alpha(COLORS.theme.cannon, 0.25);
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 7]);
+      ctx.beginPath();
+      ctx.moveTo(x, y + 2);
+      ctx.lineTo(x, Math.max(y + 2, visBot));
+      ctx.stroke();
+      ctx.restore();
+      ctx.globalCompositeOperation = "lighter";
+      this.r.glow(COLORS.theme.cannon, x, y - 6, 70, 0.45);
       ctx.globalCompositeOperation = "source-over";
-      ctx.textAlign = "center";
-      let lastFont = "";
-      for (const f of fx.floaters) {
-        if (f.y < top || f.y > bot) continue;
-        ctx.globalAlpha = Math.min(1, f.life / f.max * 1.6) * (f.dim ? 0.55 : 1);
-        const font = f.huge ? FONT_HUGE : f.big ? FONT_BIG : FONT_SMALL;
-        if (font !== lastFont) {
-          ctx.font = lastFont = font;
-        }
-        ctx.fillStyle = f.color;
-        ctx.fillText(f.text, this.onBoard(f.text, f.x), f.y);
-      }
-      ctx.globalAlpha = 1;
-    }
-    // x for centred text, moved in so the whole text stays between the walls (uses the current font)
-    onBoard(text, x) {
-      const half = this.ctx.measureText(text).width / 2 + 3;
-      return Math.min(W - half, Math.max(half, x));
-    }
-    // the ?debug readout, in a bar just above the buttons
-    drawDebug(text) {
-      const ctx = this.ctx, y = this.camera.viewH - this.camera.padBot;
-      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-      ctx.fillStyle = "rgba(0,0,0,.7)";
-      ctx.fillRect(0, y - 18, this.cssW, 18);
-      ctx.fillStyle = "#fff";
-      ctx.font = "600 11px system-ui,sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(text, 6, y - 5);
+      ctx.save();
+      ctx.translate(x, 0);
+      ctx.fillStyle = COLORS.theme.cannonBody;
+      ctx.strokeStyle = COLORS.theme.cannon;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.rect(-6.5, 10 - recoil * 7, 13, 24);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = COLORS.theme.cannonBody;
+      ctx.strokeStyle = COLORS.theme.cannon;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.rect(x - 15, 0, 30, 14);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, 7, 3.5, 0, TAU);
+      ctx.fillStyle = COLORS.theme.cannon;
+      ctx.fill();
     }
   };
 
-  // src/render/GameRenderer.ts
+  // src/render/PegLayer.ts
   var PEG_GLOW = 12;
-  var pegCol = (p) => p.dmg > 0.02 ? mixCol(p.color, EVIL_COL, Math.round(p.dmg * 10) / 10) : p.color;
-  var GameRenderer = class extends Renderer {
-    // everything on the board, back to front (the base Renderer has cleared the canvas and set the camera)
-    drawScene(a, view, k, top, bot) {
-      const game = this.game;
-      this.drawBoard(top, bot);
-      this.drawBucket();
-      this.drawGravityFields(top, bot);
-      this.drawPegs(k, top, bot);
-      this.drawPlacement(view);
-      this.drawBalls(a, top, bot);
-      this.drawEffects(top, bot);
-      if (!game.editing) this.drawLauncher(game.prevLaunchX + (game.launchX - game.prevLaunchX) * a, Math.min(game.worldH, bot));
-    }
+  var PegLayer = class extends Layer {
     pegPath(p, grow = 0) {
       const ctx = this.ctx;
       if (p.type === "research") hexPath(ctx, p.x, p.y, p.r + 1 + grow);
@@ -6238,8 +7622,8 @@
     // Drawing hundreds of cached images is far cheaper than hundreds of glows plus path fills and strokes every frame.
     pegSprite(p, col, k) {
       const r = Math.round(p.r * 4) / 4, dmg = p.dmg > 0.02 ? Math.round(p.dmg * 10) / 10 : 0;
-      const key = p.type + col + dmg + "," + r + "," + k;
-      let s = this.sprites[key];
+      const key = `${p.type + col + dmg},${r},${k}`;
+      let s = this.r.sprites[key];
       if (s) return s;
       const R = r + 1 + PEG_GLOW, size = Math.ceil(2 * R * k) + 2, c = size / 2 / k;
       s = document.createElement("canvas");
@@ -6247,9 +7631,9 @@
       const g = context2d(s);
       g.scale(k, k);
       const gr = g.createRadialGradient(c, c, 0, c, c, R);
-      gr.addColorStop(0, col + "59");
-      gr.addColorStop(0.35, col + "29");
-      gr.addColorStop(1, col + "00");
+      gr.addColorStop(0, `${col}59`);
+      gr.addColorStop(0.35, `${col}29`);
+      gr.addColorStop(1, `${col}00`);
       g.fillStyle = gr;
       g.fillRect(0, 0, 2 * c, 2 * c);
       if (p.type === "research") hexPath(g, c, c, r + 1);
@@ -6257,10 +7641,10 @@
         g.beginPath();
         g.arc(c, c, r, 0, TAU);
       }
-      g.fillStyle = "#0b0825";
+      g.fillStyle = COLORS.detail.pegBody;
       g.fill();
       if (dmg) {
-        g.fillStyle = `rgba(255,30,50,${dmg * 0.5})`;
+        g.fillStyle = alpha(COLORS.theme.evil, dmg * 0.5);
         g.fill();
       }
       g.strokeStyle = col;
@@ -6290,7 +7674,7 @@
         g.fillStyle = col;
         g.fill();
       }
-      return this.sprites[key] = s;
+      return this.r.sprites[key] = s;
     }
     // a goo-covered peg wears a wavy green cap on its top side, like icing on a cake; it slowly slides off as the goo wears out
     drawGooCap(p) {
@@ -6306,63 +7690,30 @@
       ctx.lineTo(p.x + R + 1, p.y - R - 3);
       for (let dx = R + 1; dx >= -R - 1; dx -= 1) ctx.lineTo(p.x + dx, edge + wave(p.x + dx));
       ctx.closePath();
-      ctx.fillStyle = "rgba(107,255,31,.9)";
+      ctx.fillStyle = alpha(COLORS.theme.goo, 0.9);
       ctx.fill();
-      ctx.strokeStyle = "rgba(220,255,190,.75)";
+      ctx.strokeStyle = alpha(COLORS.theme.gooLight, 0.75);
       ctx.lineWidth = 1.2;
       ctx.stroke();
-      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.fillStyle = alpha(COLORS.ui.strong, 0.55);
       ctx.beginPath();
       ctx.ellipse(p.x - R * 0.35, p.y - R * 0.55, 2.4, 1.3, -0.5, 0, TAU);
       ctx.fill();
       ctx.restore();
-    }
-    drawBucket() {
-      const ctx = this.ctx, game = this.game, bs = game.buckets.layout(), n = bs.length;
-      const rim = game.rimY(), bot = game.worldH - 8, base = bucketValue(game.L("bucket_value"));
-      for (let i = 0; i < n; i++) {
-        const b = bs[i], fl = game.buckets.flash[i];
-        const col = n === 1 ? "#b6ff2e" : b.t < 0.01 ? "#ffd23a" : b.t > 0.99 ? "#b6ff2e" : "#ff9d1a";
-        const sl = Math.min(8, b.w * 0.15);
-        const x0 = b.cx - b.w / 2, x1 = b.cx + b.w / 2;
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(x0, rim);
-        ctx.lineTo(x0 + sl, bot);
-        ctx.lineTo(x1 - sl, bot);
-        ctx.lineTo(x1, rim);
-        ctx.closePath();
-        ctx.globalAlpha = 0.08 + 0.3 * fl;
-        ctx.fillStyle = col;
-        ctx.fill();
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(x0, rim);
-        ctx.lineTo(x0 + sl, bot);
-        ctx.lineTo(x1 - sl, bot);
-        ctx.lineTo(x1, rim);
-        this.glowStroke(col, n > 1 ? 2.5 : 3, 9 + 6 * fl, 0.2 + 0.3 * fl);
-        ctx.restore();
-        ctx.textAlign = "center";
-        ctx.font = `800 ${Math.max(8, Math.min(12, b.w / 3.6))}px system-ui,sans-serif`;
-        ctx.fillStyle = col;
-        ctx.fillText("$" + fmt(base * b.mult), b.cx, rim + 17);
-      }
     }
     // gravity pegs: a faint field showing how far their pull reaches (drawn under the pegs)
     drawGravityFields(top, bot) {
       const ctx = this.ctx, pegs = this.game.pegs.gravity;
       const visible = (p) => p.y >= top - GRAVPEG_R && p.y <= bot + GRAVPEG_R;
       ctx.globalCompositeOperation = "lighter";
-      for (const p of pegs) if (visible(p)) this.glow(p.color, p.x, p.y, GRAVPEG_R * 2, 0.16);
+      for (const p of pegs) if (visible(p)) this.r.glow(p.color, p.x, p.y, GRAVPEG_R * 2, 0.16);
       ctx.globalCompositeOperation = "source-over";
       ctx.setLineDash([3, 6]);
       for (const p of pegs) {
         if (!visible(p)) continue;
         ctx.beginPath();
         ctx.arc(p.x, p.y, GRAVPEG_R, 0, TAU);
-        ctx.strokeStyle = "rgba(46,255,176,.22)";
+        ctx.strokeStyle = alpha(COLORS.theme.gravity, 0.22);
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -6370,27 +7721,27 @@
     }
     // one cached sprite per peg (glow + body); the bigger flash glow, goo caps and blast counters only where needed
     drawPegs(k, top, bot) {
-      const ctx = this.ctx, camY = this.camera.y, pegs = this.game.pegs.list;
+      const ctx = this.ctx, camY = this.r.camera.y, pegs = this.game.pegs.list;
       this.drawRelaxLinks();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       for (const p of pegs) {
         if (p.y < top || p.y > bot) continue;
         const s = this.pegSprite(p, pegCol(p), k);
-        ctx.drawImage(s, Math.round(p.x * k - s.width / 2 + this.ox), Math.round((p.y - camY) * k - s.width / 2 + this.oy));
+        ctx.drawImage(s, Math.round(p.x * k - s.width / 2 + this.r.ox), Math.round((p.y - camY) * k - s.width / 2 + this.r.oy));
       }
-      this.worldTransform(k);
+      this.r.worldTransform(k);
       ctx.globalCompositeOperation = "lighter";
       for (const p of pegs) {
         if (p.y < top || p.y > bot) continue;
-        if (p.flash > 0) this.glow(pegCol(p), p.x, p.y, 46 + 22 * p.flash, 0.65 * p.flash);
-        if (p.gooT > 0) this.glow(GOO_COL, p.x, p.y - 4, 30, 0.35);
-        if (p.charge >= 1) this.glow(ALCH_BRIGHT, p.x, p.y, 36, 0.3 + 0.15 * Math.sin(this.game.simT / 180 + p.x));
+        if (p.flash > 0) this.r.glow(pegCol(p), p.x, p.y, 46 + 22 * p.flash, 0.65 * p.flash);
+        if (p.gooT > 0) this.r.glow(COLORS.theme.goo, p.x, p.y - 4, 30, 0.35);
+        if (p.charge >= 1) this.r.glow(COLORS.theme.money, p.x, p.y, 36, 0.3 + 0.15 * Math.sin(this.game.simT / 180 + p.x));
       }
       ctx.globalCompositeOperation = "source-over";
       for (const p of pegs) {
         if (p.y < top || p.y > bot) continue;
         if (p.type === "dual") {
-          ctx.fillStyle = "#ffd23a";
+          ctx.fillStyle = COLORS.theme.money;
           ctx.font = "800 10px system-ui,sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
@@ -6400,7 +7751,7 @@
         if (p.gooT > 0) this.drawGooCap(p);
         if (p.flash > 0) {
           this.pegPath(p);
-          ctx.fillStyle = `rgba(255,255,255,${p.flash * 0.85})`;
+          ctx.fillStyle = alpha(COLORS.ui.strong, p.flash * 0.85);
           ctx.fill();
         }
       }
@@ -6408,10 +7759,10 @@
     // repulsion field: a glowing line between every pair of pegs that are pushing each other apart (under the pegs)
     drawRelaxLinks() {
       const relax = this.game.relax, ctx = this.ctx;
-      if (!relax || !relax.links.length) return;
+      if (!relax?.links.length) return;
       const L = relax.links, ease = Math.min(1, this.game.temps.s.repulsion_field.t / 1500);
       ctx.globalCompositeOperation = "lighter";
-      ctx.strokeStyle = RELAX_COL;
+      ctx.strokeStyle = COLORS.theme.repulsion;
       ctx.lineWidth = 1.5;
       ctx.lineCap = "round";
       ctx.globalAlpha = 0.5 * ease;
@@ -6428,13 +7779,13 @@
     drawPlacement(view) {
       const ctx = this.ctx, game = this.game, type = view.editType;
       if (!game.editing || !view.hover || view.dragging || game.pegs.at(view.hover.x, view.hover.y)) return;
-      const s = game.placeSpot(view.hover.x, view.hover.y), hr = pegRadius(s.y), ok = !game.cantPlace(type);
+      const s = game.edit.placeSpot(view.hover.x, view.hover.y), hr = pegRadius(s.y), ok = !game.edit.cantPlace(type);
       if (type === "research") hexPath(ctx, s.x, s.y, hr + 1);
       else {
         ctx.beginPath();
         ctx.arc(s.x, s.y, hr, 0, TAU);
       }
-      ctx.strokeStyle = ok ? PEG_KINDS[type].color : "rgba(255,60,80,.85)";
+      ctx.strokeStyle = ok ? PEG_KINDS[type].color : alpha(COLORS.ui.negative, 0.85);
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 4]);
       ctx.stroke();
@@ -6442,7 +7793,7 @@
       if (type === "gravity" && ok) {
         ctx.beginPath();
         ctx.arc(s.x, s.y, GRAVPEG_R, 0, TAU);
-        ctx.strokeStyle = "rgba(46,255,176,.35)";
+        ctx.strokeStyle = alpha(COLORS.theme.gravity, 0.35);
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 6]);
         ctx.stroke();
@@ -6456,858 +7807,50 @@
       g.clearRect(0, 0, canvas.width, canvas.height);
       g.drawImage(s, -pad, -pad, canvas.width + 2 * pad, canvas.height + 2 * pad);
       const c = canvas.width / 2, fade = g.createRadialGradient(c, c, c * 0.6, c, c, c);
-      fade.addColorStop(0, "#000");
-      fade.addColorStop(1, "rgba(0,0,0,0)");
+      fade.addColorStop(0, COLORS.ui.shadow);
+      fade.addColorStop(1, alpha(COLORS.ui.shadow, 0));
       g.globalCompositeOperation = "destination-in";
       g.fillStyle = fade;
       g.fillRect(0, 0, canvas.width, canvas.height);
       g.globalCompositeOperation = "source-over";
     }
-    drawBalls(a, top, bot) {
-      const ctx = this.ctx, balls = this.game.balls;
-      const pos = (b) => {
-        const p = b.body.position;
-        return [b.px + (p.x - b.px) * a, b.py + (p.y - b.py) * a];
-      };
-      ctx.globalCompositeOperation = "lighter";
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      for (const b of balls) {
-        const [x, y] = pos(b);
-        if (y < top || y > bot) continue;
-        const col = b.goo ? GOO_COL : b.gold ? GOLD : b.glow;
-        const t = b.trail;
-        if (t.length >= 4) {
-          ctx.strokeStyle = col;
-          ctx.globalAlpha = 0.35;
-          ctx.lineWidth = b.r * 1.1;
-          ctx.beginPath();
-          ctx.moveTo(t[0], t[1]);
-          for (let i = 2; i < t.length; i += 2) ctx.lineTo(t[i], t[i + 1]);
-          ctx.lineTo(x, y);
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-        }
-        if (b.bomb) {
-          const pulse = 0.5 + 0.5 * Math.sin(b.phase);
-          this.glow(BOMB_COL, x, y, b.r * (6 + 3 * pulse), 0.75 + 0.25 * pulse);
-        } else if (b.zap) {
-          this.glow(ZAP_COL, x, y, b.r * (5 + 3 * b.charge) * rand(0.9, 1.1), 0.8 + 0.2 * b.charge);
-        } else this.glow(col, x, y, b.r * 5, 0.9);
-      }
-      ctx.globalCompositeOperation = "source-over";
-      for (const b of balls) {
-        const [x, y] = pos(b);
-        if (y < top || y > bot) continue;
-        ctx.globalAlpha = b.ghost ? 0.5 : 1;
-        if (b.bomb) {
-          this.drawBomb(b, x, y);
-          continue;
-        }
-        if (b.zap) {
-          this.drawZap(b, x, y);
-          continue;
-        }
-        ctx.fillStyle = b.goo ? GOO_COL : b.gold ? GOLD : "#fff";
-        ctx.beginPath();
-        ctx.arc(x, y, b.r * 0.78, 0, TAU);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    }
-    // red bomb with a shine, a ring showing the fuse left, the seconds left and the loot inside
-    drawBomb(b, x, y) {
-      const ctx = this.ctx, r = b.r, left = Math.max(0, b.fuse) / BOMB_FUSE, secs2 = Math.ceil(Math.max(0, b.fuse) / 1e3);
-      const hot = left < 0.3 && Math.sin(b.phase * 2) > 0;
-      ctx.fillStyle = hot ? "#ffd0d4" : BOMB_COL;
-      ctx.beginPath();
-      ctx.arc(x, y, r * 0.85, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.6)";
-      ctx.beginPath();
-      ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.22, 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,42,61,.25)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3.5, 0, TAU);
-      ctx.stroke();
-      ctx.strokeStyle = left < 0.3 ? "#ffffff" : "#ffd23a";
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3.5, -Math.PI / 2, -Math.PI / 2 + TAU * left);
-      ctx.stroke();
-      ctx.textAlign = "center";
-      ctx.font = FONT_BIG;
-      ctx.fillStyle = hot ? "#ffffff" : "#ff6b78";
-      ctx.fillText(String(secs2), this.onBoard(String(secs2), x), y - r - 9);
-      const s = b.stash, loot = [s.money && "$" + fmt(s.money), s.rp && fmt(s.rp) + " RP", s.evil && evFmt(s.evil) + " EVIL"].filter(Boolean).join("  ");
-      if (loot) {
-        ctx.font = FONT_SMALL;
-        ctx.fillStyle = "#ffd23a";
-        ctx.fillText(loot, this.onBoard(loot, x), y - r - 26);
-      }
-    }
-    // white-hot core, a ring that fills up with the charge, and sparks crackling around it once it is half charged
-    drawZap(b, x, y) {
-      const ctx = this.ctx, r = b.r;
-      ctx.fillStyle = "#e8fbff";
-      ctx.beginPath();
-      ctx.arc(x, y, r * 0.8, 0, TAU);
-      ctx.fill();
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "rgba(77,210,255,.25)";
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3.5, 0, TAU);
-      ctx.stroke();
-      ctx.strokeStyle = ZAP_COL;
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3.5, -Math.PI / 2, -Math.PI / 2 + TAU * b.charge);
-      ctx.stroke();
-      if (b.charge >= 0.5) {
-        ctx.globalCompositeOperation = "lighter";
-        ctx.strokeStyle = "#bff0ff";
-        ctx.lineWidth = 1.2;
-        for (let i = 0, n = Math.round(b.charge * 4); i < n; i++) {
-          const a = rand(0, TAU), r0 = r + 2, r1 = r + rand(6, 11), m = (r0 + r1) / 2, wob = rand(-0.35, 0.35);
-          ctx.beginPath();
-          ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0);
-          ctx.lineTo(x + Math.cos(a + wob) * m, y + Math.sin(a + wob) * m);
-          ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1);
-          ctx.stroke();
-        }
-        ctx.globalCompositeOperation = "source-over";
-      }
-    }
-    drawLauncher(x, visBot) {
-      const ctx = this.ctx, y = LAUNCH_Y, recoil = this.game.recoil;
-      ctx.save();
-      ctx.strokeStyle = "rgba(255,157,26,.25)";
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([3, 7]);
-      ctx.beginPath();
-      ctx.moveTo(x, y + 2);
-      ctx.lineTo(x, Math.max(y + 2, visBot));
-      ctx.stroke();
-      ctx.restore();
-      ctx.globalCompositeOperation = "lighter";
-      this.glow("#ff9d1a", x, y - 6, 70, 0.45);
-      ctx.globalCompositeOperation = "source-over";
-      ctx.save();
-      ctx.translate(x, 0);
-      ctx.fillStyle = "#1a1038";
-      ctx.strokeStyle = "#ff9d1a";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.rect(-6.5, 10 - recoil * 7, 13, 24);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-      ctx.fillStyle = "#120b2b";
-      ctx.strokeStyle = "#ff9d1a";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.rect(x - 15, 0, 30, 14);
-      ctx.fill();
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(x, 7, 3.5, 0, TAU);
-      ctx.fillStyle = "#ff9d1a";
-      ctx.fill();
-    }
   };
 
-  // src/game/Game.ts
-  var shown = (lines) => lines.filter((l) => !!l);
-  var Game = class {
-    constructor() {
-      __publicField(this, "progress");
-      __publicField(this, "temps");
-      __publicField(this, "effects");
-      __publicField(this, "balls");
-      __publicField(this, "physics");
+  // src/render/GameRenderer.ts
+  var IDLE_VIEW = { hover: null, dragging: false, editType: "basic" };
+  var GameRenderer = class {
+    constructor(r, game) {
+      __publicField(this, "r");
+      __publicField(this, "game");
+      __publicField(this, "view");
+      __publicField(this, "board");
       __publicField(this, "pegs");
-      __publicField(this, "buckets");
-      __publicField(this, "worldH");
-      __publicField(this, "evilOn");
-      __publicField(this, "autoOn");
-      __publicField(this, "simT");
-      __publicField(this, "labT");
-      __publicField(this, "autoT");
-      __publicField(this, "recoil");
-      __publicField(this, "launchX");
-      __publicField(this, "prevLaunchX");
-      __publicField(this, "pendingRemove");
-      __publicField(this, "pendingSplit");
-      __publicField(this, "uiDirty");
-      __publicField(this, "relax");
-      __publicField(this, "arcs");
-      __publicField(this, "editing");
-      __publicField(this, "hitFx");
-      this.progress = new Progress();
-      this.temps = new TempEffects();
-      this.effects = new Effects();
-      this.balls = [];
-      this.physics = new Physics({
-        balls: this.balls,
-        pegsNear: (x0, y0, x1, y1, out) => this.pegs.near(x0, y0, x1, y1, out),
-        deadBalls: () => this.temps.running("dead_balls")
-      });
-      this.pegs = new PegBoard(this.physics, this.progress);
-      this.buckets = new Buckets(this.progress);
-      this.physics.onCollisionStart((pairs) => this.onContacts(pairs));
-      this.worldH = worldHeight(0);
-      this.evilOn = false;
-      this.autoOn = true;
-      this.simT = 0;
-      this.labT = 0;
-      this.autoT = 0;
-      this.recoil = 0;
-      this.launchX = W / 2;
-      this.prevLaunchX = this.launchX;
-      this.pendingRemove = [];
-      this.pendingSplit = [];
-      this.uiDirty = false;
-      this.relax = null;
-      this.arcs = [];
-      this.editing = false;
-      const fx = this.effects;
-      this.hitFx = { burst: (...a) => fx.burst(...a), float: (x, y, text, color, o = {}) => fx.float(x, y, text, color, { ...o, dim: true }) };
+      __publicField(this, "balls");
+      this.r = r;
+      this.game = game;
+      this.view = IDLE_VIEW;
+      this.board = new BoardLayer(r, game);
+      this.pegs = new PegLayer(r, game);
+      this.balls = new BallLayer(r, game);
     }
-    /* ---------- edit mode ---------- */
-    // Entering clears the board of balls (a bomb or electric ball in play is refunded) and freezes everything:
-    // App stops calling step(), so timers, cooldowns and passive research points wait too. Returns what was refunded.
-    enterEdit() {
-      const p = this.progress, refund = {};
-      for (const b of [...this.balls]) {
-        const c = b.bomb ? BOMB_COSTS : b.zap ? ZAP_COSTS : null;
-        if (c) for (const [cur, a] of entries(c)) refund[cur] = (refund[cur] ?? 0) + a;
-        this.dropBall(b);
-      }
-      p.refund(refund);
-      p.goo = Math.min(p.goo, p.gooCap());
-      this.arcs.length = 0;
-      this.pendingSplit.length = 0;
-      const fx = this.effects;
-      fx.particles.length = fx.floaters.length = fx.rings.length = fx.bolts.length = 0;
-      fx.shake = 0;
-      fx.flash.a = 0;
-      for (const pg of this.pegs.list) pg.flash = 0;
-      this.editing = true;
-      this.uiDirty = true;
-      return refund;
+    get effects() {
+      return this.game.effects;
     }
-    exitEdit() {
-      this.editing = false;
-      this.uiDirty = true;
+    // everything on the board, back to front (the Renderer has cleared the canvas and set the camera)
+    draw(a, k, top, bot) {
+      const game = this.game;
+      this.board.drawBoard(top, bot);
+      this.board.drawBucket();
+      this.pegs.drawGravityFields(top, bot);
+      this.pegs.drawPegs(k, top, bot);
+      this.pegs.drawPlacement(this.view);
+      this.balls.drawBalls(a, top, bot);
+      this.r.drawEffects(game.effects, top, bot);
+      if (!game.editing) this.board.drawLauncher(game.prevLaunchX + (game.launchX - game.prevLaunchX) * a, Math.min(game.worldH, bot));
     }
-    // why a peg of this type cannot be placed right now (null when it can)
-    cantPlace(type) {
-      const p = this.progress, k = PEG_KINDS[type];
-      if (!p.unlocked(type)) return `Unlock ${k.name} pegs in Research first`;
-      if (this.pegs.used() >= p.slots()) return "Slots full: buy Peg Slots in the Shop";
-      if (!p.freePegs[type] && !p.has(k.costs)) return `Need ${costText(k.costs)} for ${type === "basic" ? "a peg" : `a ${k.name.toLowerCase()} peg`}`;
-      return null;
-    }
-    // places a peg (free ones first, then paid); returns why it could not, or null
-    placePeg(type, x, y) {
-      const why = this.cantPlace(type);
-      if (why) return why;
-      const p = this.progress, s = this.placeSpot(x, y);
-      const left = type === "dual" ? blastHits(this.L("blast_peg_hits")) : 0;
-      let peg;
-      if (p.freePegs[type] > 0) {
-        p.freePegs[type]--;
-        peg = this.pegs.add(s.x, s.y, type, left, 0, {}, true);
-      } else {
-        const c = { ...PEG_KINDS[type].costs };
-        p.spend(c);
-        peg = this.pegs.add(s.x, s.y, type, left, 0, c);
-      }
-      this.effects.burst(peg.x, peg.y, peg.color, 8, { speed: [30, 90] });
-      this.uiDirty = true;
-      return null;
-    }
-    // picking a peg up gives back what placing it took: its price or its free placement.
-    // A blast peg that was already hit only gives back the unused share of its price (a free one: nothing).
-    pickUp(peg) {
-      const p = this.progress, full = blastHits(this.L("blast_peg_hits")), used = peg.type === "dual" && peg.left < full;
-      const back = {};
-      if (!peg.free) for (const [cur, a] of entries(peg.paid)) {
-        const b = used ? Math.floor(a * peg.left / full) : a;
-        if (b > 0) back[cur] = b;
-      }
-      if (peg.free && !used) p.freePegs[peg.type]++;
-      p.refund(back);
-      this.pegs.remove(peg);
-      this.uiDirty = true;
-      return costText(back);
-    }
-    // dragging: the peg follows the pointer, and takes the size that belongs to its depth when it is let go
-    dragPeg(peg, x, y) {
-      const s = this.placeSpot(x, y);
-      this.pegs.move(peg, s.x, s.y);
-    }
-    dropPeg(peg) {
-      this.pegs.resettleOne(peg);
-    }
-    L(id) {
-      return this.progress.L(id);
-    }
-    // the launcher stays near the top; the bucket is anchored to the floor, because the world grows downward
-    rimY() {
-      return this.worldH - 36;
-    }
-    catchY() {
-      return this.worldH - 30;
-    }
-    maxBalls() {
-      return (1 + this.L("extra_ball")) * (this.temps.running("ball_burst") ? 10 : 1);
-    }
-    ballLoad() {
-      return this.balls.reduce((a, b) => a + b.w, 0);
-    }
-    // half-size balls count 0.5
-    goldMul(b) {
-      return b.gold ? goldMult(1 + this.L("gold_ball_value")) : 1;
-    }
-    // The world grows downward: the launcher and every peg stay where they are, the floor and bucket move down.
-    growWorld() {
-      this.worldH = worldHeight(this.L("deeper_world"));
-    }
-    // Pegs can go anywhere. The only thing done is keeping them inside the walls and the floor,
-    // so a tap in the dimmed area outside the board lands on the nearest spot inside it.
-    placeSpot(x, y) {
-      return { x: Math.min(W - PEG_R, Math.max(PEG_R, x)), y: Math.min(this.worldH - PEG_R, Math.max(PEG_R, y)) };
-    }
-    buy(u) {
-      const p = this.progress;
-      if (!p.isUnlocked(u) || p.isMaxed(u) || !p.canAfford(u)) return false;
-      p.pay(u);
-      p.levels[u.id]++;
-      if (u.id === "world_size" || u.id === "deeper_world") this.growWorld();
-      if (u.id === "blast_peg_hits") {
-        for (const pg of this.pegs.list) if (pg.type === "dual") pg.left++;
-      }
-      return true;
-    }
-    /* The cannon hangs from the ceiling and sweeps left and right all the time. It fires straight down
-       from wherever it is. Returns false when every ball slot is taken. */
-    launch() {
-      if (this.editing || this.ballLoad() + 1 > this.maxBalls()) return false;
-      const half = LAUNCH_SPREAD * Math.PI / 180 / 2;
-      const th = rand(-half, half);
-      const isGoo = Math.random() < (this.L("phlegm_goo") ? gooChance(1 + this.L("more_gooballs")) : 0);
-      const isGold = !isGoo && this.L("gold_balls") > 0 && Math.random() < GOLD_CHANCE;
-      this.makeBall(this.launchX, LAUNCH_Y, ballRadius(this.L("fat_balls")), LAUNCH_SPEED * Math.sin(th), LAUNCH_SPEED * Math.cos(th), { goo: isGoo, gold: isGold });
-      this.recoil = 1;
-      this.uiDirty = true;
-      return true;
-    }
-    // button state of a temporary upgrade ({ active, s, text? } or null); the bomb and the electric ball are busy while one is in play
-    // launches a power: unlocked, not busy (running, recharging or its ball still out), and every cost paid
-    usePower(pw) {
-      const p = this.progress;
-      if (!p.isUnlocked(pw) || this.timer(pw.id) || !p.has(pw.costs)) return false;
-      p.spend(pw.costs);
-      if (pw.ms) this.temps.start(pw.id);
-      else if (pw.use) pw.use(this);
-      this.uiDirty = true;
-      return true;
-    }
-    // a power's state: { active, s } running / recharging, { active, text } for the electric ball's charge; null when ready
-    timer(id) {
-      if (id === "bomb_balls") {
-        const b = this.balls.find((b2) => b2.bomb);
-        return b ? { active: true, s: Math.max(0, Math.ceil(b.fuse / 1e3)) } : null;
-      }
-      if (id === "electric_ball") {
-        const b = this.balls.find((b2) => b2.zap);
-        return b ? { active: true, text: Math.round(b.charge * 100) + "%" } : null;
-      }
-      return this.temps.timer(id);
-    }
-    // the electric ball leaves the cannon like the bomb: outside the ball limit and it never splits
-    launchZap() {
-      const r = Math.max(7, ballRadius(this.L("fat_balls")));
-      this.makeBall(this.launchX, LAUNCH_Y, r, 0, LAUNCH_SPEED, { zap: true, w: 0, split: true, charge: 0, glow: ZAP_COL });
-      this.recoil = 1;
-      this.effects.burst(this.launchX, LAUNCH_Y + 6, ZAP_COL, 14, { speed: [60, 160], angle: [0.3, 2.84] });
-      this.uiDirty = true;
-    }
-    // A bomb ball leaves the cannon like any ball, but outside the ball limit (w: 0) and it never splits.
-    launchBomb() {
-      const r = Math.max(8, ballRadius(this.L("fat_balls")));
-      this.makeBall(this.launchX, LAUNCH_Y, r, 0, LAUNCH_SPEED, {
-        bomb: true,
-        w: 0,
-        split: true,
-        fuse: BOMB_FUSE,
-        phase: 0,
-        glow: BOMB_COL
-      });
-      this.recoil = 1;
-      this.effects.burst(this.launchX, LAUNCH_Y + 6, BOMB_COL, 14, { speed: [60, 160], angle: [0.3, 2.84] });
-      this.uiDirty = true;
-    }
-    // everything a ball earns goes into its haul (ball.stash); the player only gets it when the ball lands in a bucket
-    earn(ball, cur, v) {
-      ball.stash[cur] += v;
-    }
-    // a ball body plus its game state
-    makeBall(x, y, r, vx, vy, props) {
-      const body = this.physics.addBall(x, y, r, vx, vy, restitution(this.L("bouncy_balls")));
-      const ball = Object.assign({
-        body,
-        r,
-        px: x,
-        py: y,
-        hits: 0,
-        age: 0,
-        still: 0,
-        tick: 0,
-        trail: [],
-        lastPeg: null,
-        lastT: 0,
-        goo: false,
-        gold: false,
-        gooHits: 0,
-        expired: false,
-        w: 1,
-        split: false,
-        glow: randGlow(),
-        ghost: this.temps.running("ghost_balls"),
-        inPeg: false,
-        chaos: false,
-        bomb: false,
-        fuse: 0,
-        phase: 0,
-        zap: false,
-        charge: 0,
-        stash: { money: 0, rp: 0, goo: 0, evil: 0 }
-        // the haul: paid out in a bucket, lost any other way
-      }, props);
-      body.ball = ball;
-      this.balls.push(ball);
-      return ball;
-    }
-    dropBall(ball) {
-      this.physics.remove(ball.body);
-      this.balls.splice(this.balls.indexOf(ball), 1);
-    }
-    onContacts(pairs) {
-      for (const pr of pairs) {
-        let b = pr.bodyA, o = pr.bodyB;
-        if (!b.ball) {
-          b = pr.bodyB;
-          o = pr.bodyA;
-        }
-        if (!b.ball) continue;
-        if (this.temps.running("chaos_balls") && !pr.isSensor) b.ball.chaos = true;
-        if (o.peg && this.hitPeg(b.ball, o.peg) && b.ball.zap) this.chargeZap(b.ball, o.peg);
-      }
-    }
-    // a ball hits a peg and the peg pays out; arc = tagged by an electric arc (no anti-farming check, no charge)
-    // returns false when the hit does not count
-    hitPeg(ball, peg, arc = false) {
-      const fx = this.hitFx;
-      if (peg.dead) return false;
-      if (!arc) {
-        if (ball.lastPeg === peg && this.simT - ball.lastT < 200) return false;
-        ball.lastPeg = peg;
-        ball.lastT = this.simT;
-      }
-      peg.flash = 1;
-      if (ball.goo && ++ball.gooHits >= gooballPegs(this.L("lasting_goo"))) ball.expired = true;
-      if (this.evilOn) {
-        const ey = evilYield(this.L("dark_harvest"));
-        const ev = (EVIL_BASE + (1 - EVIL_BASE) * peg.dmg) * ey;
-        this.earn(ball, "evil", ev);
-        peg.dmg += evilDmg(this.L("sturdy_pegs"));
-        if (ev >= 0.25) fx.float(peg.x - 10, peg.y - 22, "+" + evFmt(ev), EVIL_COL);
-        if (peg.dmg >= 1) {
-          peg.dmg = 1;
-          peg.dead = true;
-          peg.evilKill = true;
-          this.pendingRemove.push(peg);
-          const ek = EVIL_KILL * ey;
-          this.earn(ball, "evil", ek);
-          fx.burst(peg.x, peg.y, EVIL_COL, 24);
-          fx.float(peg.x, peg.y - 34, "+" + evFmt(ek), EVIL_COL, { big: true, life: 1100, always: true });
-        }
-      }
-      if (peg.type !== "dual") {
-        if (ball.goo) peg.gooT = GOO_PEG_MS;
-        else if (peg.gooT > 0) {
-          const goo = gooPerHit(this.L("rich_phlegm"));
-          this.earn(ball, "goo", goo);
-          fx.float(peg.x + 10, peg.y - 22, "+" + fmt(goo), GOO_COL);
-        }
-      }
-      if (peg.type === "splitter" && ball.w === 1 && !ball.split) {
-        ball.split = true;
-        this.pendingSplit.push({ ball, peg });
-      }
-      if (peg.type === "dual") {
-        const v2 = DUAL_MULT * (1 + this.L("peg_value")) * (1 + 0.5 * this.L("peg_power")) * (1 + 0.05 * this.L("combo_chain") * ball.hits) * this.goldMul(ball);
-        ball.hits++;
-        this.earn(ball, "money", v2);
-        const rp = rpPerHit(this.L("research_pegs_value")) * DUAL_MULT;
-        this.earn(ball, "rp", rp);
-        fx.burst(peg.x, peg.y, "#ffd23a", 10);
-        fx.float(peg.x, peg.y - 12, "+$" + fmt(v2), "#ffd23a", { big: true, life: 900, always: true });
-        fx.float(peg.x, peg.y - 28, "+" + fmt(rp) + " RP", "#8a5bff", { big: true, life: 900, always: true });
-        if (--peg.left <= 0) {
-          peg.dead = true;
-          this.pendingRemove.push(peg);
-        }
-        return true;
-      }
-      if (peg.type === "research") {
-        ball.hits++;
-        const rp = rpPerHit(this.L("research_pegs_value"));
-        this.earn(ball, "rp", rp);
-        fx.burst(peg.x, peg.y, peg.color, 6);
-        fx.float(peg.x, peg.y - 12, "+" + fmt(rp) + " RP", peg.color);
-        return true;
-      }
-      const alch = peg.type === "alchemy", full = alch && peg.charge >= 1;
-      const base = alch ? Math.round(ALCH_MIN + (alchMax(this.L("alchemy_pegs_value")) - ALCH_MIN) * peg.charge) : 1 + this.L("peg_value");
-      if (alch) {
-        peg.charge = 0;
-        peg.color = ALCH_DARK;
-      }
-      const v = base * (1 + 0.5 * this.L("peg_power")) * (1 + 0.05 * this.L("combo_chain") * ball.hits) * this.goldMul(ball);
-      ball.hits++;
-      this.earn(ball, "money", v);
-      const col = full ? GOLD : alch ? mixCol(ALCH_DARK, ALCH_BRIGHT, 0.6) : peg.color;
-      fx.burst(peg.x, peg.y, col, full ? 10 : 5);
-      fx.float(peg.x, peg.y - 12, "+" + fmt(v), col, { big: full });
-      return true;
-    }
-    // every real hit charges the electric ball; a full charge discharges from the peg it just hit
-    chargeZap(ball, peg) {
-      ball.charge = Math.min(1, ball.charge + 1 / ZAP_HITS);
-      if (ball.charge < 1) return;
-      ball.charge = 0;
-      this.discharge(ball, peg);
-    }
-    /* The arc spreads outward in waves: every tagged peg passes it on to its nearest untagged pegs within ZAP_R
-       (at most ZAP_BRANCH each, ZAP_MAX in total). Each wave lands ZAP_DELAY ms after the one before. */
-    discharge(ball, src) {
-      const fx = this.effects, seen = /* @__PURE__ */ new Set([src]), near = [], bp = ball.body.position;
-      let wave = [src], depth = 0, tagged = 0;
-      while (wave.length && tagged < ZAP_MAX) {
-        depth++;
-        const next = [];
-        for (const from of wave) {
-          const cands = this.pegs.near(from.x - ZAP_R, from.y - ZAP_R, from.x + ZAP_R, from.y + ZAP_R, near).filter((q) => !seen.has(q) && !q.dead && Math.hypot(q.x - from.x, q.y - from.y) <= ZAP_R).sort((a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y));
-          for (const q of cands.slice(0, ZAP_BRANCH)) {
-            if (tagged >= ZAP_MAX) break;
-            seen.add(q);
-            next.push(q);
-            tagged++;
-            this.arcs.push({ from, to: q, at: this.simT + depth * ZAP_DELAY, ball });
-          }
-        }
-        wave = next;
-      }
-      fx.bolt(bp.x, bp.y, src.x, src.y, ZAP_COL, 260);
-      fx.ring(src.x, src.y, 4, ZAP_R, ZAP_COL, { life: 420, width: 3, fill: true });
-      fx.burst(src.x, src.y, "#eaffff", 12, { speed: [80, 220], size: 9, always: true });
-      fx.float(src.x, src.y - 22, tagged ? `ZAP x${tagged}` : "ZAP", ZAP_COL, { big: true, life: 900, always: true });
-      fx.screen(ZAP_COL, 0.12, 2);
-    }
-    // arc jumps that are due land now: lightning, sparks, and a hit just as if the ball had hit the peg
-    updateArcs() {
-      for (let i = this.arcs.length - 1; i >= 0; i--) {
-        const a = this.arcs[i];
-        if (a.at > this.simT) continue;
-        this.arcs.splice(i, 1);
-        if (a.to.dead || !this.pegs.list.includes(a.to)) continue;
-        this.effects.bolt(a.from.x, a.from.y, a.to.x, a.to.y, ZAP_COL);
-        this.effects.burst(a.to.x, a.to.y, ZAP_COL, 6, { speed: [60, 180], size: 8 });
-        this.hitPeg(a.ball, a.to, true);
-      }
-    }
-    /* A full-size ball that hits a splitter peg becomes two half-size balls (deferred until the physics step is over). */
-    splitBall(ball, peg) {
-      if (this.balls.indexOf(ball) < 0) return;
-      const p = ball.body.position, v = this.physics.velocity(ball.body), r = ball.r / 2;
-      const base = Math.atan2(v.y, v.x), sp = Math.max(Math.hypot(v.x, v.y), 3);
-      this.dropBall(ball);
-      for (const sg of [-1, 1]) {
-        const a = base + sg * 0.5;
-        this.makeBall(p.x, p.y, r, sp * Math.cos(a), sp * Math.sin(a), {
-          hits: ball.hits,
-          age: ball.age,
-          lastPeg: peg,
-          lastT: this.simT,
-          goo: ball.goo,
-          gold: ball.gold,
-          gooHits: ball.gooHits,
-          w: 0.5,
-          split: true,
-          glow: ball.glow,
-          ghost: ball.ghost,
-          stash: Object.fromEntries(entries(ball.stash).map(([cur, v2]) => [cur, v2 / 2]))
-          // each half carries half the haul
-        });
-      }
-      this.effects.burst(peg.x, peg.y, peg.color, 8);
-      this.uiDirty = true;
-    }
-    // the ball made it: its haul is paid out as is, plus the bucket's own catch value (bucket and gold multipliers apply to that)
-    catchBall(ball, bk, idx) {
-      const s = ball.stash, p = this.progress, fx = this.effects, x = ball.body.position.x, y = this.rimY();
-      const money = s.money + bucketValue(this.L("bucket_value")) * bk.mult * this.goldMul(ball);
-      p.gain(money);
-      p.rp += s.rp;
-      p.addGoo(s.goo);
-      p.evil += s.evil;
-      this.buckets.flash[idx] = 1;
-      fx.burst(x, y + 4, "#b6ff2e", 10);
-      const lines = shown([
-        ["+$" + fmt(money), "#b6ff2e"],
-        s.rp && ["+" + fmt(s.rp) + " RP", "#8a5bff"],
-        s.goo && ["+" + fmt(s.goo) + " GOO", GOO_COL],
-        s.evil && ["+" + evFmt(s.evil) + " EVIL", EVIL_COL]
-      ]);
-      lines.forEach(([text, col], i) => fx.float(x, y - 8 - 17 * i, text, col, { big: true, life: 1e3, always: true }));
-      this.dropBall(ball);
-    }
-    // the ball left play any other way: its haul is gone (a faint red note shows what was lost)
-    loseBall(ball) {
-      const s = ball.stash, p = ball.body.position;
-      const lost = [s.money && "$" + fmt(s.money), s.rp && fmt(s.rp) + " RP", s.goo && fmt(s.goo) + " GOO", s.evil && evFmt(s.evil) + " EVIL"].filter(Boolean);
-      if (lost.length) this.effects.float(p.x, Math.min(p.y, this.worldH - 12), "\u2212" + lost.join(" \xB7 "), "#ff5a6a", { life: 1e3 });
-      this.dropBall(ball);
-    }
-    // the bomb made it: the bucket's own value goes into the stash too, then everything is paid out x10
-    cashBomb(ball, bk, idx) {
-      const s = ball.stash, p = this.progress, fx = this.effects, x = ball.body.position.x, y = this.rimY(), m = BOMB_MULT;
-      s.money += bucketValue(this.L("bucket_value")) * bk.mult;
-      p.gain(s.money * m);
-      p.rp += s.rp * m;
-      p.addGoo(s.goo * m);
-      p.evil += s.evil * m;
-      this.buckets.flash[idx] = 1;
-      fx.ring(x, y, 6, 95, "#ffd23a", { life: 650, width: 6, fill: true });
-      fx.ring(x, y, 6, 150, "#ffffff", { life: 900, width: 3 });
-      fx.burst(x, y, "#ffd23a", 50, { speed: [140, 380], angle: [Math.PI * 1.12, Math.PI * 1.88], size: 13, life: 950, always: true });
-      fx.burst(x, y, "#b6ff2e", 24, { speed: [100, 280], angle: [Math.PI * 1.2, Math.PI * 1.8], size: 10, life: 800, always: true });
-      fx.float(x, y - 26, `x${m}!`, "#ffd23a", { huge: true, life: 1400, always: true });
-      const lines = shown([
-        ["+$" + fmt(s.money * m), "#ffd23a"],
-        s.rp && ["+" + fmt(s.rp * m) + " RP", "#8a5bff"],
-        s.goo && ["+" + fmt(s.goo * m) + " GOO", GOO_COL],
-        s.evil && ["+" + evFmt(s.evil * m) + " EVIL", EVIL_COL]
-      ]);
-      lines.forEach(([text, col], i) => fx.float(x, y - 52 - 18 * i, text, col, { big: true, life: 1600, always: true }));
-      fx.screen("#ffd23a", 0.25, 4);
-      this.dropBall(ball);
-    }
-    // the fuse ran out (or the bomb was lost): the loot is gone, nearby pegs break, and it pays Evil instead
-    explodeBomb(ball) {
-      const { x, y } = ball.body.position, fx = this.effects;
-      let broken = 0;
-      for (const pg of this.pegs.near(x - BOMB_R, y - BOMB_R, x + BOMB_R, y + BOMB_R, [])) {
-        if (pg.dead || Math.hypot(pg.x - x, pg.y - y) > BOMB_R + pg.r) continue;
-        pg.dead = true;
-        pg.evilKill = true;
-        pg.flash = 1;
-        this.pendingRemove.push(pg);
-        broken++;
-        fx.burst(pg.x, pg.y, pegCol(pg), 10, { speed: [60, 200], size: 9, always: true });
-      }
-      const ev = (BOMB_EVIL_BASE + BOMB_EVIL_PEG * broken) * evilYield(this.L("dark_harvest"));
-      this.progress.evil += ev;
-      fx.ring(x, y, 4, BOMB_R, "#ffd23a", { life: 380, width: 7, fill: true });
-      fx.ring(x, y, 4, BOMB_R * 1.35, BOMB_COL, { life: 650, width: 4 });
-      fx.burst(x, y, BOMB_COL, 40, { speed: [90, 330], size: 15, life: 750, always: true });
-      fx.burst(x, y, "#ff9d1a", 30, { speed: [60, 260], size: 12, life: 620, always: true });
-      fx.burst(x, y, "#ffd23a", 16, { speed: [30, 150], size: 17, life: 420, always: true });
-      fx.float(x, y - 8, "BOOM!", "#ff9d1a", { huge: true, life: 1100, always: true });
-      fx.float(x, y - 34, "+" + evFmt(ev) + " EVIL", EVIL_COL, { big: true, life: 1500, always: true });
-      if (broken) fx.float(x, y - 52, `${broken} peg${broken > 1 ? "s" : ""} broken`, "#ff9d1a", { life: 1500, always: true });
-      fx.screen(BOMB_COL, 0.4, 9);
-      this.dropBall(ball);
-    }
-    // Repulsion field: while it runs, pegs push apart until no two are closer than d0. d0 is set when it starts,
-    // a bit above the current average gap to the nearest peg, so crowded spots spread out but the board keeps its density.
-    updateRelax() {
-      const s = this.temps.s.repulsion_field, pegs = this.pegs, fx = this.effects;
-      if (s.t > 0) {
-        if (!this.relax) {
-          this.relax = { d0: Math.min(70, Math.max(2 * PEG_R + 8, pegs.spacing(80) * 1.25)), links: [] };
-          const live = pegs.list.length || 1, cx = pegs.list.reduce((a, p) => a + p.x, 0) / live, cy = pegs.list.reduce((a, p) => a + p.y, 0) / live;
-          fx.ring(cx, cy, 10, 260, RELAX_COL, { life: 900, width: 5 });
-          fx.ring(cx, cy, 10, 160, RELAX_COL, { life: 700, width: 3, fill: true });
-          fx.screen(RELAX_COL, 0.18, 2);
-        }
-        const box = { x0: PEG_R + 2, x1: W - PEG_R - 2, y0: PEG_R + 2, y1: this.worldH - 50, yMax: this.worldH - PEG_R };
-        pegs.relaxStep(this.relax.d0, Math.min(1, s.t / 1500), box, this.relax.links);
-      } else if (this.relax) {
-        pegs.resettle();
-        this.relax = null;
-        this.uiDirty = true;
-      }
-    }
-    // Gravity pegs: every ball within reach is pulled gently towards the peg's centre; the closer the ball, the stronger the pull.
-    applyGravityPegs() {
-      const ph = this.physics;
-      for (const pg of this.pegs.gravity) {
-        if (pg.dead) continue;
-        for (const b of this.balls) {
-          const p = b.body.position;
-          const dx = pg.x - p.x, dy = pg.y - p.y, d = Math.hypot(dx, dy);
-          if (d >= GRAVPEG_R || d < 1) continue;
-          const f = GRAVPEG_PULL * (1 - d / GRAVPEG_R), v = ph.velocity(b.body);
-          ph.setVelocity(b.body, v.x + dx / d * f, v.y + dy / d * f);
-        }
-      }
-    }
-    // Chaos Balls: whatever the physics just decided, throw the ball in a random direction at a random speed
-    applyChaos() {
-      const ph = this.physics;
-      for (const b of this.balls) {
-        if (!b.chaos) continue;
-        b.chaos = false;
-        if (!this.temps.running("chaos_balls")) continue;
-        const v = ph.velocity(b.body), sp = Math.hypot(v.x, v.y);
-        const s = Math.min(MAX_SPEED, Math.max(2.5, sp * rand(0.7, 1.4)));
-        const a = rand(0, 6.2832);
-        ph.setVelocity(b.body, s * Math.cos(a), s * Math.sin(a));
-        this.effects.burst(b.body.position.x, b.body.position.y, "#ff2bd6", 3);
-      }
-    }
-    // speed limit, trails, and every way a ball leaves play: caught, fallen out, too old, stuck, or a burnt-out gooball
-    updateBalls(dt) {
-      const ph = this.physics, bs = this.buckets.layout();
-      for (let i = this.balls.length - 1; i >= 0; i--) {
-        const b = this.balls[i], p = b.body.position, v = ph.velocity(b.body);
-        const sp = Math.hypot(v.x, v.y);
-        if (sp > MAX_SPEED) ph.setVelocity(b.body, v.x / sp * MAX_SPEED, v.y / sp * MAX_SPEED);
-        b.age += dt;
-        b.still = sp < 0.225 ? b.still + dt : 0;
-        if (b.ghost && !this.temps.running("ghost_balls") && !b.inPeg) b.ghost = false;
-        if ((++b.tick & 1) === 0) {
-          b.trail.push(p.x, p.y);
-          if (b.trail.length > 14) b.trail.splice(0, 2);
-        }
-        if (b.bomb) {
-          b.fuse -= dt;
-          b.phase += dt * (0.0126 + 0.038 * (1 - Math.max(0, b.fuse) / BOMB_FUSE));
-        }
-        const bi = v.y > 0 && b.age > 250 && p.y >= this.catchY() ? this.buckets.indexAt(bs, p.x) : -1;
-        if (bi >= 0) {
-          if (b.bomb) this.cashBomb(b, bs[bi], bi);
-          else this.catchBall(b, bs[bi], bi);
-        } else if (p.y > this.worldH + 40 || b.age > BALL_MAX_AGE || b.still > 1500 || b.expired) {
-          if (b.bomb) {
-            this.explodeBomb(b);
-            continue;
-          }
-          if (b.expired) this.effects.burst(p.x, p.y, GOO_COL, 12);
-          this.loseBall(b);
-        } else if (b.bomb && b.fuse <= 0) {
-          this.explodeBomb(b);
-        }
-      }
-    }
-    // research lab: every labInterval it gives 1 RP + Research Batch; several ticks in one step when the interval is shorter than a step
-    labTick(dt) {
-      const l = this.L("research_lab");
-      if (!l) return;
-      const iv = labInterval(l);
-      this.labT += dt;
-      if (this.labT < iv) return;
-      const n = Math.floor(this.labT / iv);
-      this.labT -= n * iv;
-      this.progress.rp += n * (1 + this.L("research_batch"));
-    }
-    step(dt) {
-      this.simT += dt;
-      this.labTick(dt);
-      this.prevLaunchX = this.launchX;
-      this.launchX = W / 2 + (W / 2 - SWEEP_MARGIN) * Math.sin(this.simT * Math.PI * 2 / SWEEP_MS);
-      this.recoil = Math.max(0, this.recoil - dt / 220);
-      this.temps.tick(dt);
-      this.updateRelax();
-      this.physics.setGravity(this.temps.running("heavy_gravity") ? GRAV_MULT : 1);
-      if (this.temps.running("ghost_balls")) for (const b of this.balls) b.ghost = true;
-      const al = this.L("auto_dropper") && 1 + this.L("faster_dropper");
-      if (al > 0 && this.autoOn) {
-        this.autoT = Math.min(this.autoT + dt, autoInterval(al));
-        if (this.autoT >= autoInterval(al) && this.launch()) this.autoT = 0;
-      }
-      for (const b of this.balls) {
-        b.px = b.body.position.x;
-        b.py = b.body.position.y;
-      }
-      this.applyGravityPegs();
-      this.physics.update(dt);
-      this.applyChaos();
-      this.updateBalls(dt);
-      this.updateArcs();
-      while (this.pendingSplit.length) {
-        const s = this.pendingSplit.pop();
-        this.splitBall(s.ball, s.peg);
-      }
-      while (this.pendingRemove.length) {
-        const pg = this.pendingRemove.pop();
-        if (pg.gone) continue;
-        pg.gone = true;
-        if (pg.evilKill) this.progress.freePegs[pg.type]++;
-        this.pegs.remove(pg);
-      }
-      this.buckets.tick(dt);
-      this.pegs.tick(dt, this.evilOn ? 0 : evilRegen(this.L("fast_healing")));
-      this.effects.tick(dt);
-    }
-  };
-
-  // src/engine/Camera.ts
-  var Camera = class {
-    constructor(worldH) {
-      __publicField(this, "worldH");
-      __publicField(this, "y");
-      __publicField(this, "vel");
-      __publicField(this, "scale");
-      __publicField(this, "viewH");
-      __publicField(this, "padTop");
-      __publicField(this, "padBot");
-      this.worldH = worldH;
-      this.y = 0;
-      this.vel = 0;
-      this.scale = 1;
-      this.viewH = 640;
-      this.padTop = 70;
-      this.padBot = 100;
-    }
-    // If the world fits between the HUD and the button bar it is centred and cannot be dragged.
-    range() {
-      const s = this.scale, worldH = this.worldH();
-      const lo = -this.padTop / s, hi = worldH + this.padBot / s - this.viewH / s;
-      if (hi >= lo) return [lo, hi];
-      const free = this.viewH - this.padTop - this.padBot;
-      const c = -(this.padTop + (free - worldH * s) / 2) / s;
-      return [c, c];
-    }
-    clamp() {
-      const [lo, hi] = this.range();
-      this.y = Math.min(hi, Math.max(lo, this.y));
-    }
-    // momentum scrolling after a drag is let go
-    coast(dt, dragging) {
-      if (!dragging && Math.abs(this.vel) > 4) {
-        this.y += this.vel * dt / 1e3;
-        this.vel *= Math.pow(0.04, dt / 1e3);
-        const [lo, hi] = this.range();
-        if (this.y < lo || this.y > hi) this.vel = 0;
-      } else if (!dragging) this.vel = 0;
-      this.clamp();
+    // a peg picture for the edit palette
+    pegIcon(type, canvas) {
+      this.pegs.pegIcon(type, canvas);
     }
   };
 
@@ -7322,7 +7865,7 @@
       const d = JSON.parse(text);
       const ok = d && typeof d === "object" && Number.isFinite(d.v) && d.levels && typeof d.levels === "object" && Array.isArray(d.pegs);
       return ok ? d : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   }
@@ -7455,7 +7998,7 @@
     else if (d.freePegs) for (const t of PEG_TYPES) p.freePegs[t] = Math.max(0, d.freePegs[t] | 0);
     migrateLevels(d, p);
     p.goo = Math.min(p.goo, p.gooCap());
-    const floor = worldHeight(p.L("deeper_world")) - PEG_R;
+    const floor = worldHeight(p.L("deeper_world"));
     for (const pt of Array.isArray(d.pegs) ? d.pegs : []) {
       if (!Array.isArray(pt) || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) continue;
       const type = pt[2] === "d" ? "dual" : SAVE_TYPE[pt[2]] || "basic";
@@ -7503,7 +8046,7 @@
       this.resetting = true;
       try {
         localStorage.removeItem(SAVE_KEY);
-      } catch (e) {
+      } catch {
       }
       location.reload();
     }
@@ -7512,7 +8055,7 @@
       this.save();
       try {
         return localStorage.getItem(SAVE_KEY) || "";
-      } catch (e) {
+      } catch {
         return "";
       }
     }
@@ -7522,7 +8065,7 @@
       if (!d) return false;
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(d));
-      } catch (e) {
+      } catch {
         return false;
       }
       this.resetting = true;
@@ -7533,7 +8076,7 @@
       if (this.resetting) return;
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(encodeSave(this.game)));
-      } catch (e) {
+      } catch {
       }
     }
     load() {
@@ -7546,8 +8089,48 @@
         if (s.labT !== void 0) g.labT = s.labT;
         g.growWorld();
         for (const pg of s.pegs) g.pegs.add(pg.x, pg.y, pg.type, pg.left, pg.dmg, pg.paid, pg.free);
-      } catch (e) {
+      } catch {
       }
+    }
+  };
+
+  // src/ui/BoardControls.ts
+  var BoardControls = class {
+    constructor(game, ui, store) {
+      __publicField(this, "game");
+      __publicField(this, "ui");
+      __publicField(this, "store");
+      this.game = game;
+      this.ui = ui;
+      this.store = store;
+    }
+    // in edit mode a drag that starts on a peg moves it
+    grab(w) {
+      return this.game.editing ? this.game.pegs.at(w.x, w.y) ?? null : null;
+    }
+    dragTo(peg, w) {
+      this.game.edit.dragPeg(peg, w.x, w.y);
+    }
+    drop(peg) {
+      this.game.edit.dropPeg(peg);
+      this.store.save();
+    }
+    tap(w) {
+      const game = this.game, ui = this.ui;
+      if (game.editing) {
+        const peg = game.pegs.at(w.x, w.y);
+        if (peg) {
+          const back = game.edit.pickUp(peg);
+          ui.toast(back ? `Peg picked up: ${back} back` : "Peg picked up");
+        } else {
+          const why = game.edit.placePeg(ui.edit.selected, w.x, w.y);
+          if (why) ui.toast(why, 2200);
+        }
+        ui.refresh();
+        this.store.save();
+        return;
+      }
+      ui.launch();
     }
   };
 
@@ -7562,9 +8145,7 @@
     if (!el) throw new Error(`${selector} is missing`);
     return el;
   }
-  var TABS = { money: "tabMoney", research: "tabRp" };
-  var SCREENS = { shop: "overlay", settings: "settings", powers: "powers" };
-  var PREFS_KEY = "neonpegs.prefs";
+  var SCREENS = { shop: "overlay", research: "research", powers: "powers", settings: "settings", system: "system" };
   var costCol = (costs) => RES_COL[Object.keys(costs)[0]] || RES_COL.money;
   var setText = (node, s) => {
     if (node._t !== s) {
@@ -7578,8 +8159,8 @@
       node.innerHTML = s;
     }
   };
-  var CUR_ICON = { money: "moneyBox", research: "rpBox", goo: "gooBox", evil: "evilBox" };
-  for (const cur of Object.keys(CUR_ICON)) CUR_ICON[cur] = child(document, `#${CUR_ICON[cur]} svg`).outerHTML;
+  var CUR_ICON = Object.fromEntries(CURRENCIES.map((c) => [c, currencySvg(c, cssInk)]));
+  var iconHtml = (text) => text.replace(/\{(money|research|goo|evil)\}/g, (_, c) => `<span class="ic">${CUR_ICON[c]}</span>`);
   var priceHtml = (price) => entries(price).map(([cur, a]) => `<span class="pc">${CUR_ICON[cur]}${fmt(a)}</span>`).join("") || "FREE";
 
   // src/ui/EditPanel.ts
@@ -7650,7 +8231,7 @@
       if (!type) return;
       const k = PEG_KINDS[type];
       this.tip.style.setProperty("--k", k.color);
-      this.tip.innerHTML = `<b>${k.name} peg</b> \xB7 ${this.priceHtml(type)}<br>${k.desc}`;
+      this.tip.innerHTML = `<b>${k.name} peg</b> \xB7 ${this.priceHtml(type)}<br>${iconHtml(k.desc)}`;
     }
     refresh() {
       const game = this.game, p = game.progress;
@@ -7663,164 +8244,211 @@
         setHtml(c.price, this.priceHtml(type));
         c.price.classList.toggle("free", p.freePegs[type] > 0);
         c.el.classList.toggle("sel", type === this.selected);
-        c.el.classList.toggle("cant", !!game.cantPlace(type));
+        c.el.classList.toggle("cant", !!game.edit.cantPlace(type));
       }
     }
   };
 
-  // src/ui/Ui.ts
-  var TAB_LIST = Object.keys(TABS);
-  var SCREEN_LIST = Object.keys(SCREENS);
-  var Ui = class {
-    constructor(game, camera, store, renderer) {
+  // src/ui/Prefs.ts
+  var PREFS_KEY = "neonpegs.prefs";
+  function loadPrefs() {
+    const prefs = { closeOnPower: true, autoFullscreen: false };
+    try {
+      Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS_KEY) || "null") || {});
+    } catch {
+    }
+    return prefs;
+  }
+  function savePrefs(prefs) {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    } catch {
+    }
+  }
+
+  // src/ui/Cards.ts
+  function makeCard(u, color) {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.style.setProperty("--card", color);
+    el.innerHTML = '<div class="info"><div class="name"><span class="n"></span><span class="lvl"></span></div><div class="desc"></div><div class="stat"></div></div><button class="buy" type="button"><span class="bl"></span><span class="bc"></span></button>';
+    return {
+      u,
+      el,
+      n: child(el, ".n"),
+      lvl: child(el, ".lvl"),
+      desc: child(el, ".desc"),
+      stat: child(el, ".stat"),
+      btn: child(el, ".buy"),
+      bl: child(el, ".bl"),
+      bc: child(el, ".bc")
+    };
+  }
+  function showLocked(c, reason) {
+    setText(c.n, "???");
+    setText(c.lvl, "");
+    setText(c.desc, reason);
+    setText(c.stat, "");
+    setText(c.bl, "LOCKED");
+    setText(c.bc, "\u{1F512}");
+    c.btn.classList.add("cant");
+    c.btn.classList.remove("maxed");
+  }
+  function settingRow(list, color, name, desc, buttons) {
+    const el = document.createElement("div");
+    el.className = "card set";
+    el.style.setProperty("--card", color);
+    el.innerHTML = `<div class="info"><div class="name">${name}</div><div class="desc">${desc}</div></div><div class="acts"></div>`;
+    const acts = child(el, ".acts"), btns = {};
+    for (const [id, label, fn] of buttons) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "buy";
+      b.innerHTML = `<span class="bc">${label}</span>`;
+      b.addEventListener("click", fn);
+      acts.appendChild(b);
+      btns[id] = b;
+    }
+    list.appendChild(el);
+    return { el, btns };
+  }
+  function makeSwitch(label) {
+    const sw = document.createElement("button");
+    sw.type = "button";
+    sw.className = "switch";
+    sw.setAttribute("role", "switch");
+    sw.setAttribute("aria-label", label);
+    return sw;
+  }
+  function setSwitch(sw, on) {
+    sw.classList.toggle("on", on);
+    sw.setAttribute("aria-checked", String(on));
+  }
+  function sortCards(cards, list) {
+    for (const c of [...cards.filter((c2) => c2.unlocked), ...cards.filter((c2) => !c2.unlocked)]) list.appendChild(c.el);
+  }
+
+  // src/ui/PowersView.ts
+  var PowersView = class {
+    // onUsed: a power was launched
+    constructor(game, onUsed) {
       __publicField(this, "game");
-      __publicField(this, "camera");
-      __publicField(this, "store");
-      __publicField(this, "d");
-      __publicField(this, "edit");
-      __publicField(this, "tab");
-      __publicField(this, "toastText");
-      __publicField(this, "toastUntil");
-      __publicField(this, "hudH");
-      __publicField(this, "screen");
-      __publicField(this, "prefs");
+      __publicField(this, "onUsed");
+      __publicField(this, "list");
       __publicField(this, "cards");
-      __publicField(this, "powCards");
-      __publicField(this, "padObserver");
-      __publicField(this, "fileInput");
-      // set in makeSettings()
-      __publicField(this, "msgT");
       __publicField(this, "order");
-      __publicField(this, "powOrder");
       this.game = game;
-      this.camera = camera;
-      this.store = store;
-      this.d = {};
-      for (const id of [
-        "app",
-        "hud",
-        "bar",
-        "hint",
-        "btns",
-        "settingsBtn",
-        "launchBtn",
-        "gooBtn",
-        "evilBtn",
-        "upBtn",
-        "editBtn",
-        "overlay",
-        "tabs",
-        "list",
-        "settings",
-        "setList",
-        "setMsg",
-        "powers",
-        "powList",
-        "money",
-        "rpBox",
-        "rpNum",
-        "gooBox",
-        "gooNum",
-        "evilBox",
-        "evilNum",
-        "stBalls",
-        "stPegs",
-        ...Object.values(TABS)
-      ]) this.d[id] = byId(id);
-      this.edit = new EditPanel(game, renderer);
-      this.tab = "money";
-      this.toastText = "";
-      this.toastUntil = 0;
-      this.hudH = -1;
-      this.screen = null;
-      this.prefs = { closeOnPower: true };
-      try {
-        Object.assign(this.prefs, JSON.parse(localStorage.getItem(PREFS_KEY) || "null") || {});
-      } catch (e) {
-      }
-      this.cards = UPGRADES.map((u) => this.makeCard(u));
-      this.powCards = POWERS.map((pw) => this.makePowerCard(pw));
-      for (const cur of TAB_LIST) this.d[TABS[cur]].addEventListener("click", () => {
-        this.tab = cur;
-        this.d.list.scrollTop = 0;
-        this.refresh();
-      });
-      this.makeSettings();
-      const d = this.d;
-      d.upBtn.addEventListener("click", () => this.toggleScreen("shop"));
-      d.launchBtn.addEventListener("click", () => {
-        game.autoOn = !game.autoOn;
-        this.refresh();
-        store.save();
-      });
-      d.settingsBtn.addEventListener("click", () => this.toggleScreen("settings"));
-      d.gooBtn.addEventListener("click", () => this.toggleScreen("powers"));
-      d.evilBtn.addEventListener("click", () => this.setEvil(!game.evilOn));
-      d.editBtn.addEventListener("click", () => this.toggleEdit());
-      if (DEBUG) this.debugResources();
-      window.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          if (game.editing) this.toggleEdit();
-          else this.showScreen(null);
-        } else if ((e.key === "e" || e.key === "E") && !e.repeat) this.setEvil(!game.evilOn);
-        else if (e.code === "Space" && !e.repeat && !game.editing) {
-          e.preventDefault();
-          this.launch();
+      this.onUsed = onUsed;
+      this.list = byId("powList");
+      this.cards = POWERS.map((pw) => this.makeCard(pw));
+    }
+    makeCard(pw) {
+      const ref = makeCard(pw, costCol(pw.costs));
+      ref.btn.addEventListener("click", () => this.use(pw));
+      if (pw.danger) ref.btn.classList.add("danger");
+      if (pw.act) ref.btn.style.setProperty("--act", pw.act);
+      this.list.appendChild(ref.el);
+      return ref;
+    }
+    use(pw) {
+      if (!this.game.economy.usePower(pw)) return false;
+      this.onUsed();
+      return true;
+    }
+    // updates every card; returns whether one can be launched right now
+    refresh() {
+      const game = this.game, p = game.progress;
+      let order = "", canUse = false;
+      for (const c of this.cards) {
+        const pw = c.u, unlocked = p.isUnlocked(pw);
+        c.unlocked = unlocked;
+        order += unlocked ? 1 : 0;
+        c.el.classList.toggle("locked", !unlocked);
+        if (!unlocked) {
+          showLocked(c, p.lockReason(pw));
+          continue;
         }
+        setText(c.n, pw.name);
+        setText(c.lvl, pw.status ? pw.status() : "");
+        setHtml(c.desc, iconHtml(pw.desc));
+        setHtml(c.stat, iconHtml(pw.stat()));
+        const tm = game.economy.timer(pw.id), ok = !tm && p.has(pw.costs);
+        if (ok) canUse = true;
+        setText(c.bl, "");
+        if (tm) setText(c.bc, tm.text || `${tm.s}s`);
+        else setHtml(c.bc, priceHtml(pw.costs));
+        c.btn.classList.toggle("active", !!tm?.active);
+        c.btn.classList.toggle("cant", !ok && !tm?.active);
+      }
+      if (order !== this.order) {
+        this.order = order;
+        sortCards(this.cards, this.list);
+      }
+      return canUse;
+    }
+  };
+
+  // src/ui/SettingsView.ts
+  var SettingsView = class {
+    // onSystem: the System row was tapped
+    constructor(modes, onSystem) {
+      __publicField(this, "rows");
+      const list = byId("settingsList");
+      this.rows = modes.map((mode) => {
+        const el = this.row(list, mode.label);
+        el.style.setProperty("--c", mode.color);
+        const sw = makeSwitch(mode.label);
+        el.append(sw);
+        el.addEventListener("click", () => mode.toggle());
+        return { mode, el, sw };
       });
-      this.padObserver = window.ResizeObserver ? new ResizeObserver(() => {
-        this.measurePads();
-        camera.clamp();
-      }) : null;
-      if (this.padObserver) {
-        this.padObserver.observe(d.hud);
-        this.padObserver.observe(d.bar);
+      const sys = this.row(list, "System");
+      sys.classList.add("nav");
+      const chev = document.createElement("span");
+      chev.className = "chev";
+      chev.textContent = "\u203A";
+      sys.append(chev);
+      sys.addEventListener("click", onSystem);
+    }
+    // a row with its label, added to list
+    row(list, text) {
+      const el = document.createElement("div");
+      el.className = "mode";
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = text;
+      el.append(label);
+      list.appendChild(el);
+      return el;
+    }
+    refresh() {
+      for (const r of this.rows) {
+        const show = r.mode.available(), on = show && r.mode.on();
+        r.el.hidden = !show;
+        setSwitch(r.sw, on);
       }
     }
-    get shopOpen() {
-      return this.screen === "shop";
-    }
-    get settingsOpen() {
-      return this.screen === "settings";
-    }
-    get powersOpen() {
-      return this.screen === "powers";
-    }
-    get panelOpen() {
-      return !!this.screen;
-    }
-    // a screen covers the board
-    // ?debug: tapping a resource counter at the top gives 10% more of it (1 when there is none; goo stays within its tank)
-    debugResources() {
-      const p = this.game.progress;
-      for (const [box, cur] of [["moneyBox", "money"], ["rpBox", "rp"], ["gooBox", "goo"], ["evilBox", "evil"]]) {
-        const el = byId(box);
-        el.style.pointerEvents = "auto";
-        el.style.cursor = "pointer";
-        el.addEventListener("click", () => {
-          p[cur] = p[cur] > 0 ? p[cur] * 1.1 : 1;
-          if (cur === "goo") p.goo = Math.min(p.goo, p.gooCap());
-          this.toast(`debug: ${cur} x1.1`, 800);
-          this.refresh();
-        });
-      }
+  };
+
+  // src/ui/ShopView.ts
+  var ShopView = class {
+    // tab: whose upgrades ('money' or 'research'); listId: the list element; onChange: something was bought (the whole UI refreshes)
+    constructor(game, tab, listId, onChange) {
+      __publicField(this, "game");
+      __publicField(this, "onChange");
+      __publicField(this, "list");
+      __publicField(this, "cards");
+      __publicField(this, "order");
+      __publicField(this, "headers");
+      this.game = game;
+      this.onChange = onChange;
+      this.list = byId(listId);
+      this.headers = { locked: this.header(LOCKED_SECTION) };
+      for (const s of SECTIONS) this.headers[s.section] = this.header(s);
+      this.cards = UPGRADES.filter((u) => u.tab === tab).map((u) => this.makeCard(u));
     }
     makeCard(u) {
-      const el = document.createElement("div");
-      el.className = "card";
-      el.style.setProperty("--c", costCol(u.costs));
-      el.innerHTML = '<div class="info"><div class="name"><span class="n"></span><span class="lvl"></span></div><div class="desc"></div><div class="stat"></div></div><button class="buy" type="button"><span class="bl"></span><span class="bc"></span></button>';
-      const ref = {
-        u,
-        el,
-        n: child(el, ".n"),
-        lvl: child(el, ".lvl"),
-        desc: child(el, ".desc"),
-        stat: child(el, ".stat"),
-        btn: child(el, ".buy"),
-        bl: child(el, ".bl"),
-        bc: child(el, ".bc")
-      };
+      const ref = makeCard(u, SECTION_COLOR[u.section]);
       let holdT, holdI, suppress = false;
       const clearHold = () => {
         clearTimeout(holdT);
@@ -7838,7 +8466,7 @@
           }, 90);
         }, 450);
       });
-      ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => ref.btn.addEventListener(ev, clearHold));
+      for (const ev of ["pointerup", "pointercancel", "pointerleave"]) ref.btn.addEventListener(ev, clearHold);
       ref.btn.addEventListener("click", () => {
         if (suppress) {
           suppress = false;
@@ -7847,87 +8475,155 @@
         this.buy(u);
       });
       ref.btn.addEventListener("contextmenu", (e) => e.preventDefault());
-      this.d.list.appendChild(el);
+      this.list.appendChild(ref.el);
       return ref;
     }
-    // a power card: like an upgrade card, but a tap launches the power (no holding: powers are busy right after)
-    makePowerCard(pw) {
+    // a section's title in the list: small centred text in its colour
+    header({ name, color }) {
       const el = document.createElement("div");
-      el.className = "card";
-      el.style.setProperty("--c", costCol(pw.costs));
-      el.innerHTML = '<div class="info"><div class="name"><span class="n"></span><span class="lvl"></span></div><div class="desc"></div><div class="stat"></div></div><button class="buy" type="button"><span class="bl"></span><span class="bc"></span></button>';
-      const ref = {
-        u: pw,
-        el,
-        n: child(el, ".n"),
-        lvl: child(el, ".lvl"),
-        desc: child(el, ".desc"),
-        stat: child(el, ".stat"),
-        btn: child(el, ".buy"),
-        bl: child(el, ".bl"),
-        bc: child(el, ".bc")
-      };
-      ref.btn.addEventListener("click", () => this.usePower(pw));
-      if (pw.danger) ref.btn.classList.add("danger");
-      if (pw.act) ref.btn.style.setProperty("--act", pw.act);
-      this.d.powList.appendChild(el);
-      return ref;
+      el.className = "section";
+      el.style.setProperty("--s", color);
+      el.textContent = name;
+      return el;
     }
-    /* ---------- settings screen: slides up like the shop and uses the same cards; one row per setting ---------- */
-    makeSettings() {
-      const list = this.d.setList, store = this.store;
-      const row = (color, name, desc, buttons) => {
-        const el = document.createElement("div");
-        el.className = "card set";
-        el.style.setProperty("--c", color);
-        el.innerHTML = `<div class="info"><div class="name">${name}</div><div class="desc">${desc}</div></div><div class="acts"></div>`;
-        const acts = child(el, ".acts"), out = {};
-        for (const [id, label, fn] of buttons) {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.className = "buy";
-          b.innerHTML = `<span class="bc">${label}</span>`;
-          b.addEventListener("click", fn);
-          acts.appendChild(b);
-          out[id] = b;
+    // each section's available cards under its title (in section order), then every locked card under "Locked";
+    // a title with no cards under it is hidden
+    arrange() {
+      const groups = SECTIONS.map((s) => [this.headers[s.section], this.cards.filter((c) => c.unlocked && c.u.section === s.section)]);
+      groups.push([this.headers.locked, this.cards.filter((c) => !c.unlocked)]);
+      for (const [header, cards] of groups) {
+        header.hidden = !cards.length;
+        this.list.appendChild(header);
+        for (const c of cards) this.list.appendChild(c.el);
+      }
+    }
+    buy(u) {
+      if (!this.game.economy.buy(u)) return false;
+      this.onChange();
+      return true;
+    }
+    // updates every card; returns whether something can be bought
+    refresh() {
+      const p = this.game.progress;
+      let order = "", canAfford = false;
+      for (const c of this.cards) {
+        const u = c.u, unlocked = p.isUnlocked(u), maxed = p.isMaxed(u), l = p.L(u.id);
+        c.unlocked = unlocked;
+        order += unlocked ? 1 : 0;
+        c.el.classList.toggle("locked", !unlocked);
+        if (!unlocked) {
+          showLocked(c, p.lockReason(u));
+          continue;
         }
-        list.appendChild(el);
-        return out;
+        const once = u.max === 1;
+        setText(c.n, u.name);
+        setText(c.lvl, once ? l ? "OWNED" : "" : maxed ? `Lv ${l} \xB7 MAX` : `Lv ${l}`);
+        setHtml(c.desc, iconHtml(u.desc));
+        setHtml(c.stat, iconHtml(once ? u.stat(1) : maxed ? u.stat(l) : `${u.stat(l)}  \u2192  ${u.stat(l + 1)}`));
+        const afford = !maxed && p.canAfford(u);
+        if (afford) canAfford = true;
+        setText(c.bl, maxed ? once ? "OWNED" : "MAXED" : "");
+        setHtml(c.bc, maxed ? "\u2713" : priceHtml(p.price(u)));
+        c.btn.classList.toggle("cant", !afford && !maxed);
+        c.btn.classList.toggle("maxed", maxed);
+      }
+      if (order !== this.order) {
+        this.order = order;
+        this.arrange();
+      }
+      return canAfford;
+    }
+  };
+
+  // src/ui/Fullscreen.ts
+  var Fullscreen = class {
+    // taps on this do not count (the auto fullscreen switch itself)
+    // auto: whether auto fullscreen is switched on
+    constructor(auto) {
+      __publicField(this, "supported");
+      __publicField(this, "on");
+      // cached, kept up to date by the browser's events: a tap reads no DOM
+      __publicField(this, "pending");
+      // a request is under way (no second one meanwhile)
+      __publicField(this, "skip");
+      const doc = document;
+      this.supported = !!(doc.fullscreenEnabled || doc.webkitFullscreenEnabled);
+      this.on = !!(doc.fullscreenElement || doc.webkitFullscreenElement);
+      this.pending = false;
+      this.skip = null;
+      const sync = () => {
+        this.on = !!(doc.fullscreenElement || doc.webkitFullscreenElement);
       };
-      const fsOk = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
-      const fs = row(
-        "#19f5ff",
-        "Fullscreen",
-        fsOk ? "Hide the browser bars and fill the whole screen." : "This browser does not allow fullscreen.",
-        [["b", "", () => this.toggleFullscreen()]]
-      ).b;
-      const fsLabel = child(fs, ".bc");
-      const fsUpdate = () => setText(fsLabel, document.fullscreenElement || document.webkitFullscreenElement ? "EXIT FULLSCREEN" : "ENTER FULLSCREEN");
-      fs.classList.toggle("cant", !fsOk);
-      fsUpdate();
-      document.addEventListener("fullscreenchange", fsUpdate);
-      document.addEventListener("webkitfullscreenchange", fsUpdate);
-      const pow = row(
-        "#6bff1f",
+      doc.addEventListener("fullscreenchange", sync);
+      doc.addEventListener("webkitfullscreenchange", sync);
+      if (this.supported) doc.addEventListener("pointerup", (e) => {
+        if (!this.on && !this.pending && auto() && !this.skip?.contains(e.target)) this.enter();
+      }, { capture: true, passive: true });
+    }
+    // asks for fullscreen (from a tap or click); a refusal is silent, the next tap simply tries again
+    enter() {
+      const el = document.documentElement, request = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!this.supported || this.on || !request) return;
+      this.pending = true;
+      const done = () => {
+        this.pending = false;
+      };
+      const p = request.call(el);
+      if (p?.then) p.then(done, done);
+      else done();
+    }
+  };
+
+  // src/ui/SystemView.ts
+  var SystemView = class {
+    constructor(store, prefs) {
+      __publicField(this, "store");
+      __publicField(this, "prefs");
+      __publicField(this, "list");
+      __publicField(this, "msg");
+      __publicField(this, "fileInput");
+      __publicField(this, "msgT");
+      __publicField(this, "fullscreen");
+      this.store = store;
+      this.prefs = prefs;
+      this.list = byId("sysList");
+      this.msg = byId("sysMsg");
+      this.fullscreen = new Fullscreen(() => prefs.autoFullscreen);
+      const fsOk = this.fullscreen.supported;
+      const fsCard = settingRow(this.list, COLORS.system.fullscreen, "Auto fullscreen", fsOk ? "Any tap goes back to fullscreen when you are not in it (hides the browser bars)." : "This browser does not allow fullscreen.", []).el;
+      fsCard.classList.add("sw");
+      const fs = makeSwitch("Auto fullscreen");
+      fs.disabled = !fsOk;
+      child(fsCard, ".acts").append(fs);
+      this.fullscreen.skip = fs;
+      setSwitch(fs, fsOk && prefs.autoFullscreen);
+      fs.addEventListener("click", () => {
+        prefs.autoFullscreen = !prefs.autoFullscreen;
+        savePrefs(prefs);
+        setSwitch(fs, prefs.autoFullscreen);
+        if (prefs.autoFullscreen) this.fullscreen.enter();
+      });
+      const pow = this.row(
+        COLORS.system.powers,
         "Powers",
         "Close the Powers screen after launching a power, so you can watch it work.",
         [["b", "", () => {
-          this.prefs.closeOnPower = !this.prefs.closeOnPower;
-          this.savePrefs();
+          prefs.closeOnPower = !prefs.closeOnPower;
+          savePrefs(prefs);
           powUpdate();
         }]]
       ).b;
-      const powUpdate = () => setText(child(pow, ".bc"), this.prefs.closeOnPower ? "CLOSE AFTER LAUNCH: ON" : "CLOSE AFTER LAUNCH: OFF");
+      const powUpdate = () => setText(child(pow, ".bc"), prefs.closeOnPower ? "CLOSE AFTER LAUNCH: ON" : "CLOSE AFTER LAUNCH: OFF");
       powUpdate();
-      row("#b6ff2e", "Export save", "Download your progress as a file, or copy it as text, to keep it safe or move it to another device.", [
+      this.row(COLORS.system.exportSave, "Export save", "Download your progress as a file, or copy it as text, to keep it safe or move it to another device.", [
         ["file", "DOWNLOAD", () => this.exportFile()],
         ["copy", "COPY", () => this.exportCopy()]
       ]);
-      row("#8a5bff", "Import save", "Replace your current progress with a saved file or with copied text.", [
+      this.row(COLORS.system.importSave, "Import save", "Replace your current progress with a saved file or with copied text.", [
         ["file", "FROM FILE", () => this.fileInput.click()],
         ["paste", "PASTE", () => this.importPaste()]
       ]);
-      row("#ff2a3d", "Reset game data", "Erase all progress and start over.", [
+      this.row(COLORS.system.reset, "Reset game data", "Erase all progress and start over.", [
         ["reset", "RESET", () => {
           if (confirm("Erase all progress and start over?")) store.reset();
         }]
@@ -7941,15 +8637,13 @@
         if (file) file.text().then((t) => this.importText(t), () => this.setMsg("Could not read that file", true));
       });
     }
-    savePrefs() {
-      try {
-        localStorage.setItem(PREFS_KEY, JSON.stringify(this.prefs));
-      } catch (e) {
-      }
+    // a setting card in this screen; returns its buttons by id
+    row(color, name, desc, buttons) {
+      return settingRow(this.list, color, name, desc, buttons).btns;
     }
-    // feedback line at the top of the settings screen (the hint under the board is hidden while a screen is open)
+    // feedback line at the top of the system screen (the hint under the board is hidden while a screen is open)
     setMsg(text, err = false) {
-      const m = this.d.setMsg;
+      const m = this.msg;
       m.textContent = text;
       m.classList.toggle("err", err);
       clearTimeout(this.msgT);
@@ -7957,19 +8651,8 @@
         m.textContent = "";
       }, 5e3);
     }
-    toggleFullscreen() {
-      const doc = document, el = doc.documentElement;
-      if (doc.fullscreenElement || doc.webkitFullscreenElement) {
-        (doc.exitFullscreen || doc.webkitExitFullscreen).call(doc);
-        return;
-      }
-      const request = el.requestFullscreen || el.webkitRequestFullscreen;
-      if (!request) {
-        this.setMsg("Fullscreen is not supported by this browser", true);
-        return;
-      }
-      const p = request.call(el);
-      if (p && p.catch) p.catch(() => this.setMsg("The browser refused fullscreen", true));
+    clearMsg() {
+      this.msg.textContent = "";
     }
     exportFile() {
       const text = this.store.exportText();
@@ -7993,24 +8676,186 @@
         return;
       }
       const fallback = () => window.prompt("Copy your save (Ctrl+C):", text);
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => this.setMsg("Save copied to the clipboard"), fallback);
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => this.setMsg("Save copied to the clipboard"), fallback);
       else fallback();
     }
     importPaste() {
       const go = (t) => t ? this.importText(t) : this.setMsg("Nothing to import", true);
       const ask = () => go(window.prompt("Paste your save here:"));
-      if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(go, ask);
+      if (navigator.clipboard?.readText) navigator.clipboard.readText().then(go, ask);
       else ask();
     }
     // checks the text, asks before replacing the progress, then the page reloads with the new save
     importText(text) {
-      text = String(text).trim();
-      if (!parseSave(text)) {
+      const t = String(text).trim();
+      if (!parseSave(t)) {
         this.setMsg("That is not a valid Neon Pegs save", true);
         return;
       }
       if (!confirm("Replace your current progress with this save?")) return;
-      if (!this.store.import(text)) this.setMsg("Could not store the save", true);
+      if (!this.store.import(t)) this.setMsg("Could not store the save", true);
+    }
+  };
+
+  // src/ui/Toast.ts
+  var Toast = class {
+    constructor() {
+      __publicField(this, "text");
+      __publicField(this, "until");
+      this.text = "";
+      this.until = 0;
+    }
+    show(text, ms = 1600) {
+      this.text = text;
+      this.until = performance.now() + ms;
+    }
+    // the message while it lasts, else null
+    current() {
+      return performance.now() < this.until ? this.text : null;
+    }
+  };
+
+  // src/ui/Ui.ts
+  var SCREEN_LIST = Object.keys(SCREENS);
+  var Ui = class {
+    constructor(game, camera, store, renderer) {
+      __publicField(this, "game");
+      __publicField(this, "camera");
+      __publicField(this, "store");
+      __publicField(this, "d");
+      __publicField(this, "prefs");
+      __publicField(this, "edit");
+      __publicField(this, "shop");
+      __publicField(this, "research");
+      __publicField(this, "powers");
+      __publicField(this, "settings");
+      __publicField(this, "system");
+      __publicField(this, "toaster");
+      __publicField(this, "hudH");
+      __publicField(this, "screen");
+      __publicField(this, "padObserver");
+      this.game = game;
+      this.camera = camera;
+      this.store = store;
+      this.d = {};
+      for (const id of [
+        "app",
+        "hud",
+        "bar",
+        "hint",
+        "btns",
+        "settingsBtn",
+        "editBtn",
+        "upBtn",
+        "researchBtn",
+        "powersBtn",
+        "doneBtn",
+        ...Object.values(SCREENS),
+        "money",
+        "rpBox",
+        "rpNum",
+        "gooBox",
+        "gooNum",
+        "evilBox",
+        "evilNum",
+        "stBalls",
+        "stPegs"
+      ]) this.d[id] = byId(id);
+      for (const [box, c] of [["moneyBox", "money"], ["rpBox", "research"], ["gooBox", "goo"], ["evilBox", "evil"]]) byId(box).insertAdjacentHTML("afterbegin", CUR_ICON[c]);
+      this.prefs = loadPrefs();
+      this.edit = new EditPanel(game, renderer);
+      this.shop = new ShopView(game, "money", "list", () => this.refresh());
+      this.research = new ShopView(game, "research", "resList", () => this.refresh());
+      this.powers = new PowersView(game, () => {
+        if (this.prefs.closeOnPower) this.showScreen(null);
+        else this.refresh();
+      });
+      this.settings = new SettingsView(this.modeList(), () => this.showScreen("system"));
+      this.system = new SystemView(store, this.prefs);
+      this.toaster = new Toast();
+      this.hudH = -1;
+      this.screen = null;
+      const d = this.d;
+      d.upBtn.addEventListener("click", () => this.toggleScreen("shop"));
+      d.researchBtn.addEventListener("click", () => this.toggleScreen("research"));
+      d.settingsBtn.addEventListener("click", () => this.showScreen(this.settingsOpen || this.systemOpen ? null : "settings"));
+      d.powersBtn.addEventListener("click", () => this.toggleScreen("powers"));
+      d.editBtn.addEventListener("click", () => this.toggleEdit());
+      d.doneBtn.addEventListener("click", () => this.toggleEdit());
+      if (DEBUG) this.debugResources();
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          if (game.editing) this.toggleEdit();
+          else this.showScreen(null);
+        } else if ((e.key === "e" || e.key === "E") && !e.repeat) this.setEvil(!game.evilOn);
+        else if (e.code === "Space" && !e.repeat && !game.editing) {
+          e.preventDefault();
+          this.launch();
+        }
+      });
+      this.padObserver = window.ResizeObserver ? new ResizeObserver(() => {
+        this.measurePads();
+        camera.clamp();
+      }) : null;
+      if (this.padObserver) {
+        this.padObserver.observe(d.hud);
+        this.padObserver.observe(d.bar);
+      }
+    }
+    get shopOpen() {
+      return this.screen === "shop";
+    }
+    get researchOpen() {
+      return this.screen === "research";
+    }
+    get powersOpen() {
+      return this.screen === "powers";
+    }
+    get settingsOpen() {
+      return this.screen === "settings";
+    }
+    get systemOpen() {
+      return this.screen === "system";
+    }
+    get panelOpen() {
+      return !!this.screen && !this.settingsOpen;
+    }
+    // a screen covers the board (the settings panel only covers half of it)
+    // the switches in the settings panel
+    modeList() {
+      const game = this.game;
+      return [{
+        label: "Auto launch balls",
+        color: COLORS.ui.autoLaunch,
+        available: () => game.L("auto_dropper") > 0,
+        on: () => game.autoOn,
+        toggle: () => {
+          game.autoOn = !game.autoOn;
+          this.refresh();
+          this.store.save();
+        }
+      }, {
+        label: "Evil damage (E)",
+        color: COLORS.theme.evil,
+        available: () => game.L("evil") > 0,
+        on: () => game.evilOn,
+        toggle: () => this.setEvil(!game.evilOn)
+      }];
+    }
+    // ?debug: tapping a resource counter at the top gives 10% more of it (1 when there is none; goo stays within its tank)
+    debugResources() {
+      const p = this.game.progress;
+      for (const [box, cur] of [["moneyBox", "money"], ["rpBox", "rp"], ["gooBox", "goo"], ["evilBox", "evil"]]) {
+        const el = byId(box);
+        el.style.pointerEvents = "auto";
+        el.style.cursor = "pointer";
+        el.addEventListener("click", () => {
+          p[cur] = p[cur] > 0 ? p[cur] * 1.1 : 1;
+          if (cur === "goo") p.goo = Math.min(p.goo, p.gooCap());
+          this.toast(`debug: ${cur} x1.1`, 800);
+          this.refresh();
+        });
+      }
     }
     // one screen at a time over the board (null closes it); the screens stop above the button bar
     showScreen(name) {
@@ -8022,43 +8867,31 @@
         el.setAttribute("aria-hidden", on ? "false" : "true");
       }
       d.app.classList.toggle("ov", !!name);
-      if (name) d.app.style.setProperty("--barH", d.bar.offsetHeight + "px");
-      if (name === "settings") d.setMsg.textContent = "";
+      if (name) d.app.style.setProperty("--barH", `${d.bar.offsetHeight}px`);
+      if (name === "system") this.system.clearMsg();
       this.refresh();
     }
     toggleScreen(name) {
       this.showScreen(this.screen === name ? null : name);
     }
-    buy(u) {
-      if (!this.game.buy(u)) return false;
-      this.refresh();
-      return true;
-    }
-    usePower(pw) {
-      if (!this.game.usePower(pw)) return false;
-      if (this.prefs.closeOnPower) this.showScreen(null);
-      else this.refresh();
-      return true;
-    }
     launch() {
-      if (this.game.launch()) return;
-      this.toast(this.game.maxBalls() === 1 ? "A ball is already in play" : "All balls are in play");
+      if (this.game.ballSystem.launch()) return;
+      this.toast(this.game.ballSystem.maxBalls() === 1 ? "A ball is already in play" : "All balls are in play");
     }
     toast(t, ms = 1600) {
-      this.toastText = t;
-      this.toastUntil = performance.now() + ms;
+      this.toaster.show(t, ms);
     }
     // edit mode on/off: the bottom bar swaps its buttons for the peg palette, and the game stands still meanwhile
     toggleEdit() {
       const game = this.game, d = this.d;
       if (game.editing) {
-        game.exitEdit();
+        game.edit.exit();
         this.edit.showTip(null);
         d.app.classList.remove("edit");
         this.store.save();
       } else {
         this.showScreen(null);
-        const refund = game.enterEdit();
+        const refund = game.edit.enter();
         if (Object.keys(refund).length) this.toast(`Special ball cleared: +${costText(refund)}`, 2400);
         d.app.classList.add("edit");
       }
@@ -8074,7 +8907,7 @@
       const d = this.d, h = d.hud.offsetHeight;
       if (h !== this.hudH) {
         this.hudH = h;
-        d.app.style.setProperty("--hudH", h + "px");
+        d.app.style.setProperty("--hudH", `${h}px`);
       }
       this.camera.padTop = h - 6;
       if (!d.app.classList.contains("ov")) this.camera.padBot = d.bar.offsetHeight;
@@ -8091,244 +8924,35 @@
       if (!hasEvil && game.evilOn) this.setEvil(false);
       d.evilBox.classList.toggle("on", hasEvil);
       if (hasEvil) setText(d.evilNum, evFmt(Math.floor(p.evil * 100) / 100));
-      d.evilBtn.classList.toggle("locked", !hasEvil);
-      d.evilBtn.classList.toggle("on", game.evilOn);
-      d.settingsBtn.classList.toggle("on", this.settingsOpen);
-      d.gooBtn.classList.toggle("locked", !hasGoo);
-      d.gooBtn.classList.toggle("on", this.powersOpen);
-      setText(d.stBalls, `${fmt(game.ballLoad())}/${game.maxBalls()}`);
+      this.settings.refresh();
+      d.settingsBtn.classList.toggle("on", this.settingsOpen || this.systemOpen);
+      d.powersBtn.classList.toggle("locked", !hasGoo);
+      d.powersBtn.classList.toggle("on", this.powersOpen);
+      d.researchBtn.classList.toggle("locked", !hasRp);
+      d.researchBtn.classList.toggle("on", this.researchOpen);
+      setText(d.stBalls, `${fmt(game.ballSystem.load())}/${game.ballSystem.maxBalls()}`);
       setText(d.stPegs, `${pegs.used()}/${p.slots()}`);
-      setText(d.editBtn, game.editing ? "DONE" : "EDIT");
-      const hasAuto = p.L("auto_dropper") > 0;
-      d.launchBtn.classList.toggle("locked", !hasAuto);
-      d.launchBtn.classList.toggle("on", game.autoOn);
-      d.launchBtn.classList.toggle("cant", !game.autoOn);
-      const canAfford = this.refreshCards();
-      const canUse = this.refreshPowers();
-      d.gooBtn.classList.toggle("alert", canUse && !this.powersOpen);
+      const canBuy = this.shop.refresh(), canResearch = this.research.refresh(), canUse = this.powers.refresh();
+      d.powersBtn.classList.toggle("alert", canUse && !this.powersOpen);
+      d.researchBtn.classList.toggle("alert", hasRp && canResearch && !this.researchOpen);
       const open = this.shopOpen;
-      d.upBtn.classList.toggle("alert", Object.keys(canAfford).length > 0 && !open);
-      d.upBtn.classList.toggle("open", open);
-      d.tabs.classList.toggle("on", hasRp);
-      if (!hasRp) this.tab = "money";
-      for (const cur of TAB_LIST) {
-        d[TABS[cur]].classList.toggle("sel", this.tab === cur);
-        d[TABS[cur]].classList.toggle("alert", !!canAfford[cur] && this.tab !== cur);
-      }
+      d.upBtn.classList.toggle("alert", canBuy && !open);
+      d.upBtn.classList.toggle("on", open);
       let h = "", pulse = false;
       const freeSlots = p.slots() - pegs.used(), canPay = p.has(PEG_KINDS.basic.costs) || Object.values(p.freePegs).some((n) => n > 0);
-      if (performance.now() < this.toastUntil) h = this.toastText;
+      const toast = this.toaster.current();
+      if (toast !== null) h = toast;
       else if (game.editing) h = "Tap: place \xB7 tap a peg: remove \xB7 drag: move";
       else if (pegs.list.length === 0) {
-        h = canPay ? "Tap EDIT to place your first peg" : "Tap to launch when the cannon is over the bucket";
+        h = canPay ? "Tap \u270E to place your first peg" : "Tap to launch when the cannon is over the bucket";
         pulse = true;
       } else if (freeSlots > 0 && canPay) {
-        h = `${freeSlots} free slot${freeSlots > 1 ? "s" : ""}: tap EDIT to place pegs`;
+        h = `${freeSlots} free slot${freeSlots > 1 ? "s" : ""}: tap \u270E to place pegs`;
         pulse = true;
       }
-      setText(d.hint, h);
+      setHtml(d.hint, iconHtml(h));
       d.hint.classList.toggle("pulse", pulse);
       if (game.editing) this.edit.refresh();
-    }
-    // updates every upgrade card; returns which currencies can buy something ({ money: true, ... })
-    refreshCards() {
-      const game = this.game, p = game.progress, canAfford = {};
-      let order = "";
-      for (const c of this.cards) {
-        const u = c.u, unlocked = p.isUnlocked(u), maxed = p.isMaxed(u), l = p.L(u.id);
-        c.unlocked = unlocked;
-        order += unlocked ? 1 : 0;
-        c.el.classList.toggle("locked", !unlocked);
-        c.el.classList.toggle("hid", u.tab !== this.tab);
-        if (!unlocked) {
-          setText(c.n, "???");
-          setText(c.lvl, "");
-          setText(c.desc, p.lockReason(u));
-          setText(c.stat, "");
-          setText(c.bl, "LOCKED");
-          setText(c.bc, "\u{1F512}");
-          c.btn.classList.add("cant");
-          c.btn.classList.remove("maxed");
-          continue;
-        }
-        const once = u.max === 1;
-        setText(c.n, u.name);
-        setText(c.lvl, once ? l ? "OWNED" : "" : maxed ? `Lv ${l} \xB7 MAX` : `Lv ${l}`);
-        setText(c.desc, u.desc);
-        setText(c.stat, once ? u.stat(1) : maxed ? u.stat(l) : `${u.stat(l)}  \u2192  ${u.stat(l + 1)}`);
-        const afford = !maxed && p.canAfford(u);
-        if (afford) canAfford[u.tab] = true;
-        setText(c.bl, maxed ? once ? "OWNED" : "MAXED" : "");
-        setHtml(c.bc, maxed ? "\u2713" : priceHtml(p.price(u)));
-        c.btn.classList.toggle("cant", !afford && !maxed);
-        c.btn.classList.toggle("maxed", maxed);
-      }
-      if (order !== this.order) {
-        this.order = order;
-        this.sortCards(this.cards, this.d.list);
-      }
-      return canAfford;
-    }
-    // updates every power card; returns whether one can be launched right now
-    refreshPowers() {
-      const game = this.game, p = game.progress;
-      let order = "", canUse = false;
-      for (const c of this.powCards) {
-        const pw = c.u, unlocked = p.isUnlocked(pw);
-        c.unlocked = unlocked;
-        order += unlocked ? 1 : 0;
-        c.el.classList.toggle("locked", !unlocked);
-        if (!unlocked) {
-          setText(c.n, "???");
-          setText(c.lvl, "");
-          setText(c.desc, p.lockReason(pw));
-          setText(c.stat, "");
-          setText(c.bl, "LOCKED");
-          setText(c.bc, "\u{1F512}");
-          c.btn.classList.add("cant");
-          continue;
-        }
-        setText(c.n, pw.name);
-        setText(c.lvl, pw.status ? pw.status() : "");
-        setText(c.desc, pw.desc);
-        setText(c.stat, pw.stat());
-        const tm = game.timer(pw.id), ok = !tm && p.has(pw.costs);
-        if (ok) canUse = true;
-        setText(c.bl, "");
-        if (tm) setText(c.bc, tm.text || tm.s + "s");
-        else setHtml(c.bc, priceHtml(pw.costs));
-        c.btn.classList.toggle("active", !!(tm && tm.active));
-        c.btn.classList.toggle("cant", !ok && !(tm && tm.active));
-      }
-      if (order !== this.powOrder) {
-        this.powOrder = order;
-        this.sortCards(this.powCards, this.d.powList);
-      }
-      return canUse;
-    }
-    // available cards first, then the locked ones, each group in its list order
-    sortCards(cards, list) {
-      for (const c of [...cards.filter((c2) => c2.unlocked), ...cards.filter((c2) => !c2.unlocked)]) list.appendChild(c.el);
-    }
-  };
-
-  // src/engine/Input.ts
-  var Input = class {
-    constructor(canvas, game, camera, ui, store) {
-      __publicField(this, "canvas");
-      __publicField(this, "game");
-      __publicField(this, "camera");
-      __publicField(this, "ui");
-      __publicField(this, "store");
-      __publicField(this, "drag");
-      __publicField(this, "hover");
-      this.canvas = canvas;
-      this.game = game;
-      this.camera = camera;
-      this.ui = ui;
-      this.store = store;
-      this.drag = null;
-      this.hover = null;
-      canvas.addEventListener("pointerdown", (e) => {
-        canvas.setPointerCapture(e.pointerId);
-        const w = this.toWorld(e.clientX, e.clientY);
-        const peg = game.editing ? game.pegs.at(w.x, w.y) : null;
-        this.drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, cam0: camera.y, lastX: e.clientX, lastY: e.clientY, lastT: performance.now(), moved: false, peg };
-        camera.vel = 0;
-      });
-      canvas.addEventListener("pointermove", (e) => this.move(e));
-      canvas.addEventListener("pointerup", (e) => this.end(e, false));
-      canvas.addEventListener("pointercancel", (e) => this.end(e, true));
-      canvas.addEventListener("pointerleave", (e) => {
-        if (e.pointerType === "mouse") this.hover = null;
-      });
-      canvas.addEventListener("wheel", (e) => {
-        e.preventDefault();
-        const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * camera.viewH : e.deltaY;
-        camera.vel = 0;
-        camera.y += px / camera.scale;
-        camera.clamp();
-        this.hover = this.toWorld(e.clientX, e.clientY);
-      }, { passive: false });
-    }
-    get dragging() {
-      return !!this.drag;
-    }
-    get editType() {
-      return this.ui.edit.selected;
-    }
-    // the peg type picked in the edit palette
-    toWorld(cx, cy) {
-      const r = this.canvas.getBoundingClientRect();
-      return { x: (cx - r.left) / this.camera.scale, y: (cy - r.top) / this.camera.scale + this.camera.y };
-    }
-    move(e) {
-      const drag = this.drag, cam = this.camera;
-      if (e.pointerType === "mouse") this.hover = this.toWorld(e.clientX, e.clientY);
-      if (!drag || e.pointerId !== drag.id) return;
-      const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
-      if (!drag.moved && Math.hypot(dx, dy) > 8) drag.moved = true;
-      if (!drag.moved) return;
-      if (drag.peg) {
-        drag.lastX = e.clientX;
-        drag.lastY = e.clientY;
-        const w = this.toWorld(e.clientX, e.clientY);
-        this.game.dragPeg(drag.peg, w.x, w.y);
-        return;
-      }
-      cam.y = drag.cam0 - dy / cam.scale;
-      cam.clamp();
-      const now = performance.now(), dt = now - drag.lastT;
-      if (dt > 0) {
-        const v = (drag.lastY - e.clientY) / cam.scale / dt * 1e3;
-        cam.vel = cam.vel * 0.5 + v * 0.5;
-      }
-      drag.lastY = e.clientY;
-      drag.lastT = now;
-    }
-    end(e, cancelled) {
-      const d = this.drag;
-      if (!d || e.pointerId !== d.id) return;
-      this.drag = null;
-      if (d.peg && d.moved) {
-        this.game.dropPeg(d.peg);
-        this.store.save();
-        return;
-      }
-      if (cancelled) return;
-      if (!d.moved) {
-        this.camera.vel = 0;
-        this.tap(this.toWorld(e.clientX, e.clientY));
-      } else if (performance.now() - d.lastT > 90) this.camera.vel = 0;
-    }
-    // while a peg is dragged near the top or bottom of the visible board, the board scrolls along
-    update(dt) {
-      const d = this.drag;
-      if (!d || !d.peg || !d.moved) return;
-      const cam = this.camera, y = d.lastY - this.canvas.getBoundingClientRect().top, edge = 48;
-      const dir = y < cam.padTop + edge ? -1 : y > cam.viewH - cam.padBot - edge ? 1 : 0;
-      if (!dir) return;
-      cam.y += dir * 420 / cam.scale * dt / 1e3;
-      cam.clamp();
-      const w = this.toWorld(d.lastX, d.lastY);
-      this.game.dragPeg(d.peg, w.x, w.y);
-    }
-    tap(w) {
-      const game = this.game, ui = this.ui;
-      if (game.editing) {
-        const peg = game.pegs.at(w.x, w.y);
-        if (peg) {
-          const back = game.pickUp(peg);
-          ui.toast(back ? `Peg picked up: ${back} back` : "Peg picked up");
-        } else {
-          const why = game.placePeg(this.editType, w.x, w.y);
-          if (why) ui.toast(why, 2200);
-        }
-        ui.refresh();
-        this.store.save();
-        return;
-      }
-      ui.launch();
     }
   };
 
@@ -8339,6 +8963,7 @@
       __publicField(this, "camera");
       __publicField(this, "store");
       __publicField(this, "renderer");
+      __publicField(this, "scene");
       __publicField(this, "ui");
       __publicField(this, "input");
       __publicField(this, "last");
@@ -8351,9 +8976,19 @@
       this.game = new Game();
       this.camera = new Camera(() => this.game.worldH);
       this.store = new SaveStore(this.game);
-      this.renderer = new GameRenderer(byId("game"), this.game, this.camera);
-      this.ui = new Ui(this.game, this.camera, this.store, this.renderer);
-      this.input = new Input(this.renderer.canvas, this.game, this.camera, this.ui, this.store);
+      this.renderer = new Renderer(byId("game"), this.camera, W);
+      this.renderer.icons = currencyImages();
+      this.scene = new GameRenderer(this.renderer, this.game);
+      this.ui = new Ui(this.game, this.camera, this.store, this.scene);
+      const input = this.input = new Input(this.renderer.canvas, this.camera, new BoardControls(this.game, this.ui, this.store));
+      const edit = this.ui.edit;
+      this.scene.view = { get hover() {
+        return input.hover;
+      }, get dragging() {
+        return input.dragging;
+      }, get editType() {
+        return edit.selected;
+      } };
       this.store.autosave();
       window.addEventListener("resize", () => this.resize());
       window.addEventListener("orientationchange", () => setTimeout(() => this.resize(), 150));
@@ -8412,7 +9047,7 @@
       this.input.update(dt);
       this.camera.coast(dt, this.input.dragging);
       this.skipRender = this.ui.panelOpen && !this.skipRender;
-      if (!this.skipRender) this.renderer.render(this.acc / STEP, this.input);
+      if (!this.skipRender) this.renderer.render(this.acc / STEP, this.scene);
       if (DEBUG) this.debug(raw, t1 - t0, performance.now() - t1);
       this.uiT += dt;
       if (this.uiT > 100 || this.game.uiDirty) {
@@ -8436,6 +9071,7 @@
   };
 
   // src/main.ts
+  applyCssColors(document.documentElement);
   new App().start();
 })();
 /*! Bundled license information:
