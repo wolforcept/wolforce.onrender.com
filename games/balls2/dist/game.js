@@ -4825,7 +4825,7 @@
       gooLight: "#dcffbe",
       // the rim of a goo cap
       evil: "#ff2a3d",
-      // evil: counter, section, switch, damaged pegs, the bomb ball
+      // evil: counter, section, switch, damaged pegs, the bomb
       bucket: "#b6ff2e",
       // buckets, what lands in them, the Bucket section
       bucketBetween: "#ff9d1a",
@@ -4841,17 +4841,41 @@
       splitter: "#4da3ff",
       // splitter pegs
       gravity: "#2effb0",
-      // gravity pegs and their reach
+      // gravity pegs and their reach, the downdraft
       alchemy: "#8a6a12",
       // an alchemy peg that has not charged up
       electric: "#4dd2ff",
-      // the electric ball, its arcs and power card
+      // the electric field and its arcs
       electricLight: "#e8fbff",
       // its core, sparks and the white inside lightning
-      repulsion: "#ff4fd8",
-      // repulsion field
+      balance: "#ff4fd8",
+      // balance field
       chaos: "#ff2bd6",
-      // chaos ball sparks
+      // chaos zone and its sparks
+      ghost: "#c9c2ff",
+      // ghost zone
+      dead: "#8f9bbf",
+      // dead zone
+      power: "#a9a6c8",
+      // an empty power peg (a loaded one takes its power's colour)
+      antigravity: "#ff8a3d",
+      // anti-gravity pegs and their reach
+      bouncy: "#ff66c4",
+      // bouncy pegs
+      wallPeg: "#6f6a9a",
+      // wall pegs: big, dull, pay nothing
+      blink: "#f4a7ff",
+      // blinking pegs
+      limiter: "#ffbe5c",
+      // cannon limiter pegs on the ceiling
+      laser: "#ff3b6b",
+      // the laser beam and its power
+      slider: "#5ce1e6",
+      // slider pegs and their track
+      spinner: "#ffb547",
+      // spinner bars
+      orbit: "#c3f73a",
+      // orbit pegs and their circle
       cannon: "#ff9d1a",
       cannonBody: "#1a1038",
       explosion: "#ff9d1a",
@@ -4895,7 +4919,7 @@
       locked: "#5d5a82",
       // locked cards, buttons and the Locked section
       positive: "#b6ff2e",
-      // the hint line, "something to buy" dots, success messages, free pegs
+      // the hint line, success messages, free pegs
       error: "#ff2a3d",
       // error messages
       negative: "#ff5a6a",
@@ -4910,11 +4934,10 @@
     },
     // the system screen's cards
     system: {
-      fullscreen: "#19f5ff",
-      powers: "#6bff1f",
-      exportSave: "#b6ff2e",
-      importSave: "#8a5bff",
-      reset: "#ff2a3d"
+      accent: "#b9b4e0",
+      // section titles and switches: calm, one colour for the whole screen
+      danger: "#e0576a"
+      // reset
     },
     // the board turned red while Evil is on
     evilMode: {
@@ -4927,9 +4950,8 @@
     detail: {
       pegBody: "#0b0825",
       // the inside of every peg
-      bombHot: "#ffd0d4",
-      // the bomb blinking in its last seconds
-      bombTimer: "#ff6b78"
+      bombHot: "#ffd0d4"
+      // the bomb's fuse blinking
     }
   };
   var BALL_GLOWS = ["#3d8bff", "#4da3ff", "#19a8ff", "#5b7bff", "#7a4dff", "#8a5bff", "#a56bff", "#b78cff"];
@@ -4937,7 +4959,7 @@
     const n = parseInt(hex.slice(1), 16);
     return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
   }
-  var kebab = (s) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+  var kebab = (s2) => s2.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
   var cssName = (group, name) => `--${kebab(group)}-${kebab(name)}`;
   var cssColors = () => Object.entries(COLORS).flatMap(([group, colors]) => Object.entries(colors).map(([name, value]) => [cssName(group, name), value]));
   function applyCssColors(root) {
@@ -4988,11 +5010,11 @@
     }
     // If the world fits between the HUD and the button bar it is centred and cannot be dragged.
     range() {
-      const s = this.scale, worldH = this.worldH();
-      const lo = -this.padTop / s, hi = worldH + this.padBot / s - this.viewH / s;
+      const s2 = this.scale, worldH = this.worldH();
+      const lo = -this.padTop / s2, hi = worldH + this.padBot / s2 - this.viewH / s2;
       if (hi >= lo) return [lo, hi];
       const free = this.viewH - this.padTop - this.padBot;
-      const c = -(this.padTop + (free - worldH * s) / 2) / s;
+      const c = -(this.padTop + (free - worldH * s2) / 2) / s2;
       return [c, c];
     }
     clamp() {
@@ -5027,7 +5049,7 @@
       canvas.addEventListener("pointerdown", (e) => {
         canvas.setPointerCapture(e.pointerId);
         const item = target.grab(this.toWorld(e.clientX, e.clientY));
-        this.drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, cam0: camera.y, lastX: e.clientX, lastY: e.clientY, lastT: performance.now(), moved: false, item };
+        this.drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, cam0: camera.y, lastX: e.clientX, lastY: e.clientY, lastT: performance.now(), moved: false, item, touch: e.pointerType !== "mouse" };
         camera.vel = 0;
       });
       canvas.addEventListener("pointermove", (e) => this.move(e));
@@ -5062,7 +5084,7 @@
       if (drag.item) {
         drag.lastX = e.clientX;
         drag.lastY = e.clientY;
-        this.target.dragTo(drag.item, this.toWorld(e.clientX, e.clientY));
+        this.target.dragTo(drag.item, this.toWorld(e.clientX, e.clientY), drag.touch);
         return;
       }
       cam.y = drag.cam0 - dy / cam.scale;
@@ -5080,7 +5102,7 @@
       if (!d || e.pointerId !== d.id) return;
       this.drag = null;
       if (d.item && d.moved) {
-        this.target.drop(d.item);
+        this.target.drop(d.item, this.toWorld(e.clientX, e.clientY));
         return;
       }
       if (cancelled) return;
@@ -5098,7 +5120,7 @@
       if (!dir) return;
       cam.y += dir * 420 / cam.scale * dt / 1e3;
       cam.clamp();
-      this.target.dragTo(d.item, this.toWorld(d.lastX, d.lastY));
+      this.target.dragTo(d.item, this.toWorld(d.lastX, d.lastY), d.touch);
     }
   };
 
@@ -5112,7 +5134,7 @@
     const k = a + b + t;
     if (mixCache[k]) return mixCache[k];
     const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
-    const ch = (s) => Math.round((pa >> s & 255) * (1 - t) + (pb >> s & 255) * t);
+    const ch = (s2) => Math.round((pa >> s2 & 255) * (1 - t) + (pb >> s2 & 255) * t);
     return mixCache[k] = `#${(1 << 24 | ch(16) << 16 | ch(8) << 8 | ch(0)).toString(16).slice(1)}`;
   }
   var glowCache = {};
@@ -5133,6 +5155,15 @@
     g.beginPath();
     for (let i = 0; i < 6; i++) {
       const a = i * Math.PI / 3 + Math.PI / 6, px = x + r * Math.cos(a), py = y + r * Math.sin(a);
+      if (i) g.lineTo(px, py);
+      else g.moveTo(px, py);
+    }
+    g.closePath();
+  }
+  function trianglePath(g, x, y, r) {
+    g.beginPath();
+    for (let i = 0; i < 3; i++) {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / 3, px = x + r * Math.cos(a), py = y + r * Math.sin(a);
       if (i) g.lineTo(px, py);
       else g.moveTo(px, py);
     }
@@ -5302,7 +5333,7 @@
     textParts(text) {
       let parts = this.partCache.get(text);
       if (parts) return parts;
-      parts = text.split(/\{([a-zA-Z]+)\}/).map((s, i) => i % 2 && this.icons[s] ? { icon: this.icons[s] } : i % 2 ? `{${s}}` : s).filter((p) => p !== "");
+      parts = text.split(/\{([a-zA-Z]+)\}/).map((s2, i) => i % 2 && this.icons[s2] ? { icon: this.icons[s2] } : i % 2 ? `{${s2}}` : s2).filter((p) => p !== "");
       if (this.partCache.size > 400) this.partCache.clear();
       this.partCache.set(text, parts);
       return parts;
@@ -5361,8 +5392,8 @@
     // always = may go past the normal particle cap (big moments only)
     burst(x, y, color, n, { speed = [40, 130], angle = [0, 6.283], size = 10, life = 450, always = false } = {}) {
       for (let i = 0; i < n && this.particles.length < (always ? 400 : 250); i++) {
-        const a = rand(angle[0], angle[1]), s = rand(speed[0], speed[1]);
-        this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life, max: life, color, size });
+        const a = rand(angle[0], angle[1]), s2 = rand(speed[0], speed[1]);
+        this.particles.push({ x, y, vx: Math.cos(a) * s2, vy: Math.sin(a) * s2, life, max: life, color, size });
       }
     }
     // small numbers are skipped when 30 are already showing; always = shown anyway (big rewards)
@@ -5423,8 +5454,7 @@
         // left (very tall: the board has no maximum height)
         Bodies.rectangle(width + 30, 5e5, 60, 1e6, o),
         // right
-        Bodies.rectangle(width / 2, -30, width + 200, 60, o)
-        // ceiling
+        Bodies.rectangle(width / 2, -30, width + 200, 60, { ...o, label: "ceiling" })
       ];
       Composite.add(this.world, this.walls);
       this.installDetector(hooks);
@@ -5448,7 +5478,7 @@
         for (const m of movers) {
           const A = m.body, a = A.bounds;
           for (const w of walls) test(A, w);
-          for (const s of staticNear(a.min.x, a.min.y, a.max.x, a.max.y)) test(A, s.body);
+          for (const s2 of staticNear(a.min.x, a.min.y, a.max.x, a.max.y)) test(A, s2.body);
         }
         return out;
       };
@@ -5463,11 +5493,13 @@
     onCollisionStart(fn) {
       import_matter_js.default.Events.on(this.engine, "collisionStart", (ev) => fn(ev.pairs));
     }
-    // new bodies are B once the game has attached its own fields
-    addPeg(x, y, r, hex) {
-      const { Bodies, Composite } = import_matter_js.default;
+    // new bodies are B once the game has attached its own fields. sides: 0 a circle of radius r, else a polygon with its
+    // points r from the centre (a hexagon has a point at the top, like hexPath(); a triangle is turned to have one too, like trianglePath())
+    addPeg(x, y, r, sides) {
+      const { Bodies, Body, Composite } = import_matter_js.default;
       const po = { isStatic: true, restitution: 0.5, friction: 0, label: "peg" };
-      const body = hex ? Bodies.polygon(x, y, 6, r + 1, po) : Bodies.circle(x, y, r, po);
+      const body = sides ? Bodies.polygon(x, y, sides, r, po) : Bodies.circle(x, y, r, po);
+      if (sides === 3) Body.rotate(body, -Math.PI / 6);
       Composite.add(this.world, body);
       return body;
     }
@@ -5486,14 +5518,35 @@
       import_matter_js.default.Composite.add(this.world, body);
       return body;
     }
+    // a bar (a rotating peg): len long, thick across
+    addBar(x, y, len, thick) {
+      const body = import_matter_js.default.Bodies.rectangle(x, y, len, thick, { isStatic: true, restitution: 0.5, friction: 0, label: "peg", chamfer: { radius: thick / 2 } });
+      import_matter_js.default.Composite.add(this.world, body);
+      return body;
+    }
     remove(body) {
       import_matter_js.default.Composite.remove(this.world, body);
     }
-    movePeg(body, x, y) {
-      import_matter_js.default.Body.setPosition(body, { x, y });
+    // moving: true for a peg that keeps moving (its speed is set from the step, so it bats balls); false to just put it somewhere,
+    // standing still (Matter would otherwise keep the speed it had: a static body's speed is where it is minus where it was)
+    movePeg(body, x, y, moving = false) {
+      import_matter_js.default.Body.setPosition(body, { x, y }, moving);
+      if (!moving) {
+        const prev = body.positionPrev;
+        prev.x = x;
+        prev.y = y;
+      }
+    }
+    turnPeg(body, angle, moving = false) {
+      import_matter_js.default.Body.setAngle(body, angle, moving);
+      if (!moving) body.anglePrev = angle;
     }
     resizePeg(body, factor) {
       import_matter_js.default.Body.scale(body, factor, factor);
+    }
+    // a peg that is not solid touches nothing, but stays in the world (cheaper than removing and adding it back)
+    setPegSolid(body, on) {
+      body.collisionFilter.mask = on ? 4294967295 : 0;
     }
     // velocities in px per 1/60 s, the units setVelocity takes (body.velocity is per 1/90 s physics step)
     velocity(body) {
@@ -5502,8 +5555,9 @@
     setVelocity(body, x, y) {
       import_matter_js.default.Body.setVelocity(body, { x, y });
     }
-    setGravity(mult) {
-      this.engine.gravity.scale = this.gravityScale * mult;
+    // extra gravity on one body for the next update (mult: times normal gravity)
+    addGravity(body, mult) {
+      body.force.y += body.mass * this.engine.gravity.y * this.gravityScale * mult;
     }
     update(dt) {
       import_matter_js.default.Engine.update(this.engine, dt);
@@ -5540,7 +5594,7 @@
     name: "Bucket Value",
     max: 10 * MONEY_MAX,
     costs: { money: { base: 5, growth: 1.3 } },
-    desc: "Increases the value of the buckets.",
+    desc: "Buckets pay more.",
     stat: (l) => `{money}${fmt(bucketValue(l))} per catch`
   });
   var START_SLOTS = 3;
@@ -5551,7 +5605,7 @@
     max: 0,
     required: [{ id: "bucket_value", level: 2 }],
     costs: { money: { base: 5, growth: 1.2 } },
-    desc: "Increase the number of pegs you can have.",
+    desc: "Room for more pegs.",
     stat: (l) => `${START_SLOTS + l} slots`
   });
   upgrade("peg_value", {
@@ -5561,7 +5615,7 @@
     max: MONEY_MAX,
     required: [{ id: "peg_slots", level: 5 }],
     costs: { money: { base: 20, growth: 1.5 } },
-    desc: "Increases the added value of pegs.",
+    desc: "Pegs pay more per hit.",
     stat: (l) => `{money}${fmt(1 + l)} per hit`
   });
   upgrade("extra_ball", {
@@ -5571,7 +5625,7 @@
     max: MONEY_MAX,
     required: [{ id: "peg_value", level: 2 }],
     costs: { money: { base: 50, growth: 2.4 } },
-    desc: "Allows one more ball in play at the same time.",
+    desc: "One more ball in play at once.",
     stat: (l) => `${1 + l} ball${l ? "s" : ""} at once`
   });
   upgrade("peg_power", {
@@ -5581,7 +5635,7 @@
     max: MONEY_MAX,
     required: [{ id: "peg_slots", level: 10 }],
     costs: { money: { base: 120, growth: 1.8 } },
-    desc: "Multiplies the value of every peg hit.",
+    desc: "Multiplies every peg hit.",
     stat: (l) => `x${(1 + 0.5 * l).toFixed(1)}`
   });
   var bucketW = (l) => soft(160, 280, 0.89, l);
@@ -5592,7 +5646,7 @@
     max: MONEY_MAX,
     required: [{ id: "bucket_value", level: 8 }],
     costs: { money: { base: 120, growth: 1.9 } },
-    desc: "A wider bucket is easier to hit (with more buckets, the whole row gets wider).",
+    desc: "Wider buckets are easier to hit.",
     stat: (l) => `${Math.round(bucketW(l))} wide`
   });
   var LAB_FIRST = 1e4;
@@ -5609,8 +5663,19 @@
       { id: "peg_power" }
     ],
     costs: { money: { base: 1e3, growth: 1.7 } },
-    desc: "Unlocks research points (hexagons). The lab gives research points on a timer; every level makes it tick faster, with diminishing returns.",
+    desc: "Unlocks Research. Makes {research} on a timer, a bit faster each level.",
     stat: (l) => l ? `1 tick every ${secs(labInterval(l))}` : "no research"
+  });
+  var wallMult = (l) => 1 + 0.5 * l;
+  upgrade("wall_value", {
+    section: "world",
+    tab: "money",
+    name: "Wall Value",
+    max: MONEY_MAX,
+    required: [{ id: "wall_bounce" }],
+    costs: { money: { base: 300, growth: 1.7 } },
+    desc: "Wall bounces pay more.",
+    stat: (l) => `x${wallMult(l).toFixed(1)} a peg hit`
   });
   upgrade("research_batch", {
     section: "research",
@@ -5619,7 +5684,7 @@
     max: MONEY_MAX,
     required: [{ id: "research_lab", level: 3 }],
     costs: { money: { base: 25e3, growth: 3 } },
-    desc: "Every tick of the Research Lab gives more research points.",
+    desc: "More {research} per lab tick.",
     stat: (l) => `{research}${1 + l} per tick`
   });
   var RP_PEG = 1;
@@ -5631,7 +5696,7 @@
     max: MONEY_MAX,
     required: [{ id: "research_pegs" }],
     costs: { money: { base: 3e3, growth: 1.9 } },
-    desc: "Research Peg's hits are worth more.",
+    desc: "Research pegs pay more.",
     stat: (l) => `{research}${fmt(rpPerHit(l))} per hit`
   });
   upgrade("combo_chain", {
@@ -5641,7 +5706,7 @@
     max: MONEY_MAX,
     required: [{ id: "combo_theory" }],
     costs: { money: { base: 400, growth: 1.7 }, research: { base: 5, growth: 1.5 } },
-    desc: "Each consecutive peg hit by the same ball is worth more.",
+    desc: "Hits in a row by the same ball pay more.",
     stat: (l) => `+${5 * l}% per hit in a row`
   });
   var ALCH_MS = 1e4;
@@ -5654,11 +5719,11 @@
     max: MONEY_MAX,
     required: [{ id: "alchemy" }],
     costs: { money: { base: 2500, growth: 1.9 }, research: { base: 8, growth: 1.5 } },
-    desc: "Alchemy pegs charge up to a higher value (same minimum, same time to charge).",
+    desc: "Alchemy pegs charge to a higher value.",
     stat: (l) => `up to {money}${fmt(alchMax(l))} per hit`
   });
   var DUAL_HITS = 5;
-  var DUAL_MULT = 100;
+  var DUAL_MULT = 20;
   var blastHits = (l) => DUAL_HITS + l;
   upgrade("blast_peg_hits", {
     section: "pegs",
@@ -5666,9 +5731,88 @@
     name: "Blast Peg Hits",
     max: MONEY_MAX,
     required: [{ id: "blast_pegs" }],
-    costs: { money: { base: 2e4, growth: 2 }, goo: { base: 50, growth: 1.5 } },
-    desc: "Blast pegs take more hits before they are used up (new blast pegs and ones already placed).",
+    costs: { money: { base: 2e3, growth: 2 } },
+    desc: "Blast pegs last more hits, placed ones too.",
     stat: (l) => `${blastHits(l)} hits per blast peg`
+  });
+  var blastMult = (l) => DUAL_MULT + l;
+  upgrade("blast_peg_value", {
+    section: "pegs",
+    tab: "money",
+    name: "Blast Peg Value",
+    max: MONEY_MAX,
+    required: [{ id: "blast_pegs" }],
+    costs: { money: { base: 1500, growth: 2 } },
+    desc: "Blast pegs pay more.",
+    stat: (l) => `x${blastMult(l)}`
+  });
+  var POWER_HITS = 10;
+  var POWER_HITS_MIN = 4;
+  var powerHits = (l) => Math.max(POWER_HITS_MIN, POWER_HITS - l);
+  var castCost = (l) => 0.5 + 0.5 * 0.9 ** l;
+  var powerPegMax = (l) => 1 + l;
+  upgrade("power_peg_charge", {
+    section: "pegs",
+    tab: "money",
+    name: "Power Peg Charge",
+    max: POWER_HITS - POWER_HITS_MIN,
+    uncapped: true,
+    required: [{ id: "power_pegs" }],
+    costs: { money: { base: 3e4, growth: 2.2 }, evil: { base: 50, growth: 1.8 } },
+    desc: "Power pegs cast with fewer hits.",
+    stat: (l) => `every ${powerHits(l)} hits`
+  });
+  upgrade("efficient_casting", {
+    section: "pegs",
+    tab: "money",
+    name: "Efficient Casting",
+    max: 0,
+    required: [{ id: "power_pegs" }],
+    costs: { money: { base: 2e4, growth: 1.8 }, goo: { base: 100, growth: 1.5 } },
+    desc: "Power peg casts cost less, never below half.",
+    stat: (l) => `${(castCost(l) * 100).toFixed(1)}% of the power's price`
+  });
+  upgrade("power_peg_slots", {
+    section: "pegs",
+    tab: "money",
+    name: "Power Peg Slots",
+    max: 0,
+    required: [{ id: "power_pegs" }],
+    costs: { money: { base: 1e5, growth: 4 }, evil: { base: 300, growth: 2.5 } },
+    desc: "One more power peg on the board.",
+    stat: (l) => `${powerPegMax(l)} power peg${powerPegMax(l) > 1 ? "s" : ""}`
+  });
+  var zoneSize = (l) => 1.15 ** l;
+  var zoneTime = (l) => 1 + 0.15 * l;
+  upgrade("wider_zones", {
+    section: "world",
+    tab: "money",
+    name: "Wider Zones",
+    max: MONEY_MAX,
+    required: [{ id: "ghost_power" }],
+    costs: { money: { base: 25e3, growth: 2 }, goo: { base: 80, growth: 1.6 } },
+    desc: "Power zones cover more of the board.",
+    stat: (l) => `x${zoneSize(l).toFixed(2)} size`
+  });
+  upgrade("longer_zones", {
+    section: "world",
+    tab: "money",
+    name: "Longer Zones",
+    max: MONEY_MAX,
+    required: [{ id: "ghost_power" }],
+    costs: { money: { base: 25e3, growth: 2 }, goo: { base: 80, growth: 1.6 } },
+    desc: "Power zones last longer.",
+    stat: (l) => `x${zoneTime(l).toFixed(2)} time`
+  });
+  upgrade("laser_focus", {
+    section: "world",
+    tab: "money",
+    name: "Laser Focus",
+    max: MONEY_MAX,
+    required: [{ id: "laser_power" }],
+    costs: { money: { base: 2e4, growth: 2.2 } },
+    desc: "The laser activates more times per pulse.",
+    stat: (l) => `${1 + l} per pulse`
   });
   var restitution = (l) => soft(0.5, 0.9, 0.96, l);
   upgrade("bouncy_balls", {
@@ -5678,7 +5822,7 @@
     max: 0,
     required: [{ id: "elastic_balls" }],
     costs: { money: { base: 1200, growth: 1.9 }, goo: { base: 77, growth: 1.6 } },
-    desc: "Balls keep more energy when they bounce. Can be bought without end, but the gains keep shrinking and never quite reach 90%.",
+    desc: "Balls bounce higher. No max level, but never reaches 90%.",
     stat: (l) => `${(restitution(l) * 100).toFixed(1)}% bounce`
   });
   var ballRadius = (l) => soft(6, 14, 0.93, l);
@@ -5689,10 +5833,10 @@
     max: MONEY_MAX,
     required: [{ id: "ball_inflation" }],
     costs: { money: { base: 2e3, growth: 1.9 } },
-    desc: "Bigger balls are harder to miss with.",
+    desc: "Bigger balls hit more pegs.",
     stat: (l) => `radius ${ballRadius(l).toFixed(1)} (max 14)`
   });
-  var worldHeight = (l) => Math.round(360 + 191 * l ** 0.85);
+  var worldHeight = (l) => Math.round(360 + 130 * l ** 0.9);
   upgrade("deeper_world", {
     section: "world",
     tab: "money",
@@ -5700,7 +5844,7 @@
     max: 0,
     required: [{ id: "world_size" }],
     costs: { money: { base: 2e4, growth: 1.8 }, research: { base: 100, growth: 1.5 } },
-    desc: "Makes the board taller still: more room below the launcher for pegs. Every level adds a little less height than the last, but there is no limit.",
+    desc: "A taller board. Each level adds a bit less, with no max.",
     stat: (l) => `${worldHeight(l)} tall`
   });
   var autoInterval = (l) => 2e3 * 0.85 ** (l - 1);
@@ -5711,7 +5855,7 @@
     max: 13,
     required: [{ id: "auto_dropper" }],
     costs: { money: { base: 1e3, growth: 1.6 }, research: { base: 10, growth: 1.5 } },
-    desc: "The Auto Dropper drops balls faster.",
+    desc: "Balls launch on their own faster.",
     stat: (l) => `1 ball every ${(autoInterval(1 + l) / 1e3).toFixed(2)}s`
   });
   var bucketCount = (l) => l >= 20 ? 7 : l >= 15 ? 6 : l >= 10 ? 5 : l >= 7 ? 4 : l >= 4 ? 3 : l >= 1 ? 2 : 1;
@@ -5725,7 +5869,7 @@
     name: "Extra Buckets",
     max: 0,
     costs: { money: { base: 3e3, growth: 1.25 } },
-    desc: "More buckets at the bottom: 2 at level 1, 3 at level 4, then 4, 5, 6 and 7 (at levels 7, 10, 15 and 20). The middle ones pay more and the outer ones less, and every level widens the gap. Balls that fall between buckets are lost.",
+    desc: "Up to 7 buckets: the middle pays more, the edges less. Balls in a gap are lost.",
     stat: (l) => `${bucketCount(l)} bucket${bucketCount(l) > 1 ? "s" : ""}, middle x${midMult(l).toFixed(1)}, edges x${edgeMult(l).toFixed(2)}`
   });
   var GOLD_CHANCE = 0.05;
@@ -5737,7 +5881,7 @@
     name: "Gold Ball Value",
     max: 11,
     costs: { money: { base: 5e3, growth: 1.5 } },
-    desc: "Gold balls multiply the money they earn even more.",
+    desc: "Gold balls earn even more.",
     stat: (l) => `x${goldMult(1 + l).toFixed(2)} {money}`
   });
   var GOO_MAX = 10;
@@ -5749,7 +5893,7 @@
     name: "More Gooballs",
     max: GOO_MAX - 1,
     costs: { money: { base: 2e4, growth: 1.6 }, goo: { base: 100, growth: 1.6 } },
-    desc: "More of the launched balls are gooballs, with diminishing returns.",
+    desc: "More balls are gooballs.",
     stat: (l) => `${(gooChance(1 + l) * 100).toFixed(1)}% gooball chance`
   });
   var gooballPegs = (l) => 10 + 2 * l;
@@ -5760,7 +5904,7 @@
     name: "Lasting Goo",
     max: 0,
     costs: { money: { base: 5e4, growth: 4 }, goo: { base: 250, growth: 1.6 } },
-    desc: "Gooballs touch more pegs before they burn out, so they coat more pegs.",
+    desc: "Gooballs coat more pegs before they vanish.",
     stat: (l) => `${gooballPegs(l)} pegs per gooball`
   });
   var gooPerHit = (l) => 1 + l;
@@ -5771,7 +5915,7 @@
     max: 0,
     required: [{ id: "phlegm_goo" }],
     costs: { money: { base: 1e5, growth: 5 }, goo: { base: 33, growth: 2 } },
-    desc: "Every hit on a goo-coated peg produces more Phlegm Goo.",
+    desc: "Coated pegs make more {goo} per hit.",
     stat: (l) => `{goo}${gooPerHit(l)} per hit`
   });
   upgrade("higher_limit", {
@@ -5783,91 +5927,112 @@
     name: "Higher Limit",
     max: 15,
     costs: { money: { base: 5e4, growth: 3.7 } },
-    desc: `Raises the maximum level of every money upgrade that has one by another ${CAP_STEP}.`,
+    desc: `Capped upgrades: max level +${CAP_STEP}.`,
     stat: (l) => `money upgrades +${CAP_STEP * l} levels`
   });
 
   // src/upgrades/ResearchUpgrades.ts
   var RESEARCH_UPGRADES = [];
   var upgrade2 = defineIn(RESEARCH_UPGRADES);
+  upgrade2("wall_bounce", {
+    section: "world",
+    tab: "research",
+    required: [{ id: "research_lab" }],
+    name: "Wall Bounce",
+    max: 1,
+    costs: { research: { base: 20 } },
+    desc: "Balls earn {money} when they bounce off a side wall.",
+    stat: () => "unlocks Wall Value"
+  });
+  var LIMITERS = 2;
+  upgrade2("cannon_limiters", {
+    section: "balls",
+    tab: "research",
+    required: [{ id: "phlegm_goo" }, { id: "faster_dropper", level: 8 }],
+    name: "Cannon Limiters",
+    max: 1,
+    costs: { research: { base: 5e4 } },
+    desc: "Ceiling pegs that limit how far the cannon sweeps.",
+    stat: () => `${LIMITERS} free limiter pegs`
+  });
   upgrade2("research_pegs", {
     section: "pegs",
     tab: "research",
     required: [{ id: "research_lab" }],
     name: "Research Pegs",
     max: 1,
-    costs: { research: { base: 10 } },
-    desc: `Unlocks hexagonal research pegs in edit mode. Balls that hit them earn research points (+{research}${RP_PEG} per hit) instead of money.`,
-    stat: () => "research pegs in edit mode"
+    costs: { research: { base: 5 } },
+    desc: `Pegs that pay {research}${RP_PEG} per hit.`,
+    stat: () => "new peg \xB7 unlocks Research Pegs Value"
   });
   upgrade2("auto_dropper", {
     section: "balls",
     tab: "research",
-    required: [{ id: "research_lab" }],
+    required: [{ id: "research_lab", level: 2 }],
     name: "Auto Dropper",
     max: 1,
     costs: { research: { base: 300 } },
-    desc: "Balls drop on their own (still limited by your max balls). Unlocks Faster Dropper in the Money tab.",
+    desc: "Balls launch on their own (switch in Settings).",
     stat: () => `1 ball every ${(autoInterval(1) / 1e3).toFixed(2)}s \xB7 unlocks Faster Dropper`
   });
   upgrade2("combo_theory", {
     section: "pegs",
     tab: "research",
-    required: [{ id: "research_lab" }],
+    required: [{ id: "alchemy" }, { id: "peg_power", level: 5 }],
     name: "Combo Theory",
     max: 1,
-    costs: { research: { base: 800 } },
-    desc: "Unlocks Combo Chain in the Money tab: each consecutive peg hit by the same ball is worth more.",
+    costs: { research: { base: 3e3 } },
+    desc: "Hits in a row by the same ball pay more.",
     stat: () => "unlocks Combo Chain"
   });
   upgrade2("world_size", {
     section: "world",
     tab: "research",
-    required: [{ id: "research_lab" }],
+    required: [{ id: "peg_slots", level: 15 }],
     name: "World Size",
     max: 1,
     costs: { research: { base: 1e3 } },
-    desc: "Unlocks Deeper World in the Money tab, which makes the board taller: more room below the launcher for pegs.",
+    desc: "A taller board, with more room for pegs.",
     stat: () => "unlocks Deeper World"
   });
   upgrade2("alchemy", {
     section: "pegs",
     tab: "research",
-    required: [{ id: "research_lab" }],
+    required: [{ id: "research_pegs" }],
     name: "Alchemy",
     max: 1,
     costs: { research: { base: 2345 } },
-    desc: `Alchemy pegs slowly turn to gold.`,
-    stat: () => "alchemy pegs in edit mode"
+    desc: "Pegs that slowly turn to gold.",
+    stat: () => "new peg \xB7 unlocks Alchemy Pegs Value"
   });
   upgrade2("upgrade_limit", {
     section: "world",
     tab: "research",
-    required: [{ id: "research_lab" }],
+    required: [{ id: "world_size" }],
     name: "Upgrade Limit",
     max: 1,
     costs: { research: { base: 5555 } },
-    desc: `Unlocks Higher Limit in the Money tab, which raises the maximum level of every money upgrade that has one by ${CAP_STEP} per level.`,
+    desc: "Raises the max level of capped upgrades.",
     stat: () => "unlocks Higher Limit"
   });
   upgrade2("elastic_balls", {
     section: "balls",
     tab: "research",
-    required: [{ id: "research_lab" }, { id: "phlegm_goo", level: 2 }],
+    required: [{ id: "ball_inflation" }],
     name: "Elastic Balls",
     max: 1,
     costs: { research: { base: 1800 } },
-    desc: "Unlocks Bouncy Balls in the Money tab: balls keep more energy when they bounce.",
+    desc: "Balls bounce higher.",
     stat: () => "unlocks Bouncy Balls"
   });
   upgrade2("ball_inflation", {
     section: "balls",
     tab: "research",
-    required: [{ id: "research_lab" }],
+    required: [{ id: "extra_ball", level: 3 }],
     name: "Ball Inflation",
     max: 1,
     costs: { research: { base: 2400 } },
-    desc: "Unlocks Fat Balls in the Money tab: bigger balls are harder to miss with.",
+    desc: "Bigger balls.",
     stat: () => "unlocks Fat Balls"
   });
   upgrade2("splitter_pegs", {
@@ -5877,10 +6042,81 @@
     name: "Splitter Pegs",
     max: 1,
     costs: { research: { base: 3600 } },
-    desc: "Unlocks blue splitter pegs in edit mode. A ball that hits one splits in two half-size balls, each counting as half a ball for your ball limit. Half-size balls cannot be split again.",
-    stat: () => "splitter pegs in edit mode"
+    desc: "Pegs that split a ball in two halves.",
+    stat: () => "new peg"
+  });
+  upgrade2("wall_pegs", {
+    section: "pegs",
+    tab: "research",
+    required: [{ id: "wall_bounce" }],
+    name: "Wall Pegs",
+    max: 1,
+    costs: { research: { base: 200 } },
+    desc: "Big, cheap pegs that pay nothing: for shaping paths.",
+    stat: () => "new peg"
+  });
+  upgrade2("bouncy_pegs", {
+    section: "pegs",
+    tab: "research",
+    required: [{ id: "wall_pegs" }],
+    name: "Bouncy Pegs",
+    max: 1,
+    costs: { research: { base: 600 } },
+    desc: "Pegs that balls bounce off much harder.",
+    stat: () => "new peg"
+  });
+  upgrade2("blink_pegs", {
+    section: "pegs",
+    tab: "research",
+    required: [{ id: "bouncy_pegs" }],
+    name: "Blinking Pegs",
+    max: 1,
+    costs: { research: { base: 900 } },
+    desc: "Pegs that blink in and out, paying 2x while there.",
+    stat: () => "new peg"
+  });
+  var ARM_MIN = 15;
+  var ARM_MAX = 120;
+  var SLIDER_REACH = 40;
+  var SLIDER_MS = 3e3;
+  var ORBIT_R = 26;
+  var ORBIT_MS = 3e3;
+  var SPINNER_LEN = 52;
+  var SPINNER_MS = 2400;
+  upgrade2("slider_pegs", {
+    section: "pegs",
+    tab: "research",
+    required: [{ id: "blink_pegs" }],
+    name: "Slider Pegs",
+    max: 1,
+    costs: { research: { base: 1200 } },
+    desc: "Pegs that slide back and forth (drag the handle to aim them).",
+    stat: () => "new peg"
+  });
+  upgrade2("orbit_pegs", {
+    section: "pegs",
+    tab: "research",
+    required: [{ id: "slider_pegs" }],
+    name: "Orbit Pegs",
+    max: 1,
+    costs: { research: { base: 1600 } },
+    desc: "Pegs that circle around where they are placed.",
+    stat: () => "new peg"
+  });
+  upgrade2("spinner_pegs", {
+    section: "pegs",
+    tab: "research",
+    required: [{ id: "slider_pegs" }],
+    name: "Spinners",
+    max: 1,
+    costs: { research: { base: 2e3 } },
+    desc: "Bars that spin, batting balls away.",
+    stat: () => "new peg"
   });
   var GRAVPEG_R = 90;
+  var BOUNCY_REST = 1.2;
+  var BLINK_MS = 4e3;
+  var BLINK_ON = 2e3;
   var GRAVPEG_PULL = 0.7 * G_STEP;
   upgrade2("gravity_pegs", {
     section: "pegs",
@@ -5889,18 +6125,58 @@
     name: "Gravity Pegs",
     max: 1,
     costs: { research: { base: 1060 } },
-    desc: `Unlocks teal gravity pegs in edit mode. Balls passing within ${GRAVPEG_R}px of one get pulled gently towards it (the closer, the stronger), bending their path. It also pays money like a plain peg.`,
-    stat: () => "gravity pegs in edit mode"
+    desc: "Pegs that pull nearby balls.",
+    stat: () => "new peg"
+  });
+  upgrade2("antigravity_pegs", {
+    section: "pegs",
+    tab: "research",
+    required: [{ id: "gravity_pegs" }],
+    name: "Repel Pegs",
+    max: 1,
+    costs: { research: { base: 1500 } },
+    desc: "Pegs that push nearby balls away.",
+    stat: () => "new peg"
   });
   upgrade2("blast_pegs", {
     section: "pegs",
     tab: "research",
     name: "Blast Pegs",
     max: 1,
-    required: [{ id: "phlegm_goo" }],
-    costs: { research: { base: 2e3 }, goo: { base: 200 } },
-    desc: `Unlocks golden blast pegs in edit mode. Every hit pays money AND research points at x${DUAL_MULT}; after ${DUAL_HITS} hits the peg is used up.`,
-    stat: () => "blast pegs in edit mode"
+    required: [{ id: "combo_theory" }],
+    costs: { research: { base: 7e3 } },
+    desc: `Pegs that pay {money} x${DUAL_MULT}, for ${DUAL_HITS} hits.`,
+    stat: () => "new peg \xB7 unlocks Blast Peg Hits and Value"
+  });
+  upgrade2("blast_research", {
+    section: "pegs",
+    tab: "research",
+    name: "Blast Research",
+    max: 1,
+    required: [{ id: "blast_pegs" }, { id: "research_pegs" }],
+    costs: { research: { base: 9e3 } },
+    desc: "Blast pegs also pay {research}.",
+    stat: () => "like a research peg, at the blast multiplier"
+  });
+  upgrade2("blast_goo", {
+    section: "pegs",
+    tab: "research",
+    name: "Blast Goo",
+    max: 1,
+    required: [{ id: "blast_pegs" }, { id: "phlegm_goo" }],
+    costs: { research: { base: 5e3 }, goo: { base: 100 } },
+    desc: "Blast pegs also pay {goo}.",
+    stat: () => "1 per 10 of the blast multiplier"
+  });
+  upgrade2("blast_evil", {
+    section: "pegs",
+    tab: "research",
+    name: "Blast Evil",
+    max: 1,
+    required: [{ id: "blast_pegs" }, { id: "evil" }],
+    costs: { research: { base: 5e4 }, evil: { base: 200 } },
+    desc: "Blast pegs also pay {evil}.",
+    stat: () => "0.1 per 10 of the blast multiplier"
   });
   upgrade2("gold_balls", {
     section: "balls",
@@ -5909,29 +6185,109 @@
     name: "Gold Balls",
     max: 1,
     costs: { research: { base: 3e3 } },
-    desc: `${GOLD_CHANCE * 100}% of launched balls are gold, and all the money a gold ball earns (pegs and buckets) is multiplied. Unlocks Gold Ball Value in the Money tab.`,
+    desc: `${GOLD_CHANCE * 100}% of balls are gold and earn more {money}.`,
     stat: () => `x${goldMult(1).toFixed(2)} {money} \xB7 unlocks Gold Ball Value`
   });
   upgrade2("more_buckets", {
     section: "bucket",
     tab: "research",
-    required: [{ id: "research_lab" }],
+    required: [{ id: "wide_bucket", level: 5 }],
     name: "More Buckets",
     max: 1,
     costs: { research: { base: 2600 } },
-    desc: "Unlocks Extra Buckets in the Money tab, which splits the bottom into more buckets: the middle ones pay more, the outer ones less. Balls that fall between buckets are lost.",
+    desc: "More buckets: the middle pays more, the edges less.",
     stat: () => "unlocks Extra Buckets"
   });
   var GOO_PEG_MS = 12e3;
   upgrade2("phlegm_goo", {
     section: "goo",
     tab: "research",
-    required: [{ id: "research_lab" }],
+    required: [{ id: "research_batch" }],
     name: "Phlegm Goo",
     max: 1,
     costs: { research: { base: 1e4 } },
-    desc: "Unlocks Phlegm Goo and the Goo tab. Some balls become gooballs (they vanish after touching a few pegs): pegs they hit turn into goo pegs for a while, and any other ball hitting a goo peg produces Phlegm Goo. Unlocks More Gooballs, Lasting Goo and Rich Phlegm in the Money tab.",
-    stat: () => `${(gooChance(1) * 100).toFixed(1)}% gooball chance \xB7 unlocks More Gooballs`
+    desc: "Gooballs coat pegs; hits on coated pegs make {goo}.",
+    stat: () => `${(gooChance(1) * 100).toFixed(1)}% gooballs \xB7 unlocks Goo Spit and goo upgrades`
+  });
+  upgrade2("ghost_power", {
+    section: "goo",
+    tab: "research",
+    required: [{ id: "phlegm_goo" }, { id: "goo_tank", level: 1 }],
+    name: "Ghost Zone",
+    max: 1,
+    costs: { research: { base: 12e3 }, goo: { base: 50 } },
+    desc: "Unlocks the Ghost Zone power.",
+    stat: () => "new power"
+  });
+  upgrade2("downdraft_power", {
+    section: "goo",
+    tab: "research",
+    required: [{ id: "ghost_power" }, { id: "more_gooballs", level: 2 }],
+    name: "Downdraft",
+    max: 1,
+    costs: { research: { base: 16e3 }, goo: { base: 80 } },
+    desc: "Unlocks the Downdraft power.",
+    stat: () => "new power"
+  });
+  upgrade2("dead_power", {
+    section: "goo",
+    tab: "research",
+    required: [{ id: "downdraft_power" }],
+    name: "Dead Zone",
+    max: 1,
+    costs: { research: { base: 22e3 }, goo: { base: 120 } },
+    desc: "Unlocks the Dead Zone power.",
+    stat: () => "new power"
+  });
+  upgrade2("research_ball_power", {
+    section: "goo",
+    tab: "research",
+    required: [{ id: "ghost_power" }, { id: "research_pegs_value", level: 3 }],
+    name: "Research Ball",
+    max: 1,
+    costs: { research: { base: 25e3 }, goo: { base: 100 } },
+    desc: "Unlocks the Research Ball power.",
+    stat: () => "new power"
+  });
+  upgrade2("chaos_power", {
+    section: "goo",
+    tab: "research",
+    required: [{ id: "dead_power" }, { id: "bouncy_pegs" }],
+    name: "Chaos Zone",
+    max: 1,
+    costs: { research: { base: 3e4 }, goo: { base: 150 } },
+    desc: "Unlocks the Chaos Zone power.",
+    stat: () => "new power"
+  });
+  upgrade2("burst_power", {
+    section: "goo",
+    tab: "research",
+    required: [{ id: "chaos_power" }, { id: "extra_ball", level: 5 }],
+    name: "Ball Burst",
+    max: 1,
+    costs: { research: { base: 4e4 }, goo: { base: 250 } },
+    desc: "Unlocks the Ball Burst power.",
+    stat: () => "new power"
+  });
+  upgrade2("laser_power", {
+    section: "goo",
+    tab: "research",
+    required: [{ id: "burst_power" }, { id: "faster_dropper", level: 5 }],
+    name: "Laser",
+    max: 1,
+    costs: { research: { base: 6e4 }, goo: { base: 300 } },
+    desc: "Unlocks the Laser power.",
+    stat: () => "new power"
+  });
+  upgrade2("power_pegs", {
+    section: "pegs",
+    tab: "research",
+    required: [{ id: "evil" }],
+    name: "Power Pegs",
+    max: 1,
+    costs: { research: { base: 2e4 }, evil: { base: 200 } },
+    desc: "Pegs that cast a loaded power around themselves.",
+    stat: () => "new peg \xB7 unlocks power peg upgrades"
   });
   var EVIL_COST = 1e6;
   var EVIL_GOO = 500;
@@ -5945,8 +6301,38 @@
     name: "Evil",
     max: 1,
     costs: { research: { base: EVIL_COST }, goo: { base: EVIL_GOO } },
-    desc: "Unlocks the Evil toggle, the Evil resource (red star) and a new Evil tab. While Evil is on, every peg that is hit takes damage, turns redder and yields Evil. Destroyed pegs must be placed again. Pegs heal while Evil is off.",
-    stat: () => "the Evil toggle and the Evil tab"
+    desc: "While on, hits damage pegs and make {evil}. Broken pegs go down for a while; they heal while off.",
+    stat: () => "switch in Settings \xB7 unlocks evil upgrades"
+  });
+  upgrade2("bomb_power", {
+    section: "evil",
+    tab: "research",
+    required: [{ id: "evil" }],
+    name: "Bomb",
+    max: 1,
+    costs: { research: { base: 12e5 }, evil: { base: 100 } },
+    desc: "Unlocks the Bomb power.",
+    stat: () => "new power"
+  });
+  upgrade2("balance_power", {
+    section: "evil",
+    tab: "research",
+    required: [{ id: "bomb_power" }, { id: "sturdy_pegs", level: 2 }],
+    name: "Balance Field",
+    max: 1,
+    costs: { research: { base: 15e5 }, evil: { base: 200 } },
+    desc: "Unlocks the Balance Field power.",
+    stat: () => "new power"
+  });
+  upgrade2("electric_power", {
+    section: "evil",
+    tab: "research",
+    required: [{ id: "balance_power" }, { id: "dark_harvest", level: 2 }],
+    name: "Electric Field",
+    max: 1,
+    costs: { research: { base: 2e6 }, evil: { base: 300 } },
+    desc: "Unlocks the Electric Field power.",
+    stat: () => "new power"
   });
 
   // src/upgrades/GooEvilUpgrades.ts
@@ -5965,7 +6351,7 @@
     tab: "money",
     max: 0,
     costs: { goo: { fn: (l) => gooCap(l) / 2 } },
-    desc: `Raises the most Phlegm Goo you can hold by ${Math.round((GOO_CAP_GROWTH - 1) * 100)}%. It always costs half a tank: half your current limit.`,
+    desc: `Holds ${Math.round((GOO_CAP_GROWTH - 1) * 100)}% more {goo}. Costs half a tank.`,
     stat: (l) => `holds up to {goo}${gooCap(l)}`
   });
   var evilDmg = (l) => EVIL_DMG * (0.1 + 0.9 * 0.9778 ** l);
@@ -5976,7 +6362,7 @@
     tab: "money",
     max: 0,
     costs: { evil: { base: 25, growth: 1.6 } },
-    desc: "Pegs take less damage from each hit while Evil is on, so they last longer. Can be bought without end, but each level helps less and damage never drops below 10% of the original.",
+    desc: "Pegs take less Evil damage, never below 10%.",
     stat: (l) => `${(evilDmg(l) * 100).toFixed(2)}% damage per hit (${Math.round(evilDmg(l) / EVIL_DMG * 100)}% of base)`
   });
   var evilRegen = (l) => 0.02 * (1 + 0.6 * l);
@@ -5989,8 +6375,23 @@
     max: 10,
     uncapped: true,
     costs: { evil: { base: 25, growth: 1.6 } },
-    desc: "Damaged pegs heal faster while Evil is off.",
+    desc: "Pegs heal faster while Evil is off.",
     stat: (l) => `${(evilRegen(l) * 100).toFixed(1)}% healed per second`
+  });
+  var PEG_DOWN_MS = 6e4;
+  var REBUILD_MIN = 15e3;
+  var rebuildMs = (l) => Math.max(REBUILD_MIN, PEG_DOWN_MS * 0.9 ** l);
+  upgrade3("quick_rebuild", {
+    // paid in money; uncapped: it stops where the downtime reaches its floor
+    section: "evil",
+    required: [{ id: "evil" }],
+    name: "Quick Rebuild",
+    tab: "money",
+    max: 14,
+    uncapped: true,
+    costs: { money: { base: 3e4, growth: 1.7 } },
+    desc: "Broken pegs come back sooner.",
+    stat: (l) => `back after ${secs(rebuildMs(l))}`
   });
   var evilYield = (l) => 1 + 0.25 * l;
   upgrade3("dark_harvest", {
@@ -6001,164 +6402,9 @@
     max: 10,
     uncapped: true,
     costs: { evil: { base: 50, growth: 1.7 } },
-    desc: "Every hit and every destroyed peg yields more Evil.",
+    desc: "More {evil} from hits and broken pegs.",
     stat: (l) => `x${evilYield(l).toFixed(2)} {evil}`
   });
-
-  // src/config/Currencies.ts
-  var RES_COL = { money: COLORS.ui.strong, research: COLORS.theme.research, goo: COLORS.theme.goo, evil: COLORS.theme.evil };
-  var CUR_FIELD = { money: "money", research: "rp", goo: "goo", evil: "evil" };
-  var CURRENCIES = Object.keys(CUR_FIELD);
-  var sym = (c) => `{${c}}`;
-  var costText = (c) => entries(c).map(([cur, a]) => `${sym(cur)}${fmt(a)}`).join(" + ");
-  var entries = (o) => Object.entries(o);
-  var isCurrency = (c) => c in CUR_FIELD;
-
-  // src/upgrades/Sections.ts
-  var SECTIONS = [
-    { section: "bucket", name: "Bucket", color: COLORS.theme.bucket },
-    { section: "pegs", name: "Pegs", color: COLORS.theme.pegs },
-    { section: "balls", name: "Balls", color: COLORS.theme.balls },
-    { section: "research", name: "Research", color: COLORS.theme.research },
-    { section: "world", name: "World", color: COLORS.theme.world },
-    { section: "goo", name: "Goo", color: COLORS.theme.goo },
-    { section: "evil", name: "Evil", color: COLORS.theme.evil }
-  ];
-  var SECTION_COLOR = Object.fromEntries(SECTIONS.map((s) => [s.section, s.color]));
-  var LOCKED_SECTION = { name: "Locked", color: COLORS.ui.locked };
-
-  // src/upgrades/Registry.ts
-  var UPGRADES = [...MONEY_UPGRADES, ...RESEARCH_UPGRADES, ...GOO_EVIL_UPGRADES];
-  var UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
-  function upgradeProblems(list) {
-    const out = [], seen = /* @__PURE__ */ new Set(), byId2 = Object.fromEntries(list.map((u) => [u.id, u]));
-    for (const u of list) {
-      if (seen.has(u.id)) out.push(`Upgrade "${u.id}" is defined twice`);
-      seen.add(u.id);
-      for (const r of u.required || []) if (!byId2[r.id]) out.push(`Upgrade "${u.id}" requires "${r.id}", which does not exist`);
-      if (u.tab !== "money" && u.tab !== "research") out.push(`Upgrade "${u.id}" has no valid tab (got "${u.tab}")`);
-      if (!SECTIONS.some((s) => s.section === u.section)) out.push(`Upgrade "${u.id}" has no valid section (got "${u.section}")`);
-      const curs = Object.keys(u.costs || {});
-      if (!curs.length) out.push(`Upgrade "${u.id}" has no costs`);
-      for (const c of curs) if (!isCurrency(c)) out.push(`Upgrade "${u.id}" costs an unknown currency "${c}"`);
-    }
-    return out;
-  }
-  for (const problem of upgradeProblems(UPGRADES)) console.error(problem);
-
-  // src/upgrades/Powers.ts
-  var POWER_BY_ID = {};
-  var power = (id, pw) => {
-    POWER_BY_ID[id] = { id, ...pw };
-  };
-  var GHOST_MS = 1e4;
-  var GHOST_CD = 3e4;
-  power("ghost_balls", {
-    required: [{ id: "phlegm_goo" }],
-    name: "Ghost Balls",
-    ms: GHOST_MS,
-    cd: GHOST_CD,
-    costs: { goo: 200 },
-    desc: `For ${GHOST_MS / 1e3} seconds every ball passes through pegs, but still hits them and earns the rewards. Then it needs ${GHOST_CD / 1e3} seconds to recharge.`,
-    stat: () => `non-solid balls for ${GHOST_MS / 1e3}s`
-  });
-  var GRAV_MS = 1e4;
-  var GRAV_CD = 3e4;
-  var GRAV_MULT = 5;
-  power("heavy_gravity", {
-    required: [{ id: "phlegm_goo" }],
-    name: "Heavy Gravity",
-    ms: GRAV_MS,
-    cd: GRAV_CD,
-    costs: { goo: 250 },
-    desc: `For ${GRAV_MS / 1e3} seconds gravity is ${GRAV_MULT}x stronger: balls fall much faster. Then it needs ${GRAV_CD / 1e3} seconds to recharge.`,
-    stat: () => `${GRAV_MULT}x gravity for ${GRAV_MS / 1e3}s`
-  });
-  var DEAD_MS = 1e4;
-  var DEAD_CD = 3e4;
-  var DEAD_REST = 0.02;
-  power("dead_balls", {
-    required: [{ id: "phlegm_goo" }],
-    name: "Dead Balls",
-    ms: DEAD_MS,
-    cd: DEAD_CD,
-    costs: { goo: 300 },
-    desc: `For ${DEAD_MS / 1e3} seconds balls lose almost all their bounce: pegs, walls and buckets just stop them. Then it needs ${DEAD_CD / 1e3} seconds to recharge.`,
-    stat: () => `almost no bounce for ${DEAD_MS / 1e3}s`
-  });
-  var CHAOS_MS = 1e4;
-  var CHAOS_CD = 3e4;
-  power("chaos_balls", {
-    required: [{ id: "phlegm_goo" }],
-    name: "Chaos Balls",
-    ms: CHAOS_MS,
-    cd: CHAOS_CD,
-    costs: { goo: 333 },
-    desc: `For ${CHAOS_MS / 1e3} seconds balls ignore the laws of physics when they bounce: every impact sends them off in a strange, random direction and speed. Then it needs ${CHAOS_CD / 1e3} seconds to recharge.`,
-    stat: () => `random bounces for ${CHAOS_MS / 1e3}s`
-  });
-  var BURST_MS = 8e3;
-  var BURST_CD = 3e4;
-  power("ball_burst", {
-    required: [{ id: "phlegm_goo" }],
-    name: "Ball Burst",
-    ms: BURST_MS,
-    cd: BURST_CD,
-    costs: { goo: 700 },
-    desc: `For ${BURST_MS / 1e3} seconds you can have 10x as many balls in play. Then it needs ${BURST_CD / 1e3} seconds to recharge.`,
-    stat: () => `x10 ball limit for ${BURST_MS / 1e3}s`
-  });
-  var BOMB_COSTS = { evil: 40, goo: 150 };
-  var BOMB_FUSE = 1e4;
-  var BOMB_MULT = 10;
-  var BOMB_R = 70;
-  var BOMB_EVIL_BASE = 5;
-  var BOMB_EVIL_PEG = 10;
-  power("bomb_balls", {
-    required: [{ id: "evil" }],
-    danger: true,
-    name: "Bomb Balls",
-    costs: BOMB_COSTS,
-    desc: `Fires a red bomb ball (it does not count towards your ball limit). If it lands in a bucket it pays out x${BOMB_MULT} of everything it collected. If its ${BOMB_FUSE / 1e3}s fuse runs out first, or it is lost, it explodes: the loot is gone, pegs nearby break and must be placed again, and you get Evil instead.`,
-    status: () => "one at a time",
-    stat: () => `${BOMB_FUSE / 1e3}s fuse, x${BOMB_MULT} payout in a bucket`,
-    use: (game) => game.bomb.launch()
-  });
-  var RELAX_MS = 5e3;
-  var RELAX_CD = 3e4;
-  var RELAX_MOVE = 1.2;
-  power("repulsion_field", {
-    required: [{ id: "evil" }],
-    danger: true,
-    name: "Repulsion Field",
-    ms: RELAX_MS,
-    cd: RELAX_CD,
-    costs: { evil: 30, goo: 120 },
-    desc: `For ${RELAX_MS / 1e3} seconds every peg pushes away the pegs that are too close to it (the walls push back too), so crowded spots spread out and the gaps between pegs even out. Pegs keep their new places. Then it needs ${RELAX_CD / 1e3} seconds to recharge.`,
-    stat: () => `${RELAX_MS / 1e3}s of spreading out`
-  });
-  var ZAP_COSTS = { evil: 25, goo: 100 };
-  var ZAP_HITS = 8;
-  var ZAP_R = 60;
-  var ZAP_BRANCH = 2;
-  var ZAP_MAX = 15;
-  var ZAP_DELAY = 70;
-  power("electric_ball", {
-    required: [{ id: "evil" }],
-    act: COLORS.theme.electric,
-    name: "Electric Ball",
-    costs: ZAP_COSTS,
-    desc: `Fires an electric ball (it does not count towards your ball limit). Every peg it hits charges it up. After ${ZAP_HITS} hits it discharges: an arc jumps from that peg to the pegs nearby, and from those to more pegs, up to ${ZAP_MAX}. Every peg the arc touches counts as hit by the ball, and the electric ball collects the rewards. Then it charges up again.`,
-    status: () => "one at a time",
-    stat: () => `discharges every ${ZAP_HITS} hits, up to ${ZAP_MAX} pegs`,
-    use: (game) => game.zap.launch()
-  });
-  var POWERS = Object.values(POWER_BY_ID);
-  for (const pw of POWERS) {
-    for (const r of pw.required || []) if (!UPGRADE_BY_ID[r.id]) console.error(`Power "${pw.id}" requires "${r.id}", which does not exist`);
-    for (const c in pw.costs) if (!isCurrency(c)) console.error(`Power "${pw.id}" costs an unknown currency "${c}"`);
-    if (!pw.ms === !pw.use) console.error(`Power "${pw.id}" needs either ms/cd or use`);
-  }
 
   // src/game/Buckets.ts
   var Buckets = class {
@@ -6201,19 +6447,243 @@
     }
   };
 
+  // src/config/Currencies.ts
+  var RES_COL = { money: COLORS.ui.strong, research: COLORS.theme.research, goo: COLORS.theme.goo, evil: COLORS.theme.evil };
+  var CUR_FIELD = { money: "money", research: "rp", goo: "goo", evil: "evil" };
+  var CURRENCIES = Object.keys(CUR_FIELD);
+  var sym = (c) => `{${c}}`;
+  var costText = (c) => entries(c).map(([cur, a]) => `${sym(cur)}${fmt(a)}`).join(" + ");
+  var entries = (o) => Object.entries(o);
+  var isCurrency = (c) => c in CUR_FIELD;
+
   // src/upgrades/PegKinds.ts
   var PEG_KINDS = {
-    basic: { name: "Peg", color: COLORS.theme.pegs, costs: { money: 10 }, desc: "Every hit adds more money." },
-    research: { name: "Research", color: COLORS.theme.research, costs: { money: 150 }, unlock: "research_pegs", desc: "Every hit adds research points." },
-    splitter: { name: "Splitter", color: COLORS.theme.splitter, costs: { money: 400 }, unlock: "splitter_pegs", desc: "Splits balls in half." },
-    gravity: { name: "Gravity", color: COLORS.theme.gravity, costs: { money: 600 }, unlock: "gravity_pegs", desc: `Pulls balls towards it.` },
-    alchemy: { name: "Alchemy", color: COLORS.theme.alchemy, costs: { money: 500 }, unlock: "alchemy", desc: `Slowly turns to gold: from {money}${ALCH_MIN} to {money}${alchMax(0)} in ${ALCH_MS / 1e3}s. A hit pays it out and starts it over.` },
-    dual: { name: "Blast", color: COLORS.theme.money, costs: { money: 1e3 }, unlock: "blast_pegs", desc: `Pays money AND research points at x${DUAL_MULT} for ${DUAL_HITS} hits (more with Blast Peg Hits), then it is used up.` }
+    basic: { name: "Peg", color: COLORS.theme.pegs, costs: { money: 10 }, desc: "Pays {money} per hit." },
+    research: { name: "Research", color: COLORS.theme.research, costs: { money: 150 }, unlock: "research_pegs", desc: "Pays {research} per hit." },
+    splitter: { name: "Splitter", color: COLORS.theme.splitter, costs: { money: 400 }, unlock: "splitter_pegs", desc: "Splits a ball in two halves." },
+    gravity: { name: "Gravity", color: COLORS.theme.gravity, costs: { money: 600 }, unlock: "gravity_pegs", desc: "Pulls nearby balls." },
+    alchemy: { name: "Alchemy", color: COLORS.theme.alchemy, costs: { money: 500 }, unlock: "alchemy", desc: `Charges from {money}${ALCH_MIN} to {money}${alchMax(0)} in ${ALCH_MS / 1e3}s; a hit pays it out.` },
+    dual: { name: "Blast", color: COLORS.theme.money, costs: { money: 1e3 }, unlock: "blast_pegs", desc: `Pays {money} x${DUAL_MULT}+, used up after ${DUAL_HITS}+ hits.` },
+    antigravity: { name: "Repel", color: COLORS.theme.antigravity, costs: { money: 600 }, unlock: "antigravity_pegs", desc: "Pushes nearby balls away." },
+    bouncy: { name: "Bouncy", color: COLORS.theme.bouncy, costs: { money: 400 }, unlock: "bouncy_pegs", desc: "Balls bounce off it much harder." },
+    wall: { name: "Wall", color: COLORS.theme.wallPeg, costs: { money: 5 }, unlock: "wall_pegs", desc: "Big and cheap; pays nothing. For shaping paths." },
+    blink: { name: "Blink", color: COLORS.theme.blink, costs: { money: 300 }, unlock: "blink_pegs", desc: `Blinks in and out; pays 2x a plain peg.` },
+    limiter: { name: "Limiter", color: COLORS.theme.limiter, costs: {}, unlock: "cannon_limiters", desc: `Sits on the ceiling: the cannon turns back at it. Free, no slot, up to ${LIMITERS}.` },
+    slider: { name: "Slider", color: COLORS.theme.slider, costs: { money: 500 }, unlock: "slider_pegs", desc: "Slides back and forth; drag its handle (edit mode) to aim it." },
+    orbit: { name: "Orbit", color: COLORS.theme.orbit, costs: { money: 600 }, unlock: "orbit_pegs", desc: "Circles around where it is placed." },
+    spinner: { name: "Spinner", color: COLORS.theme.spinner, costs: { money: 800 }, unlock: "spinner_pegs", desc: "A spinning bar that bats balls away." },
+    power: { name: "Power", color: COLORS.theme.power, costs: { money: 2e3, evil: 100 }, unlock: "power_pegs", desc: `Load a power into it (tap it while placing one); every ${POWER_HITS} hits it casts it around itself.` }
   };
   var PEG_TYPES = Object.keys(PEG_KINDS);
   for (const t of PEG_TYPES) for (const c in PEG_KINDS[t].costs) if (!isCurrency(c)) console.error(`Peg type "${t}" costs an unknown currency "${c}"`);
 
+  // src/upgrades/Sections.ts
+  var SECTIONS = [
+    { section: "bucket", name: "Bucket", color: COLORS.theme.bucket },
+    { section: "pegs", name: "Pegs", color: COLORS.theme.pegs },
+    { section: "balls", name: "Balls", color: COLORS.theme.balls },
+    { section: "research", name: "Research", color: COLORS.theme.research },
+    { section: "world", name: "World", color: COLORS.theme.world },
+    { section: "goo", name: "Goo", color: COLORS.theme.goo },
+    { section: "evil", name: "Evil", color: COLORS.theme.evil }
+  ];
+  var SECTION_COLOR = Object.fromEntries(SECTIONS.map((s2) => [s2.section, s2.color]));
+  var LOCKED_SECTION = { name: "Locked", color: COLORS.ui.locked };
+
+  // src/upgrades/Registry.ts
+  var UPGRADES = [...MONEY_UPGRADES, ...RESEARCH_UPGRADES, ...GOO_EVIL_UPGRADES];
+  var UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
+  function upgradeProblems(list) {
+    const out = [], seen = /* @__PURE__ */ new Set(), byId2 = Object.fromEntries(list.map((u) => [u.id, u]));
+    for (const u of list) {
+      if (seen.has(u.id)) out.push(`Upgrade "${u.id}" is defined twice`);
+      seen.add(u.id);
+      for (const r of u.required || []) if (!byId2[r.id]) out.push(`Upgrade "${u.id}" requires "${r.id}", which does not exist`);
+      if (u.tab !== "money" && u.tab !== "research") out.push(`Upgrade "${u.id}" has no valid tab (got "${u.tab}")`);
+      if (!SECTIONS.some((s2) => s2.section === u.section)) out.push(`Upgrade "${u.id}" has no valid section (got "${u.section}")`);
+      const curs = Object.keys(u.costs || {});
+      if (!curs.length) out.push(`Upgrade "${u.id}" has no costs`);
+      for (const c of curs) if (!isCurrency(c)) out.push(`Upgrade "${u.id}" costs an unknown currency "${c}"`);
+    }
+    return out;
+  }
+  for (const problem of upgradeProblems(UPGRADES)) console.error(problem);
+
+  // src/upgrades/Powers.ts
+  var POWER_BY_ID = {};
+  var power = (id, pw) => {
+    POWER_BY_ID[id] = { id, ...pw };
+  };
+  var s = (ms) => `${ms / 1e3}s`;
+  var SPIT_MS = 400;
+  var SPIT_CD = 3e4;
+  power("goo_spit", {
+    required: [{ id: "phlegm_goo" }],
+    name: "Goo Spit",
+    ms: SPIT_MS,
+    cd: SPIT_CD,
+    color: COLORS.theme.goo,
+    zone: { shape: "circle", r: 90 },
+    costs: { money: 1e3 },
+    desc: "Coats every peg inside with goo at once.",
+    stat: () => "instant"
+  });
+  var GHOST_MS = 1e4;
+  var GHOST_CD = 3e4;
+  power("ghost_zone", {
+    required: [{ id: "ghost_power" }],
+    name: "Ghost Zone",
+    ms: GHOST_MS,
+    cd: GHOST_CD,
+    color: COLORS.theme.ghost,
+    zone: { shape: "circle", r: 80 },
+    costs: { goo: 200 },
+    desc: "Balls inside pass through pegs, still hitting them.",
+    stat: () => `${s(GHOST_MS)} zone`
+  });
+  var GRAV_MS = 1e4;
+  var GRAV_CD = 3e4;
+  var GRAV_MULT = 5;
+  power("downdraft", {
+    required: [{ id: "downdraft_power" }],
+    name: "Downdraft",
+    ms: GRAV_MS,
+    cd: GRAV_CD,
+    color: COLORS.theme.gravity,
+    zone: { shape: "band", h: 90 },
+    costs: { goo: 250 },
+    desc: `Balls inside fall ${GRAV_MULT}x faster.`,
+    stat: () => `${s(GRAV_MS)} band`
+  });
+  var DEAD_MS = 1e4;
+  var DEAD_CD = 3e4;
+  var DEAD_REST = 0.02;
+  power("dead_zone", {
+    required: [{ id: "dead_power" }],
+    name: "Dead Zone",
+    ms: DEAD_MS,
+    cd: DEAD_CD,
+    color: COLORS.theme.dead,
+    zone: { shape: "circle", r: 80 },
+    costs: { goo: 300 },
+    desc: "Balls inside lose almost all bounce.",
+    stat: () => `${s(DEAD_MS)} zone`
+  });
+  var CHAOS_MS = 1e4;
+  var CHAOS_CD = 3e4;
+  power("chaos_zone", {
+    required: [{ id: "chaos_power" }],
+    name: "Chaos Zone",
+    ms: CHAOS_MS,
+    cd: CHAOS_CD,
+    color: COLORS.theme.chaos,
+    zone: { shape: "circle", r: 80 },
+    costs: { goo: 333 },
+    desc: "Bounces inside go off in random directions.",
+    stat: () => `${s(CHAOS_MS)} zone`
+  });
+  var BURST_MS = 8e3;
+  var BURST_CD = 3e4;
+  power("ball_burst", {
+    required: [{ id: "burst_power" }],
+    name: "Ball Burst",
+    ms: BURST_MS,
+    cd: BURST_CD,
+    color: COLORS.theme.goo,
+    costs: { goo: 700 },
+    desc: "10x as many balls in play.",
+    stat: () => `x10 ball limit for ${s(BURST_MS)}`
+  });
+  var LASER_MS = 5e3;
+  var LASER_CD = 4e4;
+  var LASER_PULSE = 250;
+  var LASER_DMG = 0.25;
+  power("laser", {
+    required: [{ id: "laser_power" }],
+    name: "Laser",
+    ms: LASER_MS,
+    cd: LASER_CD,
+    color: COLORS.theme.laser,
+    costs: { goo: 300 },
+    desc: "The cannon fires a beam straight down instead of balls: it activates the first peg it hits.",
+    stat: () => `${s(LASER_MS)}, ${1e3 / LASER_PULSE} pulses a second`
+  });
+  var RBALL_MS = 500;
+  var RBALL_CD = 3e4;
+  var RBALL_MULT = 5;
+  power("research_ball", {
+    required: [{ id: "research_ball_power" }],
+    name: "Research Ball",
+    ms: RBALL_MS,
+    cd: RBALL_CD,
+    color: COLORS.theme.research,
+    costs: { goo: 150 },
+    desc: "Fires a big ball: every peg it hits pays {research} instead of {money}.",
+    stat: () => `x${RBALL_MULT} a research peg hit`
+  });
+  var BOMB_FUSE = 1e3;
+  var BOMB_CD = 2e4;
+  power("bomb", {
+    required: [{ id: "bomb_power" }],
+    danger: true,
+    name: "Bomb",
+    ms: BOMB_FUSE,
+    cd: BOMB_CD,
+    color: COLORS.theme.evil,
+    zone: { shape: "circle", r: 70 },
+    costs: { evil: 40, goo: 150 },
+    desc: "Pegs inside break and pay {evil}.",
+    stat: () => `${s(BOMB_FUSE)} fuse`
+  });
+  var RELAX_MS = 5e3;
+  var RELAX_CD = 3e4;
+  var RELAX_MOVE = 1.2;
+  power("balance_field", {
+    required: [{ id: "balance_power" }],
+    danger: true,
+    name: "Balance Field",
+    ms: RELAX_MS,
+    cd: RELAX_CD,
+    color: COLORS.theme.balance,
+    zone: { shape: "circle", r: 110 },
+    costs: { evil: 30, goo: 120 },
+    desc: "Pegs inside spread apart and keep their new places.",
+    stat: () => `${s(RELAX_MS)} zone`
+  });
+  var ZAP_MS = 8e3;
+  var ZAP_CD = 3e4;
+  var ZAP_R = 60;
+  var ZAP_BRANCH = 2;
+  var ZAP_MAX = 15;
+  var ZAP_DELAY = 70;
+  var ZAP_DMG = 0.0375;
+  var ZAP_PEG_CD = 300;
+  power("electric_field", {
+    required: [{ id: "electric_power" }],
+    name: "Electric Field",
+    ms: ZAP_MS,
+    cd: ZAP_CD,
+    color: COLORS.theme.electric,
+    zone: { shape: "circle", r: 90 },
+    costs: { evil: 25, goo: 100 },
+    desc: "Hits inside throw arcs to nearby pegs; arcs damage them.",
+    stat: () => `${s(ZAP_MS)} zone, up to ${ZAP_MAX} pegs per arc`
+  });
+  var POWERS = Object.values(POWER_BY_ID);
+  for (const pw of POWERS) {
+    for (const r of pw.required || []) if (!UPGRADE_BY_ID[r.id]) console.error(`Power "${pw.id}" requires "${r.id}", which does not exist`);
+    for (const c in pw.costs) if (!isCurrency(c)) console.error(`Power "${pw.id}" costs an unknown currency "${c}"`);
+  }
+
+  // src/game/Types.ts
+  var isMarker = (p) => p.type === "limiter";
+  var isMover = (p) => p.type === "slider" || p.type === "spinner" || p.type === "orbit";
+  var sliderHandle = (p) => ({ x: p.ax + Math.cos(p.dir) * p.reach, y: p.ay + Math.sin(p.dir) * p.reach });
+  var isDown = (p) => p.downT > 0;
+
   // src/game/PegBoard.ts
+  var shapeR = (type, r) => type === "research" ? r + 1 : type === "power" ? r * 1.5 : type === "wall" ? r * 2 : type === "spinner" ? r / PEG_R * SPINNER_LEN / 2 : r;
+  var SIDES = { research: 6, power: 3 };
   var CELL = 32;
   var cellKey = (cx, cy) => cy * 64 + cx + 8;
   var PegBoard = class {
@@ -6223,23 +6693,66 @@
       __publicField(this, "list");
       __publicField(this, "placed");
       __publicField(this, "gravity");
+      __publicField(this, "blink");
+      __publicField(this, "limiters");
+      __publicField(this, "movers");
       __publicField(this, "grid");
       this.physics = physics;
       this.progress = progress;
       this.list = [];
       this.placed = {};
       this.gravity = [];
+      this.blink = [];
+      this.limiters = [];
+      this.movers = [];
       this.grid = null;
     }
-    // paid: { currency: amount } paid to place it (refunded when picked up); free: placed from the free pegs (goes back there instead)
-    add(x, y, type = "basic", left = 0, dmg = 0, paid = {}, free = false) {
-      const r = pegRadius(y);
-      const body = this.physics.addPeg(x, y, r, type === "research");
-      const peg = { x, y, r, type, body, flash: 0, color: PEG_KINDS[type].color, gooT: 0, left, dead: false, dmg, gone: false, evilKill: false, paid, free, charge: 0, i: 0, fx: 0, fy: 0 };
+    // paid: { currency: amount } paid to place it (refunded when picked up); from a save: downT (ms it stays down),
+    // socket (a power peg's power), arm (a slider's direction and reach)
+    add(x, y, type = "basic", left = 0, dmg = 0, paid = {}, { downT = 0, socket = "", arm } = {}) {
+      const r = pegRadius(y), R = shapeR(type, r);
+      const body = type === "spinner" ? this.physics.addBar(x, y, 2 * R, 6 * r / PEG_R) : this.physics.addPeg(x, y, R, SIDES[type] ?? 0);
+      const peg = {
+        x,
+        y,
+        r,
+        type,
+        body,
+        flash: 0,
+        color: PEG_KINDS[type].color,
+        gooT: 0,
+        left,
+        dmg,
+        downT,
+        downMs: downT,
+        unpaid: false,
+        paid,
+        charge: 0,
+        socket,
+        castHits: 0,
+        castWait: false,
+        castCd: 0,
+        castCdMs: 0,
+        off: false,
+        ax: x,
+        ay: y,
+        dir: arm?.[0] ?? 0,
+        reach: arm?.[1] ?? (type === "orbit" ? ORBIT_R : SLIDER_REACH),
+        fx: 0,
+        fy: 0
+      };
+      if (socket) peg.color = POWER_BY_ID[socket]?.color ?? peg.color;
       body.peg = peg;
+      if (downT > 0) this.physics.setPegSolid(body, false);
       this.list.push(peg);
       this.placed[type] = this.placedOf(type) + 1;
-      if (type === "gravity") this.gravity.push(peg);
+      if (type === "gravity" || type === "antigravity") this.gravity.push(peg);
+      if (type === "blink") this.blink.push(peg);
+      if (type === "limiter") {
+        this.limiters.push(peg);
+        this.physics.setPegSolid(body, false);
+      }
+      if (isMover(peg)) this.movers.push(peg);
       this.grid = null;
       return peg;
     }
@@ -6249,23 +6762,27 @@
       this.physics.remove(peg.body);
       this.list.splice(i, 1);
       this.placed[peg.type] = this.placedOf(peg.type) - 1;
-      if (peg.type === "gravity") this.gravity.splice(this.gravity.indexOf(peg), 1);
+      for (const l of [this.gravity, this.blink, this.limiters, this.movers]) {
+        const i2 = l.indexOf(peg);
+        if (i2 >= 0) l.splice(i2, 1);
+      }
       this.grid = null;
     }
     placedOf(t) {
       return this.placed[t] ?? 0;
     }
     used() {
-      return this.list.length;
+      return this.list.length - this.placedOf("limiter");
     }
-    // pegs taking a slot
+    // pegs taking a slot (limiters take none)
     at(x, y) {
-      return this.list.find((p) => Math.hypot(x - p.x, y - p.y) < p.r + 8);
+      return this.list.find((p) => Math.hypot(x - p.x, y - p.y) < shapeR(p.type, p.r) + 8);
     }
     // the peg under a tap, if any
+    // put a peg somewhere (edit mode): a moving peg's spot is where it moves around
     move(peg, x, y) {
-      peg.x = x;
-      peg.y = y;
+      peg.x = peg.ax = x;
+      peg.y = peg.ay = y;
       this.physics.movePeg(peg.body, x, y);
       this.grid = null;
     }
@@ -6273,6 +6790,7 @@
       if (!this.grid) {
         this.grid = /* @__PURE__ */ new Map();
         for (const p of this.list) {
+          if (isMover(p)) continue;
           const k = cellKey(Math.floor(p.x / CELL), Math.floor(p.y / CELL));
           const a = this.grid.get(k);
           if (a) a.push(p);
@@ -6280,42 +6798,58 @@
         }
       }
       out.length = 0;
-      const m = PEG_R + 2;
+      const m = 2 * PEG_R + 2;
       const cx0 = Math.floor((x0 - m) / CELL), cx1 = Math.floor((x1 + m) / CELL);
       const cy0 = Math.floor((y0 - m) / CELL), cy1 = Math.floor((y1 + m) / CELL);
       for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
         const a = this.grid.get(cellKey(cx, cy));
         if (a) for (const p of a) out.push(p);
       }
+      for (const p of this.movers) {
+        const R = shapeR(p.type, p.r);
+        if (p.x + R >= x0 && p.x - R <= x1 && p.y + R >= y0 && p.y - R <= y1) out.push(p);
+      }
       return out;
     }
-    // average distance from a peg to its nearest neighbour (counted as `far` when none is that close)
-    spacing(far) {
-      if (this.list.length < 2) return far;
-      const near = [];
-      let sum = 0;
-      for (const p of this.list) {
-        let best = far;
-        for (const q of this.near(p.x - far, p.y - far, p.x + far, p.y + far, near)) if (q !== p) best = Math.min(best, Math.hypot(q.x - p.x, q.y - p.y));
-        sum += best;
+    /* Moving pegs, each on its own beat (from where it was placed): sliders back and forth along their track, orbit pegs around
+       their spot, spinners turning. smooth: from where they were the step before (so they bat balls); false: jump there (after edit mode). */
+    moveMovers(simT, smooth) {
+      for (const p of this.movers) {
+        const beat = simT + p.ax * 7 + p.ay * 13;
+        if (p.type === "spinner") {
+          this.physics.turnPeg(p.body, beat * TAU / SPINNER_MS, smooth);
+          continue;
+        }
+        const a = beat * TAU / (p.type === "orbit" ? ORBIT_MS : SLIDER_MS);
+        const [x, y] = p.type === "orbit" ? [p.ax + p.reach * Math.cos(a), p.ay + p.reach * Math.sin(a)] : [p.ax + Math.cos(p.dir) * p.reach * Math.sin(a), p.ay + Math.sin(p.dir) * p.reach * Math.sin(a)];
+        p.x = x;
+        p.y = y;
+        this.physics.movePeg(p.body, x, y, smooth);
       }
-      return sum / this.list.length;
     }
-    /* One step of repulsion relaxation: every pair of pegs closer than d0 pushes apart (harder the closer they are),
-       and the edges of box push back like a peg would, so pegs spread inside the board instead of piling up at its edges.
+    // edit mode: every moving peg back on its spot, standing still (a spinner flat)
+    restMovers() {
+      for (const p of this.movers) {
+        p.x = p.ax;
+        p.y = p.ay;
+        this.physics.movePeg(p.body, p.x, p.y);
+        if (p.type === "spinner") this.physics.turnPeg(p.body, 0);
+      }
+    }
+    /* One step of balancing among `list` (down pegs too: their spot stays taken): every pair whose edges are closer than gap
+       pushes apart (harder the closer they are), and the circle's edge pushes back like a peg would, so they spread inside it.
        ease (0..1) scales the movement down as the effect ends. links collects the pushing pairs (for drawing). */
-    relaxStep(d0, ease, box, links) {
-      const list = this.list, near = [], half = d0 / 2;
+    relaxStep(list, gap, ease, c, links) {
       links.length = 0;
-      list.forEach((p, i) => {
-        p.i = i;
+      for (const p of list) {
         p.fx = 0;
         p.fy = 0;
-      });
-      for (const p of list) {
-        if (p.dead) continue;
-        for (const q of this.near(p.x - d0, p.y - d0, p.x + d0, p.y + d0, near)) {
-          if (q.i <= p.i || q.dead) continue;
+      }
+      for (let i = 0; i < list.length; i++) {
+        const p = list[i];
+        for (let j = i + 1; j < list.length; j++) {
+          const q = list[j];
+          const d0 = p.r + q.r + gap;
           let dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy);
           if (d >= d0) continue;
           if (d < 0.01) {
@@ -6331,39 +6865,38 @@
           if (links.length < 1200) links.push(p, q);
         }
       }
-      const wall = (gap) => Math.max(0, 1 - gap / half);
       for (const p of list) {
-        if (p.dead) continue;
-        p.fx += wall(p.x - box.x0) - wall(box.x1 - p.x);
-        p.fy += wall(p.y - box.y0) - wall(box.y1 - p.y);
+        const half = p.r + gap / 2, ex = c.x - p.x, ey = c.y - p.y, e = Math.hypot(ex, ey) || 1;
+        const w = Math.max(0, 1 - (c.r - e) / half);
+        p.fx += ex / e * w;
+        p.fy += ey / e * w;
         const f = Math.hypot(p.fx, p.fy);
         if (f < 1e-4) continue;
-        const m = Math.min(RELAX_MOVE, f * d0 * 0.08) * ease;
+        const m = Math.min(RELAX_MOVE, f * (2 * p.r + gap) * 0.08) * ease;
         p.x = Math.min(W, Math.max(0, p.x + p.fx / f * m));
-        p.y = Math.min(box.yMax, Math.max(0, p.y + p.fy / f * m));
+        p.y = Math.min(c.yMax, Math.max(0, p.y + p.fy / f * m));
         this.physics.movePeg(p.body, p.x, p.y);
       }
       this.grid = null;
     }
-    // after moving, every peg takes the size that belongs to its new depth
-    resettle() {
-      for (const p of this.list) this.resettleOne(p);
-    }
+    // after moving, a peg takes the size that belongs to its new depth
     resettleOne(p) {
       const r = pegRadius(p.y);
       if (Math.abs(r - p.r) < 0.02) return;
-      this.physics.resizePeg(p.body, p.type === "research" ? (r + 1) / (p.r + 1) : r / p.r);
+      this.physics.resizePeg(p.body, shapeR(p.type, r) / shapeR(p.type, p.r));
       p.r = r;
       this.grid = null;
     }
-    // flashes fade, goo wears off, damage heals (heal = damage healed per second; 0 while evil is on), alchemy pegs charge
+    // flashes fade, goo wears off, damage heals (heal = damage healed per second; 0 while evil is on), alchemy pegs charge;
+    // a down peg only fades its flash (its downtime is counted by PegDowntime)
     tick(dt, heal) {
       for (const pg of this.list) {
+        if (pg.flash > 0) pg.flash = Math.max(0, pg.flash - dt / 220);
+        if (isDown(pg)) continue;
         if (pg.type === "alchemy" && pg.charge < 1) {
           pg.charge = Math.min(1, pg.charge + dt / ALCH_MS);
           pg.color = mixCol(COLORS.theme.alchemy, COLORS.theme.money, Math.round(pg.charge * 10) / 10);
         }
-        if (pg.flash > 0) pg.flash = Math.max(0, pg.flash - dt / 220);
         if (pg.gooT > 0) pg.gooT = Math.max(0, pg.gooT - dt);
         if (heal > 0 && pg.dmg > 0) pg.dmg = Math.max(0, pg.dmg - heal * dt / 1e3);
       }
@@ -6377,13 +6910,11 @@
       __publicField(this, "rp");
       __publicField(this, "goo");
       __publicField(this, "evil");
-      __publicField(this, "freePegs");
       __publicField(this, "levels");
       this.money = 0;
       this.rp = 0;
       this.goo = 0;
       this.evil = 0;
-      this.freePegs = { basic: 0, research: 0, splitter: 0, gravity: 0, alchemy: 0, dual: 0 };
       this.levels = {};
       for (const u of UPGRADES) this.levels[u.id] = 0;
     }
@@ -6476,7 +7007,7 @@
        from wherever it is. Returns false when every ball slot is taken. */
     launch() {
       const g = this.game;
-      if (g.editing || this.load() + 1 > this.maxBalls()) return false;
+      if (g.editing || g.temps.running("laser") || this.load() + 1 > this.maxBalls()) return false;
       const half = LAUNCH_SPREAD * Math.PI / 180 / 2;
       const th = rand(-half, half);
       const isGoo = Math.random() < (g.L("phlegm_goo") ? gooChance(1 + g.L("more_gooballs")) : 0);
@@ -6485,6 +7016,13 @@
       g.recoil = 1;
       g.uiDirty = true;
       return true;
+    }
+    // the Research Ball power: a big ball outside the ball limit (w 0) that never splits
+    researchBall() {
+      const g = this.game;
+      this.make(g.launchX, LAUNCH_Y, ballRadius(g.L("fat_balls")) * 1.8, 0, LAUNCH_SPEED, { research: true, w: 0, split: true, glow: COLORS.theme.research });
+      g.recoil = 1;
+      g.effects.burst(g.launchX, LAUNCH_Y + 6, COLORS.theme.research, 14, { speed: [60, 160], angle: [0.3, 2.84] });
     }
     // a ball body plus its game state
     make(x, y, r, vx, vy, props) {
@@ -6501,6 +7039,8 @@
         trail: [],
         lastPeg: null,
         lastT: 0,
+        lastWall: 0,
+        lastWallT: 0,
         goo: false,
         gold: false,
         gooHits: 0,
@@ -6508,14 +7048,10 @@
         w: 1,
         split: false,
         glow: randGlow(),
-        ghost: g.temps.running("ghost_balls"),
+        ghost: false,
         inPeg: false,
         chaos: false,
-        bomb: false,
-        fuse: 0,
-        phase: 0,
-        zap: false,
-        charge: 0,
+        research: false,
         stash: { money: 0, rp: 0, goo: 0, evil: 0 }
         // the haul: paid out in a bucket, lost any other way
       }, props);
@@ -6558,19 +7094,19 @@
     }
     // the ball made it: its haul is paid out as is, plus the bucket's own catch value (bucket and gold multipliers apply to that)
     catch(ball, bk, idx) {
-      const g = this.game, s = ball.stash, p = g.progress, fx = g.effects, x = ball.body.position.x, y = g.rimY();
-      const money = s.money + bucketValue(g.L("bucket_value")) * bk.mult * this.goldMul(ball);
+      const g = this.game, s2 = ball.stash, p = g.progress, fx = g.effects, x = ball.body.position.x, y = g.rimY();
+      const money = ball.research ? s2.money : s2.money + bucketValue(g.L("bucket_value")) * bk.mult * this.goldMul(ball);
       p.gain(money);
-      p.rp += s.rp;
-      p.addGoo(s.goo);
-      p.evil += s.evil;
+      p.rp += s2.rp;
+      p.addGoo(s2.goo);
+      p.evil += s2.evil;
       g.buckets.flash[idx] = 1;
       fx.burst(x, y + 4, COLORS.theme.bucket, 10);
       const lines = shown([
-        [`+{money}${fmt(money)}`, COLORS.theme.bucket],
-        s.rp && [`+{research}${fmt(s.rp)}`, COLORS.theme.research],
-        s.goo && [`+{goo}${fmt(s.goo)}`, COLORS.theme.goo],
-        s.evil && [`+{evil}${evFmt(s.evil)}`, COLORS.theme.evil]
+        money && [`+{money}${fmt(money)}`, COLORS.theme.bucket],
+        s2.rp && [`+{research}${fmt(s2.rp)}`, COLORS.theme.research],
+        s2.goo && [`+{goo}${fmt(s2.goo)}`, COLORS.theme.goo],
+        s2.evil && [`+{evil}${evFmt(s2.evil)}`, COLORS.theme.evil]
       ]);
       lines.forEach(([text, col], i) => {
         fx.float(x, y - 8 - 17 * i, text, col, { big: true, life: 1e3, always: true });
@@ -6579,124 +7115,70 @@
     }
     // the ball left play any other way: its haul is gone (a faint red note shows what was lost)
     lose(ball) {
-      const g = this.game, s = ball.stash, p = ball.body.position;
-      const lost = [s.money && `{money}${fmt(s.money)}`, s.rp && `{research}${fmt(s.rp)}`, s.goo && `{goo}${fmt(s.goo)}`, s.evil && `{evil}${evFmt(s.evil)}`].filter(Boolean);
+      const g = this.game, s2 = ball.stash, p = ball.body.position;
+      const lost = [s2.money && `{money}${fmt(s2.money)}`, s2.rp && `{research}${fmt(s2.rp)}`, s2.goo && `{goo}${fmt(s2.goo)}`, s2.evil && `{evil}${evFmt(s2.evil)}`].filter(Boolean);
       if (lost.length) g.effects.float(p.x, Math.min(p.y, g.worldH - 12), `\u2212${lost.join(" \xB7 ")}`, COLORS.ui.negative, { life: 1e3 });
       this.drop(ball);
     }
     // speed limit, trails, and every way a ball leaves play: caught, fallen out, too old, stuck, or a burnt-out gooball
     update(dt) {
-      const g = this.game, ph = g.physics, bs = g.buckets.layout(), bomb = g.bomb;
+      const g = this.game, ph = g.physics, bs = g.buckets.layout();
       for (let i = g.balls.length - 1; i >= 0; i--) {
         const b = g.balls[i], p = b.body.position, v = ph.velocity(b.body);
         const sp = Math.hypot(v.x, v.y);
         if (sp > MAX_SPEED) ph.setVelocity(b.body, v.x / sp * MAX_SPEED, v.y / sp * MAX_SPEED);
         b.age += dt;
         b.still = sp < 0.225 ? b.still + dt : 0;
-        if (b.ghost && !g.temps.running("ghost_balls") && !b.inPeg) b.ghost = false;
+        if (b.ghost && !b.inPeg && !g.zones.at("ghost_zone", p.x, p.y)) b.ghost = false;
         if ((++b.tick & 1) === 0) {
           b.trail.push(p.x, p.y);
           if (b.trail.length > 14) b.trail.splice(0, 2);
         }
-        if (b.bomb) bomb.burn(b, dt);
         const bi = v.y > 0 && b.age > 250 && p.y >= g.catchY() ? g.buckets.indexAt(bs, p.x) : -1;
-        if (bi >= 0) {
-          if (b.bomb) bomb.cash(b, bs[bi], bi);
-          else this.catch(b, bs[bi], bi);
-        } else if (p.y > g.worldH + 40 || b.age > BALL_MAX_AGE || b.still > 1500 || b.expired) {
-          if (b.bomb) {
-            bomb.explode(b);
-            continue;
-          }
+        if (bi >= 0) this.catch(b, bs[bi], bi);
+        else if (p.y > g.worldH + 40 || b.age > BALL_MAX_AGE || b.still > 1500 || b.expired) {
           if (b.expired) g.effects.burst(p.x, p.y, COLORS.theme.goo, 12);
           this.lose(b);
-        } else if (b.bomb && b.fuse <= 0) {
-          bomb.explode(b);
         }
       }
     }
   };
 
-  // src/game/PegColor.ts
-  var pegCol = (p) => p.dmg > 0.02 ? mixCol(p.color, COLORS.theme.evil, Math.round(p.dmg * 10) / 10) : p.color;
+  // src/game/Zones.ts
+  function areaOf(z, x, y, scale = 1) {
+    return z.shape === "circle" ? { shape: "circle", x, y, r: z.r * scale, w: 0, h: 0 } : { shape: "band", x: W / 2, y, r: 0, w: W, h: z.h * scale };
+  }
+  function inZone(a, x, y, pad = 0) {
+    return a.shape === "circle" ? Math.hypot(x - a.x, y - a.y) <= a.r + pad : Math.abs(x - a.x) <= a.w / 2 + pad && Math.abs(y - a.y) <= a.h / 2 + pad;
+  }
+  function zoneAt(zones, power2, x, y) {
+    for (const z of zones) if (z.power === power2 && inZone(z, x, y)) return z;
+    return void 0;
+  }
 
-  // src/game/systems/BombBall.ts
-  var BombBall = class {
+  // src/game/systems/Bomb.ts
+  var Bomb = class {
     constructor(game) {
       __publicField(this, "game");
       this.game = game;
     }
-    // A bomb ball leaves the cannon like any ball, but outside the ball limit (w: 0) and it never splits.
-    launch() {
-      const g = this.game, r = Math.max(8, ballRadius(g.L("fat_balls")));
-      g.ballSystem.make(g.launchX, LAUNCH_Y, r, 0, LAUNCH_SPEED, {
-        bomb: true,
-        w: 0,
-        split: true,
-        fuse: BOMB_FUSE,
-        phase: 0,
-        glow: COLORS.theme.evil
-      });
-      g.recoil = 1;
-      g.effects.burst(g.launchX, LAUNCH_Y + 6, COLORS.theme.evil, 14, { speed: [60, 160], angle: [0.3, 2.84] });
-      g.uiDirty = true;
-    }
-    // the fuse burns, and the glow pulses faster as it gets short
-    burn(b, dt) {
-      b.fuse -= dt;
-      b.phase += dt * (0.0126 + 0.038 * (1 - Math.max(0, b.fuse) / BOMB_FUSE));
-    }
-    // the bomb made it: the bucket's own value goes into the stash too, then everything is paid out x10
-    cash(ball, bk, idx) {
-      const g = this.game, s = ball.stash, p = g.progress, fx = g.effects, x = ball.body.position.x, y = g.rimY(), m = BOMB_MULT;
-      s.money += bucketValue(g.L("bucket_value")) * bk.mult;
-      p.gain(s.money * m);
-      p.rp += s.rp * m;
-      p.addGoo(s.goo * m);
-      p.evil += s.evil * m;
-      g.buckets.flash[idx] = 1;
-      fx.ring(x, y, 6, 95, COLORS.theme.money, { life: 650, width: 6, fill: true });
-      fx.ring(x, y, 6, 150, COLORS.ui.strong, { life: 900, width: 3 });
-      fx.burst(x, y, COLORS.theme.money, 50, { speed: [140, 380], angle: [Math.PI * 1.12, Math.PI * 1.88], size: 13, life: 950, always: true });
-      fx.burst(x, y, COLORS.theme.bucket, 24, { speed: [100, 280], angle: [Math.PI * 1.2, Math.PI * 1.8], size: 10, life: 800, always: true });
-      fx.float(x, y - 26, `x${m}!`, COLORS.theme.money, { huge: true, life: 1400, always: true });
-      const lines = shown([
-        [`+{money}${fmt(s.money * m)}`, COLORS.theme.money],
-        s.rp && [`+{research}${fmt(s.rp * m)}`, COLORS.theme.research],
-        s.goo && [`+{goo}${fmt(s.goo * m)}`, COLORS.theme.goo],
-        s.evil && [`+{evil}${evFmt(s.evil * m)}`, COLORS.theme.evil]
-      ]);
-      lines.forEach(([text, col], i) => {
-        fx.float(x, y - 52 - 18 * i, text, col, { big: true, life: 1600, always: true });
-      });
-      fx.screen(COLORS.theme.money, 0.25, 4);
-      g.ballSystem.drop(ball);
-    }
-    // the fuse ran out (or the bomb was lost): the loot is gone, nearby pegs break, and it pays Evil instead
-    explode(ball) {
-      const g = this.game, { x, y } = ball.body.position, fx = g.effects;
+    // a power peg's own bomb leaves it standing; every peg it breaks pays Evil (EVIL_KILL), like any break
+    explode(z) {
+      const g = this.game, { x, y, r } = z, fx = g.effects;
       let broken = 0;
-      for (const pg of g.pegs.near(x - BOMB_R, y - BOMB_R, x + BOMB_R, y + BOMB_R, [])) {
-        if (pg.dead || Math.hypot(pg.x - x, pg.y - y) > BOMB_R + pg.r) continue;
-        pg.dead = true;
-        pg.evilKill = true;
-        pg.flash = 1;
-        g.pendingRemove.push(pg);
-        broken++;
-        fx.burst(pg.x, pg.y, pegCol(pg), 10, { speed: [60, 200], size: 9, always: true });
+      for (const pg of g.pegs.near(x - r, y - r, x + r, y + r, [])) {
+        if (pg === z.src || isDown(pg) || !inZone(z, pg.x, pg.y, pg.r)) continue;
+        if (g.downtime.damage(pg, 1, null)) broken++;
       }
-      const ev = (BOMB_EVIL_BASE + BOMB_EVIL_PEG * broken) * evilYield(g.L("dark_harvest"));
-      g.progress.evil += ev;
-      fx.ring(x, y, 4, BOMB_R, COLORS.theme.explosionLight, { life: 380, width: 7, fill: true });
-      fx.ring(x, y, 4, BOMB_R * 1.35, COLORS.theme.evil, { life: 650, width: 4 });
+      fx.ring(x, y, 4, r, COLORS.theme.explosionLight, { life: 380, width: 7, fill: true });
+      fx.ring(x, y, 4, r * 1.35, COLORS.theme.evil, { life: 650, width: 4 });
       fx.burst(x, y, COLORS.theme.evil, 40, { speed: [90, 330], size: 15, life: 750, always: true });
       fx.burst(x, y, COLORS.theme.explosion, 30, { speed: [60, 260], size: 12, life: 620, always: true });
       fx.burst(x, y, COLORS.theme.explosionLight, 16, { speed: [30, 150], size: 17, life: 420, always: true });
       fx.float(x, y - 8, "BOOM!", COLORS.theme.explosion, { huge: true, life: 1100, always: true });
-      fx.float(x, y - 34, `+{evil}${evFmt(ev)}`, COLORS.theme.evil, { big: true, life: 1500, always: true });
       if (broken) fx.float(x, y - 52, `${broken} peg${broken > 1 ? "s" : ""} broken`, COLORS.theme.explosion, { life: 1500, always: true });
       fx.screen(COLORS.theme.evil, 0.4, 9);
-      g.ballSystem.drop(ball);
+      g.uiDirty = true;
     }
   };
 
@@ -6717,29 +7199,24 @@
       }
       return true;
     }
-    // launches a power: unlocked, not busy (running, recharging or its ball still out), and every cost paid
+    // can be used now: unlocked, not running or recharging, and every cost can be paid
+    ready(pw) {
+      const p = this.game.progress;
+      return p.isUnlocked(pw) && !this.timer(pw.id) && p.has(pw.costs);
+    }
+    // a power without a zone acts at once (one with a zone is placed on the board: ZoneSystem)
     usePower(pw) {
-      const g = this.game, p = g.progress;
-      if (!p.isUnlocked(pw) || this.timer(pw.id) || !p.has(pw.costs)) return false;
-      p.spend(pw.costs);
-      if (pw.ms) g.temps.start(pw.id);
-      else if (pw.use) pw.use(g);
+      const g = this.game;
+      if (pw.zone || !this.ready(pw)) return false;
+      g.progress.spend(pw.costs);
+      g.temps.start(pw.id);
+      if (pw.id === "research_ball") g.ballSystem.researchBall();
       g.uiDirty = true;
       return true;
     }
-    // a power's state: { active, s } running / recharging, { active, text } for the electric ball's charge; null when ready
-    // (the bomb and the electric ball are busy while one is in play)
+    // a power's state: { active, s } running / recharging; null when ready
     timer(id) {
-      const g = this.game;
-      if (id === "bomb_balls") {
-        const b = g.balls.find((b2) => b2.bomb);
-        return b ? { active: true, s: Math.max(0, Math.ceil(b.fuse / 1e3)) } : null;
-      }
-      if (id === "electric_ball") {
-        const b = g.balls.find((b2) => b2.zap);
-        return b ? { active: true, text: `${Math.round(b.charge * 100)}%` } : null;
-      }
-      return g.temps.timer(id);
+      return this.game.temps.timer(id);
     }
   };
 
@@ -6749,86 +7226,192 @@
       __publicField(this, "game");
       this.game = game;
     }
-    // Entering clears the board of balls (a bomb or electric ball in play is refunded) and freezes everything:
-    // App stops calling step(), so timers, cooldowns and passive research points wait too. Returns what was refunded.
+    // Entering clears the board of balls and freezes everything: App stops calling step(), so timers, cooldowns,
+    // zones, downtimes and passive research points wait too. A power waiting to be placed is cancelled.
     enter() {
-      const g = this.game, p = g.progress, refund = {};
-      for (const b of [...g.balls]) {
-        const c = b.bomb ? BOMB_COSTS : b.zap ? ZAP_COSTS : null;
-        if (c) for (const [cur, a] of entries(c)) refund[cur] = (refund[cur] ?? 0) + a;
-        g.ballSystem.drop(b);
-      }
-      p.refund(refund);
+      const g = this.game, p = g.progress;
+      for (const b of [...g.balls]) g.ballSystem.drop(b);
       p.goo = Math.min(p.goo, p.gooCap());
-      g.arcs.length = 0;
+      g.zones.cancel();
+      g.electric.arcs.length = 0;
       g.pendingSplit.length = 0;
       const fx = g.effects;
       fx.particles.length = fx.floaters.length = fx.rings.length = fx.bolts.length = 0;
       fx.shake = 0;
       fx.flash.a = 0;
       for (const pg of g.pegs.list) pg.flash = 0;
+      g.pegs.restMovers();
       g.editing = true;
       g.uiDirty = true;
-      return refund;
     }
     exit() {
       this.game.editing = false;
+      this.game.moversJump = true;
       this.game.uiDirty = true;
     }
     // why a peg of this type cannot be placed right now (null when it can)
     cantPlace(type) {
       const g = this.game, p = g.progress, k = PEG_KINDS[type];
       if (!p.unlocked(type)) return `Unlock ${k.name} pegs in Research first`;
+      if (type === "limiter") return g.pegs.placedOf("limiter") >= LIMITERS ? `Only ${LIMITERS} limiters` : null;
       if (g.pegs.used() >= p.slots()) return "Slots full: buy Peg Slots in the Shop";
-      if (!p.freePegs[type] && !p.has(k.costs)) return `Need ${costText(k.costs)} for ${type === "basic" ? "a peg" : `a ${k.name.toLowerCase()} peg`}`;
+      if (type === "power" && g.pegs.placedOf("power") >= powerPegMax(g.L("power_peg_slots"))) return "Power peg limit: buy Power Peg Slots in the Shop";
+      if (!p.has(k.costs)) return `Need ${costText(k.costs)} for ${type === "basic" ? "a peg" : `a ${k.name.toLowerCase()} peg`}`;
       return null;
     }
-    // places a peg (free ones first, then paid); returns why it could not, or null
+    // places a peg and pays for it; returns why it could not, or null
     placePeg(type, x, y) {
       const why = this.cantPlace(type);
       if (why) return why;
-      const g = this.game, p = g.progress, s = this.placeSpot(x, y);
+      const g = this.game, p = g.progress, s2 = this.placeSpot(x, y, type);
       const left = type === "dual" ? blastHits(g.L("blast_peg_hits")) : 0;
-      let peg;
-      if (p.freePegs[type] > 0) {
-        p.freePegs[type]--;
-        peg = g.pegs.add(s.x, s.y, type, left, 0, {}, true);
-      } else {
-        const c = { ...PEG_KINDS[type].costs };
-        p.spend(c);
-        peg = g.pegs.add(s.x, s.y, type, left, 0, c);
-      }
+      const c = { ...PEG_KINDS[type].costs };
+      p.spend(c);
+      const peg = g.pegs.add(s2.x, s2.y, type, left, 0, c);
       g.effects.burst(peg.x, peg.y, peg.color, 8, { speed: [30, 90] });
       g.uiDirty = true;
       return null;
     }
-    // picking a peg up gives back what placing it took: its price or its free placement.
-    // A blast peg that was already hit only gives back the unused share of its price (a free one: nothing).
-    pickUp(peg) {
-      const g = this.game, p = g.progress, full = blastHits(g.L("blast_peg_hits")), used = peg.type === "dual" && peg.left < full;
-      const back = {};
-      if (!peg.free) for (const [cur, a] of entries(peg.paid)) {
+    // what picking a peg up gives back: its price; a blast peg that was already hit only the unused share
+    refundOf(peg) {
+      const full = blastHits(this.game.L("blast_peg_hits")), used = peg.type === "dual" && peg.left < full, back = {};
+      for (const [cur, a] of entries(peg.paid)) {
         const b = used ? Math.floor(a * peg.left / full) : a;
         if (b > 0) back[cur] = b;
       }
-      if (peg.free && !used) p.freePegs[peg.type]++;
-      p.refund(back);
+      return back;
+    }
+    // A down peg can't be picked up (that would skip its downtime for a refund): BoardControls checks first.
+    pickUp(peg) {
+      const g = this.game, back = this.refundOf(peg);
+      g.progress.refund(back);
       g.pegs.remove(peg);
       g.uiDirty = true;
       return costText(back);
     }
+    // layouts: clearing or loading waits until no peg is down
+    anyDown() {
+      return this.game.pegs.list.some(isDown);
+    }
+    // picks up every peg (each refunded); returns why it could not, or null
+    clearAll() {
+      if (this.anyDown()) return "Wait until broken pegs are back";
+      for (const pg of [...this.game.pegs.list]) this.pickUp(pg);
+      return null;
+    }
+    // what placing these pegs costs in total
+    layoutCost(pegs) {
+      const out = {};
+      for (const lp of pegs) for (const [cur, a] of entries(PEG_KINDS[lp.type].costs)) out[cur] = (out[cur] ?? 0) + a;
+      return out;
+    }
+    // why a layout can't be loaded now (null: it can): all of it must be unlocked, fit the slots and be paid for, counting the refund of the board
+    cantLoad(pegs) {
+      const g = this.game, p = g.progress;
+      if (this.anyDown()) return "Wait until broken pegs are back";
+      const locked = pegs.find((lp) => !p.unlocked(lp.type));
+      if (locked) return `${PEG_KINDS[locked.type].name} pegs are not unlocked yet`;
+      const slots = pegs.filter((lp) => lp.type !== "limiter").length;
+      if (slots > p.slots()) return `Needs ${slots} peg slots (you have ${p.slots()})`;
+      if (pegs.length - slots > LIMITERS) return `Only ${LIMITERS} limiters`;
+      if (pegs.filter((lp) => lp.type === "power").length > powerPegMax(g.L("power_peg_slots"))) return "Too many power pegs: buy Power Peg Slots";
+      const have = {};
+      for (const [cur] of entries(this.layoutCost(pegs))) have[cur] = p[CUR_FIELD[cur]];
+      for (const pg of g.pegs.list) for (const [cur, a] of entries(this.refundOf(pg))) if (cur in have) have[cur] = (have[cur] ?? 0) + a;
+      const cost = this.layoutCost(pegs);
+      return entries(cost).every(([cur, a]) => (have[cur] ?? 0) >= a) ? null : `Need ${costText(cost)} (the board's refund counts)`;
+    }
+    // swaps the board for a layout: everything picked up (refunded), then the layout placed and paid for; returns why not, or null
+    loadLayout(pegs) {
+      const why = this.cantLoad(pegs);
+      if (why) return why;
+      const g = this.game, p = g.progress;
+      this.clearAll();
+      for (const lp of pegs) {
+        const s2 = this.placeSpot(lp.x, lp.y, lp.type), c = { ...PEG_KINDS[lp.type].costs };
+        p.spend(c);
+        g.pegs.add(s2.x, s2.y, lp.type, lp.type === "dual" ? blastHits(g.L("blast_peg_hits")) : 0, 0, c, { arm: lp.arm });
+      }
+      g.moversJump = true;
+      g.uiDirty = true;
+      return null;
+    }
     // dragging: the peg follows the pointer, and takes the size that belongs to its depth when it is let go
+    // a slider's handle: dragging it aims the slider and sets how far it goes
+    aimSlider(peg, x, y) {
+      const dx = x - peg.ax, dy = y - peg.ay;
+      if (Math.hypot(dx, dy) < 4) return;
+      peg.dir = Math.atan2(dy, dx);
+      peg.reach = Math.min(ARM_MAX, Math.max(ARM_MIN, Math.hypot(dx, dy)));
+    }
     dragPeg(peg, x, y) {
-      const s = this.placeSpot(x, y);
-      this.game.pegs.move(peg, s.x, s.y);
+      const s2 = this.placeSpot(x, y, peg.type);
+      this.game.pegs.move(peg, s2.x, s2.y);
     }
     dropPeg(peg) {
       this.game.pegs.resettleOne(peg);
     }
     // Pegs can go anywhere on the board, the centre at most on the walls, ceiling or floor line (half the peg sticking out),
-    // so a tap in the dimmed area outside the board lands on the nearest border.
-    placeSpot(x, y) {
-      return { x: Math.min(W, Math.max(0, x)), y: Math.min(this.game.worldH, Math.max(0, y)) };
+    // so a tap in the dimmed area outside the board lands on the nearest border. A cannon limiter always sits on the ceiling line.
+    placeSpot(x, y, type) {
+      return { x: Math.min(W, Math.max(0, x)), y: type === "limiter" ? 0 : Math.min(this.game.worldH, Math.max(0, y)) };
+    }
+  };
+
+  // src/game/systems/ElectricField.ts
+  var ElectricField = class {
+    constructor(game) {
+      __publicField(this, "game");
+      __publicField(this, "arcs");
+      __publicField(this, "lastArc");
+      this.game = game;
+      this.arcs = [];
+      this.lastArc = /* @__PURE__ */ new WeakMap();
+    }
+    // a real hit (not an arc): inside a field, the peg starts an arc (not again within ZAP_PEG_CD)
+    onHit(ball, peg) {
+      const g = this.game, z = g.zones.at("electric_field", peg.x, peg.y);
+      if (!z || g.simT - (this.lastArc.get(peg) ?? -1e9) < ZAP_PEG_CD) return;
+      this.lastArc.set(peg, g.simT);
+      this.discharge(ball, peg, z.src);
+    }
+    /* The arc spreads outward in waves: every tagged peg passes it on to its nearest untagged pegs within ZAP_R
+       (at most ZAP_BRANCH each, ZAP_MAX in total). Each wave lands ZAP_DELAY ms after the one before. */
+    discharge(ball, start, src) {
+      const g = this.game, fx = g.effects, seen = /* @__PURE__ */ new Set([start]), near = [];
+      let wave = [start], depth = 0, tagged = 0;
+      while (wave.length && tagged < ZAP_MAX) {
+        depth++;
+        const next = [];
+        for (const from of wave) {
+          const cands = g.pegs.near(from.x - ZAP_R, from.y - ZAP_R, from.x + ZAP_R, from.y + ZAP_R, near).filter((q) => !seen.has(q) && !isDown(q) && !q.off && !isMarker(q) && Math.hypot(q.x - from.x, q.y - from.y) <= ZAP_R).sort((a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y));
+          for (const q of cands.slice(0, ZAP_BRANCH)) {
+            if (tagged >= ZAP_MAX) break;
+            seen.add(q);
+            next.push(q);
+            tagged++;
+            this.arcs.push({ from, to: q, at: g.simT + depth * ZAP_DELAY, ball, src });
+          }
+        }
+        wave = next;
+      }
+      fx.ring(start.x, start.y, 4, ZAP_R, COLORS.theme.electric, { life: 420, width: 3, fill: true });
+      fx.burst(start.x, start.y, COLORS.theme.electricLight, 12, { speed: [80, 220], size: 9, always: true });
+      if (tagged) fx.float(start.x, start.y - 22, `ZAP x${tagged}`, COLORS.theme.electric, { big: true, life: 900, always: true });
+    }
+    // arc jumps that are due land now: lightning, sparks, a hit as if the ball had hit the peg, and damage
+    update() {
+      const g = this.game;
+      for (let i = this.arcs.length - 1; i >= 0; i--) {
+        const a = this.arcs[i];
+        if (a.at > g.simT) continue;
+        this.arcs.splice(i, 1);
+        if (isDown(a.to) || !g.pegs.list.includes(a.to)) continue;
+        g.effects.bolt(a.from.x, a.from.y, a.to.x, a.to.y, COLORS.theme.electric);
+        g.effects.burst(a.to.x, a.to.y, COLORS.theme.electric, 6, { speed: [60, 180], size: 8 });
+        g.hits.hitPeg(a.ball, a.to, true);
+        if (a.to !== a.src) g.downtime.damage(a.to, ZAP_DMG, a.ball);
+      }
     }
   };
 
@@ -6838,51 +7421,55 @@
       __publicField(this, "game");
       this.game = game;
     }
-    // Repulsion field: while it runs, pegs push apart until no two are closer than d0. d0 is set when it starts,
-    // a bit above the current average gap to the nearest peg, so crowded spots spread out but the board keeps its density.
+    // Balance fields: the pegs that were inside when one started push apart until a ball fits between any two,
+    // and the circle's edge keeps them inside (ZoneSystem sets that up, and settles them when it ends)
     relax() {
-      const g = this.game, s = g.temps.s.repulsion_field, pegs = g.pegs, fx = g.effects;
-      if (s.t > 0) {
-        if (!g.relax) {
-          g.relax = { d0: Math.min(70, Math.max(2 * PEG_R + 8, pegs.spacing(80) * 1.25)), links: [] };
-          const live = pegs.list.length || 1, cx = pegs.list.reduce((a, p) => a + p.x, 0) / live, cy = pegs.list.reduce((a, p) => a + p.y, 0) / live;
-          fx.ring(cx, cy, 10, 260, COLORS.theme.repulsion, { life: 900, width: 5 });
-          fx.ring(cx, cy, 10, 160, COLORS.theme.repulsion, { life: 700, width: 3, fill: true });
-          fx.screen(COLORS.theme.repulsion, 0.18, 2);
-        }
-        const box = { x0: PEG_R + 2, x1: W - PEG_R - 2, y0: PEG_R + 2, y1: g.worldH - 50, yMax: g.worldH };
-        pegs.relaxStep(g.relax.d0, Math.min(1, s.t / 1500), box, g.relax.links);
-      } else if (g.relax) {
-        pegs.resettle();
-        g.relax = null;
-        g.uiDirty = true;
+      const g = this.game;
+      for (const z of g.zones.zones) if (z.relax) g.pegs.relaxStep(z.relax.members, z.relax.gap, Math.min(1, z.t / 1500), { x: z.x, y: z.y, r: z.r, yMax: g.worldH }, z.relax.links);
+    }
+    // Blinking pegs: there for BLINK_ON of every BLINK_MS (each on its own beat, from where it is); one coming back waits until no ball is over it
+    blink() {
+      const g = this.game;
+      for (const pg of g.pegs.blink) {
+        if (isDown(pg)) continue;
+        const off = (g.simT + pg.x * 7 + pg.y * 13) % BLINK_MS >= BLINK_ON;
+        if (off === pg.off || !off && g.downtime.ballOver(pg)) continue;
+        pg.off = off;
+        g.physics.setPegSolid(pg.body, !off);
       }
     }
+    // Downdraft: balls inside a band fall GRAV_MULT times as fast
+    downdraft() {
+      const g = this.game;
+      if (!g.zones.zones.length) return;
+      for (const b of g.balls) if (g.zones.at("downdraft", b.body.position.x, b.body.position.y)) g.physics.addGravity(b.body, GRAV_MULT - 1);
+    }
     // Gravity pegs: every ball within reach is pulled gently towards the peg's centre; the closer the ball, the stronger the pull.
+    // Anti-gravity (repel) pegs push the same way out.
     gravityPegs() {
       const g = this.game, ph = g.physics;
       for (const pg of g.pegs.gravity) {
-        if (pg.dead) continue;
+        if (isDown(pg)) continue;
+        const sign = pg.type === "antigravity" ? -1 : 1;
         for (const b of g.balls) {
           const p = b.body.position;
           const dx = pg.x - p.x, dy = pg.y - p.y, d = Math.hypot(dx, dy);
           if (d >= GRAVPEG_R || d < 1) continue;
-          const f = GRAVPEG_PULL * (1 - d / GRAVPEG_R), v = ph.velocity(b.body);
+          const f = sign * GRAVPEG_PULL * (1 - d / GRAVPEG_R), v = ph.velocity(b.body);
           ph.setVelocity(b.body, v.x + dx / d * f, v.y + dy / d * f);
         }
       }
     }
-    // Chaos Balls: whatever the physics just decided, throw the ball in a random direction at a random speed
+    // Chaos Zone: whatever the physics just decided for a ball that bounced inside one, throw it in a random direction at a random speed
     chaos() {
       const g = this.game, ph = g.physics;
       for (const b of g.balls) {
         if (!b.chaos) continue;
         b.chaos = false;
-        if (!g.temps.running("chaos_balls")) continue;
         const v = ph.velocity(b.body), sp = Math.hypot(v.x, v.y);
-        const s = Math.min(MAX_SPEED, Math.max(2.5, sp * rand(0.7, 1.4)));
+        const s2 = Math.min(MAX_SPEED, Math.max(2.5, sp * rand(0.7, 1.4)));
         const a = rand(0, 6.2832);
-        ph.setVelocity(b.body, s * Math.cos(a), s * Math.sin(a));
+        ph.setVelocity(b.body, s2 * Math.cos(a), s2 * Math.sin(a));
         g.effects.burst(b.body.position.x, b.body.position.y, COLORS.theme.chaos, 3);
       }
     }
@@ -6925,15 +7512,37 @@
       __publicField(this, "takesGoo", false);
     }
     onHit(ctx, ball, peg) {
-      const v = DUAL_MULT * (1 + ctx.L("peg_value")) * (1 + 0.5 * ctx.L("peg_power")) * (1 + 0.05 * ctx.L("combo_chain") * ball.hits) * ctx.goldMul(ball);
+      const m = blastMult(ctx.L("blast_peg_value"));
+      const v = m * (1 + ctx.L("peg_value")) * (1 + 0.5 * ctx.L("peg_power")) * (1 + 0.05 * ctx.L("combo_chain") * ball.hits) * ctx.goldMul(ball);
       ball.hits++;
       ctx.earn(ball, "money", v);
-      const rp = rpPerHit(ctx.L("research_pegs_value")) * DUAL_MULT;
-      ctx.earn(ball, "rp", rp);
       ctx.fx.burst(peg.x, peg.y, COLORS.theme.money, 10);
       ctx.fx.float(peg.x, peg.y - 12, `+{money}${fmt(v)}`, COLORS.theme.money, { big: true, life: 900, always: true });
-      ctx.fx.float(peg.x, peg.y - 28, `+{research}${fmt(rp)}`, COLORS.theme.research, { big: true, life: 900, always: true });
-      if (--peg.left <= 0) ctx.breakPeg(peg);
+      if (ctx.L("blast_research")) ctx.earn(ball, "rp", rpPerHit(ctx.L("research_pegs_value")) * m);
+      if (ctx.L("blast_goo")) ctx.earn(ball, "goo", gooPerHit(ctx.L("rich_phlegm")) * m / 10);
+      if (ctx.L("blast_evil")) ctx.earn(ball, "evil", EVIL_BASE * m * evilYield(ctx.L("dark_harvest")));
+      if (--peg.left <= 0) ctx.downPeg(peg);
+    }
+  };
+
+  // src/game/pegs/BlinkPeg.ts
+  var BlinkPeg = class {
+    constructor() {
+      __publicField(this, "takesGoo", true);
+    }
+    onHit(ctx, ball, peg) {
+      payMoney(ctx, ball, peg, 2 * (1 + ctx.L("peg_value")), peg.color, false);
+    }
+  };
+
+  // src/game/pegs/PowerPeg.ts
+  var PowerPeg = class {
+    constructor() {
+      __publicField(this, "takesGoo", true);
+    }
+    onHit(ctx, ball, peg) {
+      payMoney(ctx, ball, peg, 1 + ctx.L("peg_value"), peg.color, false);
+      ctx.powerHit(peg);
     }
   };
 
@@ -6962,6 +7571,15 @@
     }
   };
 
+  // src/game/pegs/WallPeg.ts
+  var WallPeg = class {
+    constructor() {
+      __publicField(this, "takesGoo", false);
+    }
+    onHit() {
+    }
+  };
+
   // src/game/pegs/PegBehaviors.ts
   var PEG_BEHAVIORS = {
     basic: new BasicPeg(),
@@ -6970,7 +7588,20 @@
     gravity: new BasicPeg(),
     // its pull is a field effect (FieldEffects), its hit a basic one
     alchemy: new AlchemyPeg(),
-    dual: new BlastPeg()
+    dual: new BlastPeg(),
+    power: new PowerPeg(),
+    antigravity: new BasicPeg(),
+    // its push is a field effect, like the gravity peg's pull
+    bouncy: new BasicPeg(),
+    // its bounce is a contact rule (HitResolver)
+    wall: new WallPeg(),
+    blink: new BlinkPeg(),
+    limiter: new WallPeg(),
+    slider: new BasicPeg(),
+    // the moving pegs pay like plain ones; their movement is in PegBoard
+    spinner: new BasicPeg(),
+    orbit: new BasicPeg()
+    // never hit: it is not solid (PegBoard)
   };
 
   // src/game/systems/HitResolver.ts
@@ -6995,22 +7626,25 @@
     queueSplit(ball, peg) {
       this.game.pendingSplit.push({ ball, peg });
     }
-    breakPeg(peg) {
-      peg.dead = true;
-      this.game.pendingRemove.push(peg);
+    downPeg(peg) {
+      this.game.downtime.breakDown(peg);
+    }
+    powerHit(peg) {
+      this.game.zones.powerHit(peg);
     }
     // Game rules for contacts, applied each step right after Matter sets up its contact pairs and before it resolves them:
-    // a ghost ball's contact with a peg becomes a sensor (no push, but the hit is still reported), and Dead Balls takes the bounce out of every contact.
+    // a ghost ball's contact with a peg becomes a sensor (no push, but the hit is still reported), and a Dead Zone takes the bounce out of contacts inside it.
     contactRules(pairs) {
-      const g = this.game, dead = g.temps.running("dead_balls");
+      const g = this.game;
       for (const b of g.balls) b.inPeg = false;
       for (const pr of pairs) {
         const ball = pr.bodyA.ball || pr.bodyB.ball;
         if (!pr.isActive || !ball) continue;
-        const onPeg = !!(pr.bodyA.peg || pr.bodyB.peg);
-        if (onPeg) ball.inPeg = true;
-        pr.isSensor = onPeg && ball.ghost;
-        if (dead) pr.restitution = DEAD_REST;
+        const peg = pr.bodyA.peg || pr.bodyB.peg, p = ball.body.position;
+        if (peg) ball.inPeg = true;
+        pr.isSensor = !!peg && ball.ghost;
+        if (peg?.type === "bouncy") pr.restitution = BOUNCY_REST;
+        if (g.zones.at("dead_zone", p.x, p.y)) pr.restitution = DEAD_REST;
       }
     }
     onContacts(pairs) {
@@ -7022,15 +7656,29 @@
           o = pr.bodyA;
         }
         if (!b.ball) continue;
-        if (g.temps.running("chaos_balls") && !pr.isSensor) b.ball.chaos = true;
-        if (o.peg && this.hitPeg(b.ball, o.peg) && b.ball.zap) g.zap.charge(b.ball, o.peg);
+        const p = b.position;
+        if (!pr.isSensor && g.zones.at("chaos_zone", p.x, p.y)) b.ball.chaos = true;
+        if (o.peg && this.hitPeg(b.ball, o.peg)) g.electric.onHit(b.ball, o.peg);
+        else if (o.label === "wall") this.hitWall(b.ball, o.id);
       }
     }
-    // a ball hits a peg and the peg pays out; arc = tagged by an electric arc (no anti-farming check, no charge)
+    // Wall Bounce: a side wall pays like a plain peg hit (times Wall Value); the same wall again within 200 ms does not count
+    hitWall(ball, wall) {
+      const g = this.game;
+      if (!this.L("wall_bounce") || ball.lastWall === wall && g.simT - ball.lastWallT < 200) return;
+      ball.lastWall = wall;
+      ball.lastWallT = g.simT;
+      const v = (1 + this.L("peg_value")) * (1 + 0.5 * this.L("peg_power")) * (1 + 0.05 * this.L("combo_chain") * ball.hits) * this.goldMul(ball) * wallMult(this.L("wall_value"));
+      ball.hits++;
+      this.earn(ball, "money", v);
+      const p = ball.body.position;
+      this.fx.float(p.x, p.y - 12, `+{money}${fmt(v)}`, COLORS.theme.world);
+    }
+    // a ball hits a peg and the peg pays out; arc = tagged by an electric arc (no anti-farming check)
     // returns false when the hit does not count
     hitPeg(ball, peg, arc = false) {
       const g = this.game, fx = this.fx;
-      if (peg.dead) return false;
+      if (isDown(peg)) return false;
       if (!arc) {
         if (ball.lastPeg === peg && g.simT - ball.lastT < 200) return false;
         ball.lastPeg = peg;
@@ -7042,18 +7690,8 @@
         const ey = evilYield(this.L("dark_harvest"));
         const ev = (EVIL_BASE + (1 - EVIL_BASE) * peg.dmg) * ey;
         this.earn(ball, "evil", ev);
-        peg.dmg += evilDmg(this.L("sturdy_pegs"));
         if (ev >= 0.25) fx.float(peg.x - 10, peg.y - 22, `+{evil}${evFmt(ev)}`, COLORS.theme.evil);
-        if (peg.dmg >= 1) {
-          peg.dmg = 1;
-          peg.dead = true;
-          peg.evilKill = true;
-          g.pendingRemove.push(peg);
-          const ek = EVIL_KILL * ey;
-          this.earn(ball, "evil", ek);
-          fx.burst(peg.x, peg.y, COLORS.theme.evil, 24);
-          fx.float(peg.x, peg.y - 34, `+{evil}${evFmt(ek)}`, COLORS.theme.evil, { big: true, life: 1100, always: true });
-        }
+        g.downtime.damage(peg, evilDmg(this.L("sturdy_pegs")), ball);
       }
       const behavior = PEG_BEHAVIORS[peg.type];
       if (behavior.takesGoo) {
@@ -7064,8 +7702,170 @@
           fx.float(peg.x + 10, peg.y - 22, `+{goo}${fmt(goo)}`, COLORS.theme.goo);
         }
       }
-      behavior.onHit(this, ball, peg);
+      if (ball.research) this.payResearch(ball, peg);
+      else behavior.onHit(this, ball, peg);
       return true;
+    }
+    payResearch(ball, peg) {
+      const rp = rpPerHit(this.L("research_pegs_value")) * RBALL_MULT;
+      this.earn(ball, "rp", rp);
+      this.fx.float(peg.x, peg.y - 12, `+{research}${fmt(rp)}`, COLORS.theme.research);
+      if (peg.type === "power") this.powerHit(peg);
+    }
+  };
+
+  // src/game/systems/Laser.ts
+  var Laser = class {
+    constructor(game) {
+      __publicField(this, "game");
+      __publicField(this, "pulseT");
+      __publicField(this, "beam");
+      this.game = game;
+      this.pulseT = 0;
+      this.beam = {
+        body: { position: { x: 0, y: 0 } },
+        r: 0,
+        px: 0,
+        py: 0,
+        hits: 0,
+        age: 0,
+        still: 0,
+        tick: 0,
+        trail: [],
+        lastPeg: null,
+        lastT: 0,
+        lastWall: 0,
+        lastWallT: 0,
+        goo: false,
+        gold: false,
+        gooHits: 0,
+        expired: false,
+        w: 0,
+        split: true,
+        glow: COLORS.theme.laser,
+        ghost: false,
+        inPeg: false,
+        chaos: false,
+        research: false,
+        stash: { money: 0, rp: 0, goo: 0, evil: 0 }
+      };
+    }
+    get on() {
+      return this.game.temps.running("laser");
+    }
+    // the first peg straight under the cannon (up, solid, not a limiter)
+    target() {
+      const x = this.game.launchX;
+      let best = null;
+      for (const p of this.game.pegs.list) {
+        if (isDown(p) || p.off || isMarker(p) || p.y < LAUNCH_Y || Math.abs(p.x - x) > shapeR(p.type, p.r)) continue;
+        if (!best || p.y < best.y) best = p;
+      }
+      return best;
+    }
+    tick(dt) {
+      if (!this.on) {
+        this.pulseT = 0;
+        return;
+      }
+      this.pulseT += dt;
+      if (this.pulseT < LASER_PULSE) return;
+      this.pulseT -= LASER_PULSE;
+      const g = this.game, evil = g.L("evil") > 0;
+      for (let i = 0, n = 1 + g.L("laser_focus"); i < n; i++) {
+        const peg = this.target();
+        if (!peg) break;
+        this.beam.hits = 0;
+        g.hits.hitPeg(this.beam, peg, true);
+        g.effects.burst(peg.x, peg.y - peg.r, COLORS.theme.laser, 4, { speed: [40, 140], size: 7 });
+        if (evil) g.downtime.damage(peg, LASER_DMG, this.beam);
+      }
+      const s2 = this.beam.stash, p = g.progress;
+      p.gain(s2.money);
+      p.rp += s2.rp;
+      p.addGoo(s2.goo);
+      p.evil += s2.evil;
+      s2.money = s2.rp = s2.goo = s2.evil = 0;
+      g.uiDirty = true;
+    }
+  };
+
+  // src/game/PegColor.ts
+  var pegCol = (p) => p.dmg > 0.02 ? mixCol(p.color, COLORS.theme.evil, Math.round(p.dmg * 10) / 10) : p.color;
+
+  // src/game/systems/PegDowntime.ts
+  var CLEAR_MS = 100;
+  var PegDowntime = class {
+    constructor(game) {
+      __publicField(this, "game");
+      this.game = game;
+    }
+    downtime() {
+      return rebuildMs(this.game.L("quick_rebuild"));
+    }
+    // adds damage (0..1 scale); a peg it breaks pays Evil (EVIL_KILL) into the ball's haul, or straight to the player when
+    // there is no ball (the Bomb, the laser). Returns true when this broke the peg.
+    damage(peg, n, ball) {
+      if (isDown(peg) || isMarker(peg)) return false;
+      peg.dmg = Math.min(1, peg.dmg + n);
+      if (peg.dmg < 1) return false;
+      this.breakDown(peg);
+      const g = this.game, ek = EVIL_KILL * evilYield(g.L("dark_harvest"));
+      if (ball) g.hits.earn(ball, "evil", ek);
+      else g.progress.evil += ek;
+      g.effects.burst(peg.x, peg.y, COLORS.theme.evil, 24);
+      g.effects.float(peg.x, peg.y - 34, `+{evil}${evFmt(ek)}`, COLORS.theme.evil, { big: true, life: 1100, always: true });
+      return true;
+    }
+    breakDown(peg) {
+      if (isDown(peg) || isMarker(peg)) return;
+      peg.dmg = 1;
+      peg.downT = peg.downMs = this.downtime();
+      peg.unpaid = false;
+      peg.gooT = 0;
+      if (peg.type === "alchemy") {
+        peg.charge = 0;
+        peg.color = COLORS.theme.alchemy;
+      }
+      peg.castHits = 0;
+      peg.castWait = false;
+      this.game.physics.setPegSolid(peg.body, false);
+      this.game.effects.burst(peg.x, peg.y, pegCol(peg), 12, { speed: [50, 160] });
+      this.game.uiDirty = true;
+    }
+    tick(dt) {
+      for (const pg of this.game.pegs.list) {
+        if (!isDown(pg)) continue;
+        pg.downT -= dt;
+        if (pg.downT <= 0) this.tryReturn(pg);
+      }
+    }
+    // its time is up: pay and come back, or wait (can't pay: half a downtime; a ball over the spot: a moment)
+    tryReturn(pg) {
+      const g = this.game, p = g.progress, price = PEG_KINDS[pg.type].costs;
+      if (!p.has(price)) {
+        pg.unpaid = true;
+        pg.downT = pg.downMs = this.downtime() / 2;
+        return;
+      }
+      if (this.ballOver(pg)) {
+        pg.downT = CLEAR_MS;
+        return;
+      }
+      p.spend(price);
+      pg.paid = { ...price };
+      pg.unpaid = false;
+      pg.downT = 0;
+      pg.dmg = 0;
+      pg.flash = 1;
+      pg.off = false;
+      if (pg.type === "dual") pg.left = blastHits(g.L("blast_peg_hits"));
+      g.physics.setPegSolid(pg.body, true);
+      g.effects.ring(pg.x, pg.y, pg.r, pg.r + 14, pegCol(pg), { life: 420, width: 3 });
+      g.uiDirty = true;
+    }
+    ballOver(pg) {
+      return this.game.balls.some((b) => Math.hypot(b.body.position.x - pg.x, b.body.position.y - pg.y) < b.r + pg.r + 1);
     }
   };
 
@@ -7088,108 +7888,217 @@
     }
   };
 
-  // src/game/systems/ZapBall.ts
-  var ZapBall = class {
+  // src/game/systems/ZoneSystem.ts
+  var CAST_SCALE = 0.6;
+  var CAST_MS = 3e3;
+  var ZoneSystem = class {
     constructor(game) {
       __publicField(this, "game");
+      __publicField(this, "zones");
+      __publicField(this, "targeting");
+      __publicField(this, "preview");
+      __publicField(this, "outside");
+      __publicField(this, "nextId");
       this.game = game;
+      this.zones = [];
+      this.targeting = null;
+      this.preview = null;
+      this.outside = false;
+      this.nextId = 1;
     }
-    // the electric ball leaves the cannon like the bomb: outside the ball limit and it never splits
-    launch() {
-      const g = this.game, r = Math.max(7, ballRadius(g.L("fat_balls")));
-      g.ballSystem.make(g.launchX, LAUNCH_Y, r, 0, LAUNCH_SPEED, { zap: true, w: 0, split: true, charge: 0, glow: COLORS.theme.electric });
-      g.recoil = 1;
-      g.effects.burst(g.launchX, LAUNCH_Y + 6, COLORS.theme.electric, 14, { speed: [60, 160], angle: [0.3, 2.84] });
+    at(power2, x, y) {
+      return this.zones.length ? zoneAt(this.zones, power2, x, y) : void 0;
+    }
+    // the area the targeted power would cover at x, y
+    previewArea(x, y) {
+      return this.targeting?.zone ? areaOf(this.targeting.zone, x, y, this.sizeMul()) : null;
+    }
+    sizeMul() {
+      return zoneSize(this.game.L("wider_zones"));
+    }
+    timeMul() {
+      return zoneTime(this.game.L("longer_zones"));
+    }
+    target(pw) {
+      if (!pw.zone || !this.game.economy.ready(pw)) return false;
+      this.targeting = pw;
+      this.preview = null;
+      this.game.uiDirty = true;
+      return true;
+    }
+    cancel() {
+      if (!this.targeting) return;
+      this.targeting = null;
+      this.preview = null;
+      this.outside = false;
+      this.game.uiDirty = true;
+    }
+    // pressing (and dragging) while targeting: the zone shows there; onBoard false: off the board (letting go there cancels)
+    aim(w, onBoard = true) {
+      if (this.targeting) {
+        this.preview = { x: w.x, y: w.y };
+        this.outside = !onBoard;
+      }
+    }
+    // letting go: placed where it shows (on a power peg: loaded into it instead; off the board: cancelled); returns a message for the player, or null
+    release() {
+      const pw = this.targeting, at = this.preview;
+      if (!pw || !at) return null;
+      if (this.outside) {
+        this.cancel();
+        return null;
+      }
+      const peg = this.game.pegs.at(at.x, at.y);
+      return peg?.type === "power" ? this.socket(peg, pw) : this.place(pw, at);
+    }
+    // a tap: pressed and let go in one spot
+    tap(w, onBoard = true) {
+      this.aim(w, onBoard);
+      return this.release();
+    }
+    // the player places the power: pay, start its cooldown, and the zone appears
+    place(pw, at) {
+      const g = this.game, p = g.progress;
+      if (!p.has(pw.costs)) return `Need ${costText(pw.costs)} for ${pw.name}`;
+      p.spend(pw.costs);
+      const ms = pw.ms * this.timeMul();
+      g.temps.start(pw.id, ms);
+      this.add(pw, at.x, at.y, this.sizeMul(), ms, null);
+      this.targeting = null;
+      this.preview = null;
+      g.uiDirty = true;
+      return null;
+    }
+    // loads the power into a power peg for its full price (the power's cooldown starts as if it was placed)
+    socket(peg, pw) {
+      const g = this.game, p = g.progress;
+      if (!p.has(pw.costs)) return `Need ${costText(pw.costs)} to load ${pw.name}`;
+      p.spend(pw.costs);
+      g.temps.start(pw.id);
+      peg.socket = pw.id;
+      peg.color = pw.color;
+      peg.castHits = 0;
+      peg.castWait = false;
+      g.effects.ring(peg.x, peg.y, peg.r, peg.r + 22, pw.color, { life: 500, width: 3 });
+      g.effects.float(peg.x, peg.y - 22, `${pw.name} loaded`, pw.color, { big: true, life: 1200, always: true });
+      this.targeting = null;
+      this.preview = null;
+      g.uiDirty = true;
+      return null;
+    }
+    hitsPerCast() {
+      return powerHits(this.game.L("power_peg_charge"));
+    }
+    // a hit on a loaded power peg: one towards its next cast (none while it rests after a cast)
+    powerHit(peg) {
+      if (!peg.socket || peg.castCd > 0) return;
+      peg.castHits = Math.min(this.hitsPerCast(), peg.castHits + 1);
+      if (peg.castHits >= this.hitsPerCast()) this.cast(peg);
+    }
+    // a charged power peg casts a smaller, shorter zone around itself for its share of the power's price; can't pay: it waits
+    cast(peg) {
+      const g = this.game, p = g.progress, pw = POWER_BY_ID[peg.socket];
+      if (!pw || isDown(peg)) return;
+      const share = castCost(g.L("efficient_casting")), price = {};
+      for (const [cur, a] of entries(pw.costs)) price[cur] = Math.ceil(a * share);
+      if (!p.has(price)) {
+        peg.castWait = true;
+        return;
+      }
+      p.spend(price);
+      peg.castHits = 0;
+      peg.castWait = false;
+      peg.castCd = peg.castCdMs = g.downtime.downtime();
+      this.add(pw, peg.x, peg.y, CAST_SCALE * this.sizeMul(), CAST_MS * this.timeMul(), peg);
       g.uiDirty = true;
     }
-    // every real hit charges the electric ball; a full charge discharges from the peg it just hit
-    charge(ball, peg) {
-      ball.charge = Math.min(1, ball.charge + 1 / ZAP_HITS);
-      if (ball.charge < 1) return;
-      ball.charge = 0;
-      this.discharge(ball, peg);
+    add(pw, x, y, scale, ms, src) {
+      if (!pw.zone) return null;
+      const z = { ...areaOf(pw.zone, x, y, scale), id: this.nextId++, power: pw.id, t: ms, ms, src, relax: null };
+      this.zones.push(z);
+      if (pw.id === "balance_field") this.startRelax(z);
+      if (pw.id === "goo_spit") this.spit(z);
+      const fx = this.game.effects, r = z.shape === "circle" ? z.r : z.h / 2;
+      fx.ring(x, y, 6, r, pw.color, { life: 420, width: 3 });
+      return z;
     }
-    /* The arc spreads outward in waves: every tagged peg passes it on to its nearest untagged pegs within ZAP_R
-       (at most ZAP_BRANCH each, ZAP_MAX in total). Each wave lands ZAP_DELAY ms after the one before. */
-    discharge(ball, src) {
-      const g = this.game, fx = g.effects, seen = /* @__PURE__ */ new Set([src]), near = [], bp = ball.body.position;
-      let wave = [src], depth = 0, tagged = 0;
-      while (wave.length && tagged < ZAP_MAX) {
-        depth++;
-        const next = [];
-        for (const from of wave) {
-          const cands = g.pegs.near(from.x - ZAP_R, from.y - ZAP_R, from.x + ZAP_R, from.y + ZAP_R, near).filter((q) => !seen.has(q) && !q.dead && Math.hypot(q.x - from.x, q.y - from.y) <= ZAP_R).sort((a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y));
-          for (const q of cands.slice(0, ZAP_BRANCH)) {
-            if (tagged >= ZAP_MAX) break;
-            seen.add(q);
-            next.push(q);
-            tagged++;
-            g.arcs.push({ from, to: q, at: g.simT + depth * ZAP_DELAY, ball });
-          }
-        }
-        wave = next;
-      }
-      fx.bolt(bp.x, bp.y, src.x, src.y, COLORS.theme.electric, 260);
-      fx.ring(src.x, src.y, 4, ZAP_R, COLORS.theme.electric, { life: 420, width: 3, fill: true });
-      fx.burst(src.x, src.y, COLORS.theme.electricLight, 12, { speed: [80, 220], size: 9, always: true });
-      fx.float(src.x, src.y - 22, tagged ? `ZAP x${tagged}` : "ZAP", COLORS.theme.electric, { big: true, life: 900, always: true });
-      fx.screen(COLORS.theme.electric, 0.12, 2);
-    }
-    // arc jumps that are due land now: lightning, sparks, and a hit just as if the ball had hit the peg
-    updateArcs() {
+    // goo spit: every peg inside that takes goo is coated at once
+    spit(z) {
       const g = this.game;
-      for (let i = g.arcs.length - 1; i >= 0; i--) {
-        const a = g.arcs[i];
-        if (a.at > g.simT) continue;
-        g.arcs.splice(i, 1);
-        if (a.to.dead || !g.pegs.list.includes(a.to)) continue;
-        g.effects.bolt(a.from.x, a.from.y, a.to.x, a.to.y, COLORS.theme.electric);
-        g.effects.burst(a.to.x, a.to.y, COLORS.theme.electric, 6, { speed: [60, 180], size: 8 });
-        g.hits.hitPeg(a.ball, a.to, true);
+      for (const p of g.pegs.list) {
+        if (p === z.src || isDown(p) || !PEG_BEHAVIORS[p.type].takesGoo || !inZone(z, p.x, p.y, p.r)) continue;
+        p.gooT = GOO_PEG_MS;
+        g.effects.burst(p.x, p.y - 4, COLORS.theme.goo, 5, { speed: [30, 90] });
+      }
+    }
+    // balance field: the pegs inside when it starts are the ones it moves; they spread until a ball just fits between them
+    startRelax(z) {
+      const members = this.game.pegs.list.filter((p) => p !== z.src && !isMarker(p) && !isMover(p) && inZone(z, p.x, p.y));
+      z.relax = { gap: 2 * ballRadius(this.game.L("fat_balls")), members, links: [] };
+    }
+    tick(dt) {
+      if (this.game.pegs.placedOf("power")) for (const pg of this.game.pegs.list) {
+        if (pg.castCd > 0) pg.castCd = Math.max(0, pg.castCd - dt);
+        if (pg.castWait) this.cast(pg);
+      }
+      for (let i = this.zones.length - 1; i >= 0; i--) {
+        const z = this.zones[i];
+        z.t -= dt;
+        if (z.t > 0) continue;
+        this.zones.splice(i, 1);
+        this.end(z);
+      }
+    }
+    end(z) {
+      const g = this.game;
+      if (z.power === "bomb") g.bomb.explode(z);
+      if (z.relax) {
+        for (const p of z.relax.members) g.pegs.resettleOne(p);
+        g.uiDirty = true;
       }
     }
   };
 
   // src/game/TempEffects.ts
-  var tmr = (s) => s.t > 0 ? { active: true, s: Math.ceil(s.t / 1e3) } : s.cd > 0 ? { active: false, s: Math.ceil(s.cd / 1e3) } : null;
+  var tmr = (s2) => s2.t > 0 ? { active: true, s: Math.ceil(s2.t / 1e3) } : s2.cd > 0 ? { active: false, s: Math.ceil(s2.cd / 1e3) } : null;
   var TempEffects = class {
     constructor() {
       __publicField(this, "s");
       this.s = {};
-      for (const pw of POWERS) if (pw.ms) this.s[pw.id] = { t: 0, cd: 0 };
+      for (const pw of POWERS) this.s[pw.id] = { t: 0, cd: 0 };
     }
     running(id) {
       return this.s[id].t > 0;
     }
-    start(id) {
-      this.s[id].t = POWER_BY_ID[id].ms ?? 0;
+    start(id, ms = POWER_BY_ID[id].ms) {
+      this.s[id].t = ms;
     }
     timer(id) {
       return this.s[id] ? tmr(this.s[id]) : null;
     }
-    // { active, s } while running or cooling down; null for the others
+    // { active, s } while running or cooling down
     tick(dt) {
       for (const id in this.s) {
-        const s = this.s[id];
-        if (s.t > 0) {
-          s.t -= dt;
-          if (s.t <= 0) {
-            s.t = 0;
-            s.cd = POWER_BY_ID[id].cd ?? 0;
+        const s2 = this.s[id];
+        if (s2.t > 0) {
+          s2.t -= dt;
+          if (s2.t <= 0) {
+            s2.t = 0;
+            s2.cd = POWER_BY_ID[id].cd;
           }
-        } else if (s.cd > 0) s.cd = Math.max(0, s.cd - dt);
+        } else if (s2.cd > 0) s2.cd = Math.max(0, s2.cd - dt);
       }
     }
     toSave() {
       return Object.fromEntries(Object.keys(this.s).map((id) => [id, [this.s[id].t, this.s[id].cd]]));
     }
-    // no balls survive a reload, so an effect that was still running is not resumed: its time left plus the full cooldown is owed instead
+    // no balls or zones survive a reload, so an effect that was still running is not resumed: its time left plus the full cooldown is owed instead
     load(timers) {
       for (const id in this.s) {
         const t = timers[id];
         if (!Array.isArray(t)) continue;
         const run = Number.isFinite(t[0]) ? Math.max(0, t[0]) : 0, left = Number.isFinite(t[1]) ? Math.max(0, t[1]) : 0;
-        this.s[id].cd = Math.min(run > 0 ? run + (POWER_BY_ID[id].cd ?? 0) : left, 6e5);
+        this.s[id].cd = Math.min(run > 0 ? run + POWER_BY_ID[id].cd : left, 6e5);
       }
     }
   };
@@ -7212,21 +8121,23 @@
       __publicField(this, "autoT");
       __publicField(this, "recoil");
       __publicField(this, "launchX");
+      __publicField(this, "sweepPhase");
+      __publicField(this, "moversJump");
       __publicField(this, "prevLaunchX");
-      __publicField(this, "pendingRemove");
       __publicField(this, "pendingSplit");
       __publicField(this, "uiDirty");
-      __publicField(this, "relax");
-      __publicField(this, "arcs");
       __publicField(this, "editing");
       __publicField(this, "edit");
       __publicField(this, "ballSystem");
       __publicField(this, "hits");
       __publicField(this, "economy");
       __publicField(this, "bomb");
-      __publicField(this, "zap");
+      __publicField(this, "electric");
+      __publicField(this, "zones");
+      __publicField(this, "laser");
       __publicField(this, "fields");
       __publicField(this, "lab");
+      __publicField(this, "downtime");
       this.progress = new Progress();
       this.temps = new TempEffects();
       this.effects = new Effects();
@@ -7248,26 +8159,37 @@
       this.autoT = 0;
       this.recoil = 0;
       this.launchX = W / 2;
+      this.sweepPhase = 0;
+      this.moversJump = true;
       this.prevLaunchX = this.launchX;
-      this.pendingRemove = [];
       this.pendingSplit = [];
       this.uiDirty = false;
-      this.relax = null;
-      this.arcs = [];
       this.editing = false;
       this.edit = new EditMode(this);
       this.ballSystem = new BallSystem(this);
       this.hits = new HitResolver(this);
       this.economy = new Economy(this);
-      this.bomb = new BombBall(this);
-      this.zap = new ZapBall(this);
+      this.bomb = new Bomb(this);
+      this.electric = new ElectricField(this);
+      this.zones = new ZoneSystem(this);
+      this.laser = new Laser(this);
       this.fields = new FieldEffects(this);
       this.lab = new ResearchLab(this);
+      this.downtime = new PegDowntime(this);
     }
     L(id) {
       return this.progress.L(id);
     }
     // the launcher stays near the top; the bucket is anchored to the floor, because the world grows downward
+    // the stretch of ceiling the cannon sweeps: a limiter left of the middle bounds the left, one right of it the right
+    sweepRange() {
+      let a = SWEEP_MARGIN, b = W - SWEEP_MARGIN;
+      for (const l of this.pegs.limiters) {
+        if (l.x < W / 2) a = Math.max(a, l.x);
+        else b = Math.min(b, l.x);
+      }
+      return [a, Math.max(a + 10, b)];
+    }
     rimY() {
       return this.worldH - 36;
     }
@@ -7282,38 +8204,39 @@
       this.simT += dt;
       this.lab.tick(dt);
       this.prevLaunchX = this.launchX;
-      this.launchX = W / 2 + (W / 2 - SWEEP_MARGIN) * Math.sin(this.simT * Math.PI * 2 / SWEEP_MS);
+      const [a, b] = this.sweepRange(), half = (b - a) / 2;
+      this.sweepPhase += dt * Math.PI * 2 / SWEEP_MS * (W / 2 - SWEEP_MARGIN) / Math.max(half, 5);
+      this.launchX = a + half + half * Math.sin(this.sweepPhase);
       this.recoil = Math.max(0, this.recoil - dt / 220);
       this.temps.tick(dt);
+      this.zones.tick(dt);
       this.fields.relax();
-      this.physics.setGravity(this.temps.running("heavy_gravity") ? GRAV_MULT : 1);
-      if (this.temps.running("ghost_balls")) for (const b of this.balls) b.ghost = true;
+      for (const b2 of this.balls) if (this.zones.at("ghost_zone", b2.body.position.x, b2.body.position.y)) b2.ghost = true;
       const al = this.L("auto_dropper") && 1 + this.L("faster_dropper");
       if (al > 0 && this.autoOn) {
         this.autoT = Math.min(this.autoT + dt, autoInterval(al));
         if (this.autoT >= autoInterval(al) && this.ballSystem.launch()) this.autoT = 0;
       }
-      for (const b of this.balls) {
-        b.px = b.body.position.x;
-        b.py = b.body.position.y;
+      for (const b2 of this.balls) {
+        b2.px = b2.body.position.x;
+        b2.py = b2.body.position.y;
       }
       this.fields.gravityPegs();
+      this.fields.blink();
+      this.pegs.moveMovers(this.simT, !this.moversJump);
+      this.moversJump = false;
+      this.fields.downdraft();
       this.physics.update(dt);
       this.fields.chaos();
       this.ballSystem.update(dt);
-      this.zap.updateArcs();
+      this.electric.update();
+      this.laser.tick(dt);
       while (this.pendingSplit.length) {
-        const s = this.pendingSplit.pop();
-        this.ballSystem.split(s.ball, s.peg);
-      }
-      while (this.pendingRemove.length) {
-        const pg = this.pendingRemove.pop();
-        if (pg.gone) continue;
-        pg.gone = true;
-        if (pg.evilKill) this.progress.freePegs[pg.type]++;
-        this.pegs.remove(pg);
+        const s2 = this.pendingSplit.pop();
+        this.ballSystem.split(s2.ball, s2.peg);
       }
       this.buckets.tick(dt);
+      this.downtime.tick(dt);
       this.pegs.tick(dt, this.evilOn ? 0 : evilRegen(this.L("fast_healing")));
       this.effects.tick(dt);
     }
@@ -7375,7 +8298,7 @@
       for (const b of balls) {
         const [x, y] = pos(b);
         if (y < top || y > bot) continue;
-        const col = b.goo ? COLORS.theme.goo : b.gold ? COLORS.theme.money : b.glow;
+        const col = b.research ? COLORS.theme.research : b.goo ? COLORS.theme.goo : b.gold ? COLORS.theme.money : b.glow;
         const t = b.trail;
         if (t.length >= 4) {
           ctx.strokeStyle = col;
@@ -7388,97 +8311,19 @@
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
-        if (b.bomb) {
-          const pulse = 0.5 + 0.5 * Math.sin(b.phase);
-          this.r.glow(COLORS.theme.evil, x, y, b.r * (6 + 3 * pulse), 0.75 + 0.25 * pulse);
-        } else if (b.zap) {
-          this.r.glow(COLORS.theme.electric, x, y, b.r * (5 + 3 * b.charge) * rand(0.9, 1.1), 0.8 + 0.2 * b.charge);
-        } else this.r.glow(col, x, y, b.r * 5, 0.9);
+        this.r.glow(col, x, y, b.r * 5, 0.9);
       }
       ctx.globalCompositeOperation = "source-over";
       for (const b of balls) {
         const [x, y] = pos(b);
         if (y < top || y > bot) continue;
         ctx.globalAlpha = b.ghost ? 0.5 : 1;
-        if (b.bomb) {
-          this.drawBomb(b, x, y);
-          continue;
-        }
-        if (b.zap) {
-          this.drawZap(b, x, y);
-          continue;
-        }
-        ctx.fillStyle = b.goo ? COLORS.theme.goo : b.gold ? COLORS.theme.money : COLORS.ui.strong;
+        ctx.fillStyle = b.research ? COLORS.theme.research : b.goo ? COLORS.theme.goo : b.gold ? COLORS.theme.money : COLORS.ui.strong;
         ctx.beginPath();
         ctx.arc(x, y, b.r * 0.78, 0, TAU);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
-    }
-    // red bomb with a shine, a ring showing the fuse left, the seconds left and the loot inside
-    drawBomb(b, x, y) {
-      const ctx = this.ctx, r = b.r, left = Math.max(0, b.fuse) / BOMB_FUSE, secs2 = Math.ceil(Math.max(0, b.fuse) / 1e3);
-      const hot = left < 0.3 && Math.sin(b.phase * 2) > 0;
-      ctx.fillStyle = hot ? COLORS.detail.bombHot : COLORS.theme.evil;
-      ctx.beginPath();
-      ctx.arc(x, y, r * 0.85, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = alpha(COLORS.ui.strong, 0.6);
-      ctx.beginPath();
-      ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.22, 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = alpha(COLORS.theme.evil, 0.25);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3.5, 0, TAU);
-      ctx.stroke();
-      ctx.strokeStyle = left < 0.3 ? COLORS.ui.strong : COLORS.theme.explosionLight;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3.5, -Math.PI / 2, -Math.PI / 2 + TAU * left);
-      ctx.stroke();
-      ctx.textAlign = "center";
-      ctx.font = FONT_BIG;
-      ctx.fillStyle = hot ? COLORS.ui.strong : COLORS.detail.bombTimer;
-      ctx.fillText(String(secs2), this.r.onBoard(String(secs2), x), y - r - 9);
-      const s = b.stash, loot = [s.money && `{money}${fmt(s.money)}`, s.rp && `{research}${fmt(s.rp)}`, s.evil && `{evil}${evFmt(s.evil)}`].filter(Boolean).join("  ");
-      if (loot) {
-        ctx.font = FONT_SMALL;
-        ctx.fillStyle = COLORS.theme.money;
-        this.r.richText(loot, x, y - r - 26);
-      }
-    }
-    // white-hot core, a ring that fills up with the charge, and sparks crackling around it once it is half charged
-    drawZap(b, x, y) {
-      const ctx = this.ctx, r = b.r;
-      ctx.fillStyle = COLORS.theme.electricLight;
-      ctx.beginPath();
-      ctx.arc(x, y, r * 0.8, 0, TAU);
-      ctx.fill();
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = alpha(COLORS.theme.electric, 0.25);
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3.5, 0, TAU);
-      ctx.stroke();
-      ctx.strokeStyle = COLORS.theme.electric;
-      ctx.beginPath();
-      ctx.arc(x, y, r + 3.5, -Math.PI / 2, -Math.PI / 2 + TAU * b.charge);
-      ctx.stroke();
-      if (b.charge >= 0.5) {
-        ctx.globalCompositeOperation = "lighter";
-        ctx.strokeStyle = COLORS.theme.electricLight;
-        ctx.lineWidth = 1.2;
-        for (let i = 0, n = Math.round(b.charge * 4); i < n; i++) {
-          const a = rand(0, TAU), r0 = r + 2, r1 = r + rand(6, 11), m = (r0 + r1) / 2, wob = rand(-0.35, 0.35);
-          ctx.beginPath();
-          ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0);
-          ctx.lineTo(x + Math.cos(a + wob) * m, y + Math.sin(a + wob) * m);
-          ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1);
-          ctx.stroke();
-        }
-        ctx.globalCompositeOperation = "source-over";
-      }
     }
   };
 
@@ -7609,26 +8454,30 @@
 
   // src/render/PegLayer.ts
   var PEG_GLOW = 12;
+  function shapePath(g, type, x, y, r, grow = 0) {
+    const R = shapeR(type, r) + grow;
+    if (type === "research") hexPath(g, x, y, R);
+    else if (type === "power") trianglePath(g, x, y, R);
+    else {
+      g.beginPath();
+      g.arc(x, y, R, 0, TAU);
+    }
+  }
   var PegLayer = class extends Layer {
     pegPath(p, grow = 0) {
-      const ctx = this.ctx;
-      if (p.type === "research") hexPath(ctx, p.x, p.y, p.r + 1 + grow);
-      else {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r + grow, 0, TAU);
-      }
+      shapePath(this.ctx, p.type, p.x, p.y, p.r, grow);
     }
     // Each peg look (type, colour, damage, radius) is drawn once into a sprite at device pixels: glow, body, outline.
     // Drawing hundreds of cached images is far cheaper than hundreds of glows plus path fills and strokes every frame.
     pegSprite(p, col, k) {
       const r = Math.round(p.r * 4) / 4, dmg = p.dmg > 0.02 ? Math.round(p.dmg * 10) / 10 : 0;
       const key = `${p.type + col + dmg},${r},${k}`;
-      let s = this.r.sprites[key];
-      if (s) return s;
-      const R = r + 1 + PEG_GLOW, size = Math.ceil(2 * R * k) + 2, c = size / 2 / k;
-      s = document.createElement("canvas");
-      s.width = s.height = size;
-      const g = context2d(s);
+      let s2 = this.r.sprites[key];
+      if (s2) return s2;
+      const R = shapeR(p.type, r) + PEG_GLOW, size = Math.ceil(2 * R * k) + 2, c = size / 2 / k;
+      s2 = document.createElement("canvas");
+      s2.width = s2.height = size;
+      const g = context2d(s2);
       g.scale(k, k);
       const gr = g.createRadialGradient(c, c, 0, c, c, R);
       gr.addColorStop(0, `${col}59`);
@@ -7636,11 +8485,7 @@
       gr.addColorStop(1, `${col}00`);
       g.fillStyle = gr;
       g.fillRect(0, 0, 2 * c, 2 * c);
-      if (p.type === "research") hexPath(g, c, c, r + 1);
-      else {
-        g.beginPath();
-        g.arc(c, c, r, 0, TAU);
-      }
+      shapePath(g, p.type, c, c, r);
       g.fillStyle = COLORS.detail.pegBody;
       g.fill();
       if (dmg) {
@@ -7664,6 +8509,50 @@
         g.lineWidth = 1.4;
         g.stroke();
       }
+      if (p.type === "power") {
+        g.beginPath();
+        g.arc(c, c + r * 0.2, r * 0.32, 0, TAU);
+        g.fillStyle = col;
+        g.fill();
+      }
+      if (p.type === "antigravity") {
+        g.beginPath();
+        g.arc(c, c, r * 0.5, 0, TAU);
+        g.lineWidth = 1.6;
+        g.stroke();
+        g.beginPath();
+        g.arc(c, c, r * 0.18, 0, TAU);
+        g.lineWidth = 1.2;
+        g.stroke();
+      }
+      if (p.type === "bouncy") {
+        g.beginPath();
+        g.arc(c, c, r * 0.5, 0, TAU);
+        g.lineWidth = 2.6;
+        g.stroke();
+      }
+      if (p.type === "slider") {
+        g.beginPath();
+        g.moveTo(c - r * 0.5, c);
+        g.lineTo(c + r * 0.5, c);
+        g.lineWidth = 1.8;
+        g.lineCap = "round";
+        g.stroke();
+      }
+      if (p.type === "orbit") {
+        g.beginPath();
+        g.arc(c + r * 0.45, c, 1.8, 0, TAU);
+        g.fillStyle = col;
+        g.fill();
+      }
+      if (p.type === "blink") {
+        g.setLineDash([2, 2]);
+        g.beginPath();
+        g.arc(c, c, r * 0.55, 0, TAU);
+        g.lineWidth = 1.4;
+        g.stroke();
+        g.setLineDash([]);
+      }
       if (p.type === "gravity") {
         g.beginPath();
         g.arc(c, c, r * 0.5, 0, TAU);
@@ -7674,7 +8563,7 @@
         g.fillStyle = col;
         g.fill();
       }
-      return this.r.sprites[key] = s;
+      return this.r.sprites[key] = s2;
     }
     // a goo-covered peg wears a wavy green cap on its top side, like icing on a cake; it slowly slides off as the goo wears out
     drawGooCap(p) {
@@ -7701,7 +8590,7 @@
       ctx.fill();
       ctx.restore();
     }
-    // gravity pegs: a faint field showing how far their pull reaches (drawn under the pegs)
+    // gravity and repel pegs: a faint field showing how far they reach (drawn under the pegs)
     drawGravityFields(top, bot) {
       const ctx = this.ctx, pegs = this.game.pegs.gravity;
       const visible = (p) => p.y >= top - GRAVPEG_R && p.y <= bot + GRAVPEG_R;
@@ -7713,7 +8602,7 @@
         if (!visible(p)) continue;
         ctx.beginPath();
         ctx.arc(p.x, p.y, GRAVPEG_R, 0, TAU);
-        ctx.strokeStyle = alpha(COLORS.theme.gravity, 0.22);
+        ctx.strokeStyle = alpha(p.color, 0.22);
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -7723,16 +8612,19 @@
     drawPegs(k, top, bot) {
       const ctx = this.ctx, camY = this.r.camera.y, pegs = this.game.pegs.list;
       this.drawRelaxLinks();
+      if (this.game.editing) this.drawMoverPaths();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       for (const p of pegs) {
-        if (p.y < top || p.y > bot) continue;
-        const s = this.pegSprite(p, pegCol(p), k);
-        ctx.drawImage(s, Math.round(p.x * k - s.width / 2 + this.r.ox), Math.round((p.y - camY) * k - s.width / 2 + this.r.oy));
+        if (p.y < top || p.y > bot || isMarker(p) || p.type === "spinner") continue;
+        const s2 = this.pegSprite(p, pegCol(p), k);
+        ctx.globalAlpha = isDown(p) ? 0.25 : p.off ? 0.18 : 1;
+        ctx.drawImage(s2, Math.round(p.x * k - s2.width / 2 + this.r.ox), Math.round((p.y - camY) * k - s2.width / 2 + this.r.oy));
       }
+      ctx.globalAlpha = 1;
       this.r.worldTransform(k);
       ctx.globalCompositeOperation = "lighter";
       for (const p of pegs) {
-        if (p.y < top || p.y > bot) continue;
+        if (p.y < top || p.y > bot || isDown(p) || p.off) continue;
         if (p.flash > 0) this.r.glow(pegCol(p), p.x, p.y, 46 + 22 * p.flash, 0.65 * p.flash);
         if (p.gooT > 0) this.r.glow(COLORS.theme.goo, p.x, p.y - 4, 30, 0.35);
         if (p.charge >= 1) this.r.glow(COLORS.theme.money, p.x, p.y, 36, 0.3 + 0.15 * Math.sin(this.game.simT / 180 + p.x));
@@ -7740,6 +8632,16 @@
       ctx.globalCompositeOperation = "source-over";
       for (const p of pegs) {
         if (p.y < top || p.y > bot) continue;
+        if (isMarker(p)) {
+          this.drawLimiter(p.x, p.color);
+          continue;
+        }
+        if (p.type === "spinner") this.drawSpinner(p);
+        if (isDown(p)) {
+          this.drawDown(p);
+          continue;
+        }
+        if (p.socket) this.drawCharge(p);
         if (p.type === "dual") {
           ctx.fillStyle = COLORS.theme.money;
           ctx.font = "800 10px system-ui,sans-serif";
@@ -7756,56 +8658,189 @@
         }
       }
     }
-    // repulsion field: a glowing line between every pair of pegs that are pushing each other apart (under the pegs)
+    // a loaded power peg: a ring that fills with hits towards its next cast; resting after a cast: a faint ring filling up
+    // until it counts again; charged but unpaid: the missing currency blinks
+    drawCharge(p) {
+      const ctx = this.ctx, n = this.game.zones.hitsPerCast(), R = shapeR(p.type, p.r) + 4, rest = p.castCd > 0;
+      const done = rest ? 1 - p.castCd / p.castCdMs : p.castHits / n;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, R, -Math.PI / 2, -Math.PI / 2 + TAU * done);
+      ctx.strokeStyle = alpha(p.color, rest ? 0.3 : 0.85);
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      if (p.castWait) this.blinkMissing(POWER_BY_ID[p.socket]?.costs ?? {}, p.x, p.y - R - 4);
+    }
+    // the icon of the first currency that can't be paid, blinking
+    blinkMissing(costs, x, y) {
+      const p0 = this.game.progress, miss = entries(costs).find(([c, a]) => !p0.has({ [c]: a }));
+      if (!miss || Math.sin(this.game.simT / 220) < -0.3) return;
+      this.ctx.font = "700 12px system-ui,sans-serif";
+      this.r.richText(`{${miss[0]}}`, x, y);
+    }
+    // a down peg: an arc that fills up until it comes back; past its time, the icon of what it is waiting for (blinking)
+    drawDown(p) {
+      const ctx = this.ctx, col = pegCol(p);
+      if (p.unpaid) this.blinkMissing(PEG_KINDS[p.type].costs, p.x, p.y + 5);
+      const done = p.downMs > 0 ? 1 - p.downT / p.downMs : 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r + 3, -Math.PI / 2, -Math.PI / 2 + TAU * done);
+      ctx.strokeStyle = alpha(col, 0.7);
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+    // balance fields: a glowing line between every pair of pegs that are pushing each other apart (under the pegs)
     drawRelaxLinks() {
-      const relax = this.game.relax, ctx = this.ctx;
-      if (!relax?.links.length) return;
-      const L = relax.links, ease = Math.min(1, this.game.temps.s.repulsion_field.t / 1500);
+      const ctx = this.ctx;
       ctx.globalCompositeOperation = "lighter";
-      ctx.strokeStyle = COLORS.theme.repulsion;
+      ctx.strokeStyle = COLORS.theme.balance;
       ctx.lineWidth = 1.5;
       ctx.lineCap = "round";
-      ctx.globalAlpha = 0.5 * ease;
-      ctx.beginPath();
-      for (let i = 0; i < L.length; i += 2) {
-        ctx.moveTo(L[i].x, L[i].y);
-        ctx.lineTo(L[i + 1].x, L[i + 1].y);
+      for (const z of this.game.zones.zones) {
+        const L = z.relax?.links;
+        if (!L?.length) continue;
+        ctx.globalAlpha = 0.5 * Math.min(1, z.t / 1500);
+        ctx.beginPath();
+        for (let i = 0; i < L.length; i += 2) {
+          ctx.moveTo(L[i].x, L[i].y);
+          ctx.lineTo(L[i + 1].x, L[i + 1].y);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
     }
-    // edit mode, mouse: a dashed outline of the selected peg type under the pointer, red when it cannot be placed
+    // edit mode, mouse: over a peg, what a click does to it (red ×: picked up; a broken one: when it is back);
+    // elsewhere a dashed outline of the selected peg type, red when it cannot be placed
     drawPlacement(view) {
       const ctx = this.ctx, game = this.game, type = view.editType;
-      if (!game.editing || !view.hover || view.dragging || game.pegs.at(view.hover.x, view.hover.y)) return;
-      const s = game.edit.placeSpot(view.hover.x, view.hover.y), hr = pegRadius(s.y), ok = !game.edit.cantPlace(type);
-      if (type === "research") hexPath(ctx, s.x, s.y, hr + 1);
-      else {
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, hr, 0, TAU);
+      if (!game.editing || !view.hover || view.dragging) return;
+      const over = game.pegs.at(view.hover.x, view.hover.y);
+      if (over) {
+        this.drawRemove(over);
+        return;
       }
+      const s2 = game.edit.placeSpot(view.hover.x, view.hover.y, type), hr = pegRadius(s2.y), ok = !game.edit.cantPlace(type);
+      shapePath(ctx, type, s2.x, s2.y, hr);
       ctx.strokeStyle = ok ? PEG_KINDS[type].color : alpha(COLORS.ui.negative, 0.85);
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 4]);
       ctx.stroke();
       ctx.setLineDash([]);
-      if (type === "gravity" && ok) {
+      if ((type === "gravity" || type === "antigravity") && ok) {
         ctx.beginPath();
-        ctx.arc(s.x, s.y, GRAVPEG_R, 0, TAU);
-        ctx.strokeStyle = alpha(COLORS.theme.gravity, 0.35);
+        ctx.arc(s2.x, s2.y, GRAVPEG_R, 0, TAU);
+        ctx.strokeStyle = alpha(PEG_KINDS[type].color, 0.35);
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 6]);
         ctx.stroke();
         ctx.setLineDash([]);
       }
     }
+    // a spinner: a rounded bar at its body's angle (faint while down)
+    drawSpinner(p) {
+      const ctx = this.ctx, R = shapeR(p.type, p.r), t = 3 * p.r / PEG_R;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.body.angle);
+      ctx.globalAlpha = isDown(p) ? 0.25 : 1;
+      ctx.beginPath();
+      ctx.roundRect(-R, -t, 2 * R, 2 * t, t);
+      ctx.fillStyle = COLORS.detail.pegBody;
+      ctx.fill();
+      this.r.glowStroke(pegCol(p), 2, 8, 0.3);
+      ctx.restore();
+    }
+    // edit mode: where moving pegs will go: a slider's track with its handle, an orbit's circle, a spinner's sweep
+    drawMoverPaths() {
+      const ctx = this.ctx;
+      ctx.setLineDash([4, 5]);
+      ctx.lineWidth = 1.2;
+      for (const p of this.game.pegs.movers) {
+        ctx.strokeStyle = alpha(p.color, 0.55);
+        ctx.beginPath();
+        if (p.type === "slider") {
+          const h = sliderHandle(p);
+          ctx.moveTo(2 * p.ax - h.x, 2 * p.ay - h.y);
+          ctx.lineTo(h.x, h.y);
+        } else ctx.arc(p.ax, p.ay, p.type === "orbit" ? p.reach : shapeR(p.type, p.r), 0, TAU);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      for (const p of this.game.pegs.movers) {
+        if (p.type !== "slider") continue;
+        const h = sliderHandle(p);
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, 6, 0, TAU);
+        ctx.fillStyle = alpha(p.color, 0.35);
+        ctx.fill();
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+    // a cannon limiter: a short bar hanging from the ceiling with a cap
+    drawLimiter(x, col) {
+      const ctx = this.ctx;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 16);
+      this.r.glowStroke(col, 3, 9, 0.25);
+      ctx.beginPath();
+      ctx.arc(x, 16, 4, 0, TAU);
+      ctx.fillStyle = col;
+      ctx.fill();
+    }
+    drawRemove(p) {
+      const ctx = this.ctx;
+      this.pegPath(p, 4);
+      ctx.strokeStyle = alpha(COLORS.ui.negative, 0.9);
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "700 11px system-ui,sans-serif";
+      ctx.fillStyle = COLORS.ui.negative;
+      ctx.textAlign = "center";
+      if (isDown(p)) {
+        ctx.fillText(`back in ${Math.ceil(p.downT / 1e3)}s`, p.x, p.y - p.r - 10);
+        return;
+      }
+      const s2 = 3.5, y = p.y - p.r - 12;
+      ctx.beginPath();
+      ctx.moveTo(p.x - s2, y - s2);
+      ctx.lineTo(p.x + s2, y + s2);
+      ctx.moveTo(p.x + s2, y - s2);
+      ctx.lineTo(p.x - s2, y + s2);
+      ctx.strokeStyle = COLORS.ui.negative;
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+    // touch drag helper: a thin line from the finger up to the peg it is moving
+    drawLift(view) {
+      const l = view.lift, ctx = this.ctx;
+      if (!l) return;
+      ctx.beginPath();
+      ctx.moveTo(l.finger.x, l.finger.y);
+      ctx.lineTo(l.peg.x, l.peg.y + l.peg.r + 2);
+      ctx.strokeStyle = alpha(COLORS.ui.strong, 0.45);
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(l.finger.x, l.finger.y, 3, 0, TAU);
+      ctx.fillStyle = alpha(COLORS.ui.strong, 0.45);
+      ctx.fill();
+    }
     // a peg picture for the edit palette (the board's own peg sprite, scaled into a small canvas)
     pegIcon(type, canvas) {
-      const s = this.pegSprite({ type, r: PEG_R, dmg: 0 }, PEG_KINDS[type].color, 2), g = context2d(canvas);
+      const s2 = this.pegSprite({ type, r: PEG_R, dmg: 0 }, PEG_KINDS[type].color, 2), g = context2d(canvas);
       const pad = canvas.width * 0.3;
       g.clearRect(0, 0, canvas.width, canvas.height);
-      g.drawImage(s, -pad, -pad, canvas.width + 2 * pad, canvas.height + 2 * pad);
+      g.drawImage(s2, -pad, -pad, canvas.width + 2 * pad, canvas.height + 2 * pad);
       const c = canvas.width / 2, fade = g.createRadialGradient(c, c, c * 0.6, c, c, c);
       fade.addColorStop(0, COLORS.ui.shadow);
       fade.addColorStop(1, alpha(COLORS.ui.shadow, 0));
@@ -7816,8 +8851,73 @@
     }
   };
 
+  // src/render/ZoneLayer.ts
+  var ZoneLayer = class extends Layer {
+    drawZones(top, bot, view) {
+      const zs = this.game.zones, simT = this.game.simT;
+      for (const z of zs.zones) {
+        if (!this.visible(z, top, bot)) continue;
+        const bomb = z.power === "bomb", pulse = bomb ? 0.5 + 0.5 * Math.sin(simT / (40 + 120 * z.t / z.ms)) : 0;
+        this.drawArea(z, bomb && pulse > 0.8 ? COLORS.detail.bombHot : POWER_BY_ID[z.power].color, z.t / z.ms, 0.1 + 0.2 * pulse, false);
+      }
+      this.drawLaser();
+      const at = zs.targeting && (zs.preview ?? view.hover), area = at && zs.previewArea(at.x, at.y);
+      if (area) this.drawArea(area, zs.outside ? COLORS.ui.negative : zs.targeting.color, 1, zs.outside ? 0 : 0.08, true);
+    }
+    // the laser: a flickering beam from the cannon down to the first peg it meets (or the floor)
+    drawLaser() {
+      const g = this.game;
+      if (!g.laser.on) return;
+      const ctx = this.ctx, x = g.launchX, hit = g.laser.target(), y = hit ? hit.y - hit.r : g.worldH, w = 1 + Math.random();
+      ctx.beginPath();
+      ctx.moveTo(x, LAUNCH_Y);
+      ctx.lineTo(x, y);
+      ctx.globalCompositeOperation = "lighter";
+      this.r.glowStroke(COLORS.theme.laser, 2 + w, 12, 0.3);
+      ctx.strokeStyle = COLORS.ui.strong;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.globalCompositeOperation = "source-over";
+      if (hit) this.r.glow(COLORS.theme.laser, x, y, 26, 0.8);
+    }
+    visible(a, top, bot) {
+      const h = a.shape === "circle" ? a.r : a.h / 2;
+      return a.y + h >= top && a.y - h <= bot;
+    }
+    // left: share of its time left (a shrinking arc on a circle, a shrinking bar above a band); preview: dashed, no timer
+    drawArea(a, col, left, fill, preview) {
+      const ctx = this.ctx, circle = a.shape === "circle";
+      ctx.beginPath();
+      if (circle) ctx.arc(a.x, a.y, a.r, 0, TAU);
+      else ctx.rect(a.x - a.w / 2, a.y - a.h / 2, a.w, a.h);
+      ctx.fillStyle = alpha(col, fill);
+      ctx.fill();
+      if (preview) {
+        ctx.setLineDash([6, 6]);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        return;
+      }
+      ctx.globalCompositeOperation = "lighter";
+      this.r.glowStroke(alpha(col, 0.8), 2, 9, 0.18);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.beginPath();
+      if (circle) ctx.arc(a.x, a.y, a.r + 5, -Math.PI / 2, -Math.PI / 2 + TAU * left);
+      else {
+        ctx.moveTo(a.x - a.w / 2, a.y - a.h / 2 - 5);
+        ctx.lineTo(a.x - a.w / 2 + a.w * left, a.y - a.h / 2 - 5);
+      }
+      ctx.strokeStyle = alpha(col, 0.6);
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+  };
+
   // src/render/GameRenderer.ts
-  var IDLE_VIEW = { hover: null, dragging: false, editType: "basic" };
+  var IDLE_VIEW = { hover: null, dragging: false, editType: "basic", lift: null };
   var GameRenderer = class {
     constructor(r, game) {
       __publicField(this, "r");
@@ -7826,12 +8926,14 @@
       __publicField(this, "board");
       __publicField(this, "pegs");
       __publicField(this, "balls");
+      __publicField(this, "zones");
       this.r = r;
       this.game = game;
       this.view = IDLE_VIEW;
       this.board = new BoardLayer(r, game);
       this.pegs = new PegLayer(r, game);
       this.balls = new BallLayer(r, game);
+      this.zones = new ZoneLayer(r, game);
     }
     get effects() {
       return this.game.effects;
@@ -7844,6 +8946,8 @@
       this.pegs.drawGravityFields(top, bot);
       this.pegs.drawPegs(k, top, bot);
       this.pegs.drawPlacement(this.view);
+      this.pegs.drawLift(this.view);
+      if (!game.editing) this.zones.drawZones(top, bot, this.view);
       this.balls.drawBalls(a, top, bot);
       this.r.drawEffects(game.effects, top, bot);
       if (!game.editing) this.board.drawLauncher(game.prevLaunchX + (game.launchX - game.prevLaunchX) * a, Math.min(game.worldH, bot));
@@ -7856,8 +8960,8 @@
 
   // src/save/SaveFormat.ts
   var SAVE_KEY = "neonpegs.save.v2";
-  var SAVE_VERSION = 9;
-  var SAVE_CODE = { research: "r", dual: "d", splitter: "s", gravity: "g", alchemy: "a", basic: "b" };
+  var SAVE_VERSION = 13;
+  var SAVE_CODE = { research: "r", dual: "d", splitter: "s", gravity: "g", alchemy: "a", power: "p", antigravity: "n", bouncy: "o", wall: "w", blink: "k", limiter: "l", slider: "v", spinner: "t", orbit: "q", basic: "b" };
   var SAVE_TYPE = Object.fromEntries(Object.entries(SAVE_CODE).map(([type, code]) => [code, type]));
   var num = (v) => typeof v === "number" && Number.isFinite(v) ? v : void 0;
   function parseSave(text) {
@@ -7906,17 +9010,12 @@
     goo: "phlegm_goo",
     goocap: "goo_tank",
     dual: "blast_pegs",
-    ghost: "ghost_balls",
-    gravity: "heavy_gravity",
-    dead: "dead_balls",
-    chaos: "chaos_balls",
     burst: "ball_burst",
     evilhard: "sturdy_pegs",
     evilregen: "fast_healing",
     evilyield: "dark_harvest",
-    bomb: "bomb_balls",
-    relax: "repulsion_field",
-    zap: "electric_ball"
+    relax: "balance_field",
+    repulsion_field: "balance_field"
   };
   var isPreEditMode = (d) => (d.v | 0) < 3;
   function applyRenames(d) {
@@ -7927,12 +9026,11 @@
   function migrateEditMode(d, p) {
     const lv = d.levels || {};
     const owned = { basic: lv.peg_slots | 0, research: lv.research_pegs | 0, splitter: lv.splitter_pegs | 0, gravity: lv.gravity_pegs | 0 };
-    const placed = { basic: 0, research: 0, splitter: 0, gravity: 0, alchemy: 0, dual: 0 };
+    const placed = { basic: 0, research: 0, splitter: 0, gravity: 0, alchemy: 0, dual: 0, power: 0, antigravity: 0, bouncy: 0, wall: 0, blink: 0, limiter: 0, slider: 0, spinner: 0, orbit: 0 };
     for (const pt of Array.isArray(d.pegs) ? d.pegs : []) if (Array.isArray(pt) && pt[2] !== "d") placed[SAVE_TYPE[pt[2]] || "basic"]++;
     let total = 0;
     for (const t of Object.keys(owned)) {
       total += Math.max(owned[t], placed[t]);
-      p.freePegs[t] = Math.max(0, owned[t] - placed[t]);
     }
     p.levels.peg_slots = Math.max(0, total - START_SLOTS);
     for (const id of ["research_pegs", "splitter_pegs", "gravity_pegs"]) p.levels[id] = Math.min(1, p.levels[id]);
@@ -7952,8 +9050,16 @@
       for (const [r, m] of [["combo_theory", "combo_chain"], ["elastic_balls", "bouncy_balls"], ["ball_inflation", "fat_balls"], ["world_size", "deeper_world"], ["more_buckets", "extra_buckets"], ["upgrade_limit", "higher_limit"]]) if (p.levels[r] > 0) p.levels[m]++;
     }
     const ready = Array.isArray(d.dualReady) ? d.dualReady.filter((n) => n > 0).length : 0;
-    p.freePegs.dual += ready;
     if (v < 8 && (ready || (d.pegs || []).some((pt) => Array.isArray(pt) && pt[2] === "d"))) p.levels.blast_pegs = 1;
+    if (v < 13) {
+      if (p.levels.phlegm_goo > 0) for (const id of ["ghost_power", "downdraft_power", "dead_power", "research_ball_power", "chaos_power", "burst_power", "laser_power"]) p.levels[id] = 1;
+      if (p.levels.evil > 0) for (const id of ["bomb_power", "balance_power", "electric_power"]) p.levels[id] = 1;
+    }
+    if (v < 12 && p.levels.blast_pegs > 0) p.levels.blast_research = 1;
+    if (v < 11) {
+      const was = Math.round(360 + 191 * p.levels.deeper_world ** 0.85);
+      while (worldHeight(p.levels.deeper_world) < was) p.levels.deeper_world++;
+    }
   }
 
   // src/save/SaveCodec.ts
@@ -7968,11 +9074,24 @@
       autoOn: g.autoOn,
       labT: g.labT,
       levels: p.levels,
-      freePegs: p.freePegs,
       timers: g.temps.toSave(),
       // temporary goo upgrades: [time left running, cooldown left] (ms)
-      // [x, y, type, hits left (blast), damage, paid { currency: amount }, placed for free (1/0)]
-      pegs: g.pegs.list.map((pg) => [Math.round(pg.x * 10) / 10, Math.round(pg.y * 10) / 10, SAVE_CODE[pg.type] || "b", pg.left || 0, Math.round(pg.dmg * 100) / 100, pg.paid, pg.free ? 1 : 0])
+      // [x, y (where it was placed), type, hits left (blast), damage, paid { currency: amount }, ms down, loaded power (power pegs) or 0,
+      //  slider [direction, reach] or 0]
+      pegs: g.pegs.list.map((pg) => {
+        const arm = pg.arm ?? (pg.type === "slider" && pg.dir !== void 0 && pg.reach !== void 0 ? [Math.round(pg.dir * 100) / 100, Math.round(pg.reach)] : 0);
+        return [
+          Math.round((pg.ax ?? pg.x) * 10) / 10,
+          Math.round((pg.ay ?? pg.y) * 10) / 10,
+          SAVE_CODE[pg.type] || "b",
+          pg.left || 0,
+          Math.round(pg.dmg * 100) / 100,
+          pg.paid,
+          Math.ceil(pg.downT),
+          pg.socket || 0,
+          arm
+        ];
+      })
     };
   }
   function decodeSave(d, p, temps) {
@@ -7995,23 +9114,26 @@
     }
     const old = isPreEditMode(d);
     if (old) migrateEditMode(d, p);
-    else if (d.freePegs) for (const t of PEG_TYPES) p.freePegs[t] = Math.max(0, d.freePegs[t] | 0);
     migrateLevels(d, p);
     p.goo = Math.min(p.goo, p.gooCap());
-    const floor = worldHeight(p.L("deeper_world"));
+    const floor = worldHeight(p.L("deeper_world")), full = blastHits(p.L("blast_peg_hits"));
     for (const pt of Array.isArray(d.pegs) ? d.pegs : []) {
       if (!Array.isArray(pt) || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) continue;
       const type = pt[2] === "d" ? "dual" : SAVE_TYPE[pt[2]] || "basic";
-      if (pt[1] > floor) {
-        if (type !== "dual" || pt[3] > 0) p.freePegs[type]++;
-        continue;
-      }
-      const left = type === "dual" ? Math.min(blastHits(p.L("blast_peg_hits")), pt[3] | 0) : 0;
-      if (type === "dual" && left <= 0) continue;
+      const downT = (d.v | 0) >= 10 ? Math.min(PEG_DOWN_MS, Math.max(0, num(pt[6]) ?? 0)) : 0;
+      let left = type === "dual" ? Math.min(full, pt[3] | 0) : 0;
+      if (type === "dual" && left <= 0 && !downT) left = full;
       const paid = old ? { ...PEG_KINDS[type].costs } : loadPaid(pt[5]);
-      out.pegs.push({ x: pt[0], y: pt[1], type, left, dmg: pd(pt[4]), paid, free: !old && pt[6] === 1 });
+      const socket = type === "power" && typeof pt[7] === "string" && POWER_BY_ID[pt[7]]?.zone ? pt[7] : "";
+      const arm = type === "slider" ? loadArm(pt[8]) : void 0;
+      out.pegs.push({ x: pt[0], y: Math.min(pt[1], floor), type, left, dmg: downT ? 1 : pd(pt[4]), paid, downT, socket, ...arm && { arm } });
     }
     return out;
+  }
+  function loadArm(v) {
+    if (!Array.isArray(v)) return void 0;
+    const d = num(v[0]), r = num(v[1]);
+    return d !== void 0 && r !== void 0 ? [d, Math.min(ARM_MAX, Math.max(ARM_MIN, r))] : void 0;
   }
   function loadPaid(v) {
     const n = num(v);
@@ -8084,42 +9206,91 @@
       try {
         const raw = localStorage.getItem(SAVE_KEY);
         if (!raw) return;
-        const s = decodeSave(JSON.parse(raw), g.progress, g.temps);
-        if (s.autoOn !== void 0) g.autoOn = s.autoOn;
-        if (s.labT !== void 0) g.labT = s.labT;
+        const s2 = decodeSave(JSON.parse(raw), g.progress, g.temps);
+        if (s2.autoOn !== void 0) g.autoOn = s2.autoOn;
+        if (s2.labT !== void 0) g.labT = s2.labT;
         g.growWorld();
-        for (const pg of s.pegs) g.pegs.add(pg.x, pg.y, pg.type, pg.left, pg.dmg, pg.paid, pg.free);
+        for (const pg of s2.pegs) g.pegs.add(pg.x, pg.y, pg.type, pg.left, pg.dmg, pg.paid, { downT: pg.downT, socket: pg.socket, arm: pg.arm });
       } catch {
       }
     }
   };
 
   // src/ui/BoardControls.ts
+  var LIFT_PX = 50;
   var BoardControls = class {
     constructor(game, ui, store) {
       __publicField(this, "game");
       __publicField(this, "ui");
       __publicField(this, "store");
+      __publicField(this, "lift");
       this.game = game;
       this.ui = ui;
       this.store = store;
+      this.lift = null;
     }
-    // in edit mode a drag that starts on a peg moves it
+    // placing a power: pressing holds it (the board doesn't scroll); in edit mode a drag that starts on a peg moves it
     grab(w) {
-      return this.game.editing ? this.game.pegs.at(w.x, w.y) ?? null : null;
+      const game = this.game;
+      if (game.zones.targeting) {
+        game.zones.aim(w, this.onBoard(w));
+        return "zone";
+      }
+      if (!game.editing) return null;
+      const h = game.pegs.list.find((p) => p.type === "slider" && Math.hypot(w.x - sliderHandle(p).x, w.y - sliderHandle(p).y) < 12);
+      if (h) return { handle: h };
+      const peg = game.pegs.at(w.x, w.y);
+      return peg && !isDown(peg) ? peg : null;
     }
-    dragTo(peg, w) {
-      this.game.edit.dragPeg(peg, w.x, w.y);
+    // a touch drag with the helper on: the peg sits above the finger, so the finger doesn't hide it
+    dragTo(held, w, touch) {
+      if (held === "zone") {
+        this.game.zones.aim(w, this.onBoard(w));
+        return;
+      }
+      if ("handle" in held) {
+        this.game.edit.aimSlider(held.handle, w.x, w.y);
+        return;
+      }
+      const up = touch && this.ui.prefs.liftDrag ? LIFT_PX / this.ui.camera.scale : 0;
+      this.lift = up ? { peg: held, finger: w } : null;
+      this.game.edit.dragPeg(held, w.x, w.y - up);
     }
-    drop(peg) {
-      this.game.edit.dropPeg(peg);
+    drop(held, w) {
+      if (held === "zone") {
+        this.game.zones.aim(w, this.onBoard(w));
+        this.placeZone();
+        return;
+      }
+      if ("handle" in held) {
+        this.store.save();
+        return;
+      }
+      this.lift = null;
+      this.game.edit.dropPeg(held);
       this.store.save();
+    }
+    // inside the board and on the part of it that shows (not under the HUD or the button bar)
+    onBoard(w) {
+      const c = this.ui.camera, top = c.y + c.padTop / c.scale, bot = c.y + (c.viewH - c.padBot) / c.scale;
+      return w.x >= 0 && w.x <= W && w.y >= Math.max(0, top) && w.y <= Math.min(this.game.worldH, bot);
+    }
+    placeZone() {
+      const msg = this.game.zones.release();
+      if (msg) this.ui.toast(msg, 2200);
+      this.ui.refresh();
     }
     tap(w) {
       const game = this.game, ui = this.ui;
+      if (game.zones.targeting) {
+        game.zones.aim(w, this.onBoard(w));
+        this.placeZone();
+        return;
+      }
       if (game.editing) {
         const peg = game.pegs.at(w.x, w.y);
-        if (peg) {
+        if (peg && isDown(peg)) ui.toast(`Broken peg: back in ${Math.ceil(peg.downT / 1e3)}s`);
+        else if (peg) {
           const back = game.edit.pickUp(peg);
           ui.toast(back ? `Peg picked up: ${back} back` : "Peg picked up");
         } else {
@@ -8145,18 +9316,18 @@
     if (!el) throw new Error(`${selector} is missing`);
     return el;
   }
-  var SCREENS = { shop: "overlay", research: "research", powers: "powers", settings: "settings", system: "system" };
+  var SCREENS = { shop: "overlay", research: "research", powers: "powers", settings: "settings", system: "system", layouts: "layouts" };
   var costCol = (costs) => RES_COL[Object.keys(costs)[0]] || RES_COL.money;
-  var setText = (node, s) => {
-    if (node._t !== s) {
-      node._t = s;
-      node.textContent = s;
+  var setText = (node, s2) => {
+    if (node._t !== s2) {
+      node._t = s2;
+      node.textContent = s2;
     }
   };
-  var setHtml = (node, s) => {
-    if (node._t !== s) {
-      node._t = s;
-      node.innerHTML = s;
+  var setHtml = (node, s2) => {
+    if (node._t !== s2) {
+      node._t = s2;
+      node.innerHTML = s2;
     }
   };
   var CUR_ICON = Object.fromEntries(CURRENCIES.map((c) => [c, currencySvg(c, cssInk)]));
@@ -8222,8 +9393,7 @@
       return this.game.progress.unlocked(type);
     }
     priceHtml(type) {
-      const p = this.game.progress;
-      return p.freePegs[type] > 0 ? `${p.freePegs[type]} free` : priceHtml(PEG_KINDS[type].costs);
+      return priceHtml(PEG_KINDS[type].costs);
     }
     showTip(type) {
       this.tipType = type;
@@ -8234,7 +9404,7 @@
       this.tip.innerHTML = `<b>${k.name} peg</b> \xB7 ${this.priceHtml(type)}<br>${iconHtml(k.desc)}`;
     }
     refresh() {
-      const game = this.game, p = game.progress;
+      const game = this.game;
       if (!this.visible(this.selected)) this.selected = "basic";
       for (const type of PEG_TYPES) {
         const c = this.chips[type], show = this.visible(type);
@@ -8242,26 +9412,56 @@
         c.el.hidden = !show;
         if (!show) continue;
         setHtml(c.price, this.priceHtml(type));
-        c.price.classList.toggle("free", p.freePegs[type] > 0);
         c.el.classList.toggle("sel", type === this.selected);
         c.el.classList.toggle("cant", !!game.edit.cantPlace(type));
       }
     }
   };
 
-  // src/ui/Prefs.ts
-  var PREFS_KEY = "neonpegs.prefs";
-  function loadPrefs() {
-    const prefs = { closeOnPower: true, autoFullscreen: false };
-    try {
-      Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS_KEY) || "null") || {});
-    } catch {
-    }
-    return prefs;
+  // src/save/LayoutCodec.ts
+  var PREFIX = "NPL1:";
+  function packLayout(l) {
+    return { n: l.name, p: l.pegs.map((pg) => [Math.round(pg.x * 10) / 10, Math.round(pg.y * 10) / 10, SAVE_CODE[pg.type], ...pg.arm ? [pg.arm] : []]) };
   }
-  function savePrefs(prefs) {
+  function unpackLayout(v) {
+    if (!v || typeof v !== "object") return null;
+    const o = v;
+    if (typeof o.n !== "string" || !Array.isArray(o.p)) return null;
+    const pegs = [];
+    for (const pt of o.p) {
+      if (!Array.isArray(pt)) continue;
+      const x = num(pt[0]), y = num(pt[1]), type = SAVE_TYPE[pt[2]];
+      const arm = type === "slider" ? loadArm(pt[3]) : void 0;
+      if (x !== void 0 && y !== void 0 && type) pegs.push({ x, y, type, ...arm && { arm } });
+    }
+    return { name: o.n.slice(0, 40), pegs };
+  }
+  function layoutCode(l) {
+    return PREFIX + btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(packLayout(l)))));
+  }
+  function readLayoutCode(text) {
+    const t = text.trim();
+    if (!t.startsWith(PREFIX)) return null;
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+      return unpackLayout(JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(t.slice(PREFIX.length)), (c) => c.charCodeAt(0)))));
+    } catch {
+      return null;
+    }
+  }
+
+  // src/save/LayoutStore.ts
+  var LAYOUTS_KEY = "neonpegs.layouts";
+  function loadLayouts() {
+    try {
+      const v = JSON.parse(localStorage.getItem(LAYOUTS_KEY) || "[]");
+      return Array.isArray(v) ? v.map(unpackLayout).filter((l) => !!l) : [];
+    } catch {
+      return [];
+    }
+  }
+  function saveLayouts(list) {
+    try {
+      localStorage.setItem(LAYOUTS_KEY, JSON.stringify(list.map(packLayout)));
     } catch {
     }
   }
@@ -8294,23 +9494,42 @@
     c.btn.classList.add("cant");
     c.btn.classList.remove("maxed");
   }
-  function settingRow(list, color, name, desc, buttons) {
+  function plainSection(list, name, color) {
     const el = document.createElement("div");
-    el.className = "card set";
-    el.style.setProperty("--card", color);
-    el.innerHTML = `<div class="info"><div class="name">${name}</div><div class="desc">${desc}</div></div><div class="acts"></div>`;
-    const acts = child(el, ".acts"), btns = {};
-    for (const [id, label, fn] of buttons) {
+    el.className = "section";
+    el.style.setProperty("--s", color);
+    el.textContent = name;
+    list.appendChild(el);
+  }
+  function plainRow(list, label, note, color) {
+    const el = document.createElement("div");
+    el.className = "mode";
+    el.style.setProperty("--c", color);
+    const l = document.createElement("span"), n = document.createElement("span");
+    l.className = "label";
+    l.textContent = label;
+    n.className = "note";
+    n.textContent = note;
+    if (note) l.append(n);
+    el.append(l);
+    list.appendChild(el);
+    return el;
+  }
+  function miniButtons(row, buttons, danger = false) {
+    const acts = document.createElement("div");
+    row.classList.add("act");
+    acts.className = "minis";
+    const out = buttons.map(([text, fn]) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "buy";
-      b.innerHTML = `<span class="bc">${label}</span>`;
+      b.className = danger ? "mini danger" : "mini";
+      b.textContent = text;
       b.addEventListener("click", fn);
-      acts.appendChild(b);
-      btns[id] = b;
-    }
-    list.appendChild(el);
-    return { el, btns };
+      acts.append(b);
+      return b;
+    });
+    row.append(acts);
+    return out;
   }
   function makeSwitch(label) {
     const sw = document.createElement("button");
@@ -8328,17 +9547,155 @@
     for (const c of [...cards.filter((c2) => c2.unlocked), ...cards.filter((c2) => !c2.unlocked)]) list.appendChild(c.el);
   }
 
+  // src/ui/LayoutsView.ts
+  var LayoutsView = class {
+    // onLoaded: the board changed (a layout was loaded or the board cleared)
+    constructor(game, onChange) {
+      __publicField(this, "game");
+      __publicField(this, "onChange");
+      __publicField(this, "list");
+      __publicField(this, "msg");
+      __publicField(this, "layouts");
+      __publicField(this, "msgT");
+      this.game = game;
+      this.onChange = onChange;
+      this.list = byId("layList");
+      this.msg = byId("layMsg");
+      this.layouts = loadLayouts();
+    }
+    setMsg(text, err = false) {
+      this.msg.innerHTML = iconHtml(text);
+      this.msg.classList.toggle("err", err);
+      clearTimeout(this.msgT);
+      this.msgT = setTimeout(() => {
+        this.msg.textContent = "";
+      }, 5e3);
+    }
+    // rebuilt each time the screen opens and after every change
+    render() {
+      const edit = this.game.edit, col = COLORS.system.accent, list = this.list;
+      list.innerHTML = "";
+      plainSection(list, "This board", col);
+      miniButtons(plainRow(list, `${this.game.pegs.list.length} pegs`, "", col), [["SAVE", () => this.saveBoard()], ["CLEAR", () => this.clear()]]);
+      plainSection(list, "Saved", col);
+      miniButtons(plainRow(list, "Import a layout code", "", col), [["PASTE", () => this.importCode()]]);
+      this.layouts.forEach((l, i) => {
+        const row = plainRow(list, l.name, "", col);
+        row.classList.add("stack");
+        const note = document.createElement("span");
+        note.className = "note";
+        note.innerHTML = `${l.pegs.length} pegs \xB7 ${priceHtml(edit.layoutCost(l.pegs))}`;
+        row.querySelector(".label").append(note);
+        const why = edit.cantLoad(l.pegs);
+        if (why) {
+          const w = document.createElement("span");
+          w.className = "note why";
+          w.innerHTML = iconHtml(why);
+          row.querySelector(".label").append(w);
+        }
+        const [load] = miniButtons(row, [["LOAD", () => this.load(l)], ["RENAME", () => this.rename(i)], ["EXPORT", () => this.exportCode(l)], ["DELETE", () => this.remove(i)]]);
+        load.classList.toggle("dim", !!why);
+      });
+    }
+    store() {
+      saveLayouts(this.layouts);
+      this.render();
+    }
+    saveBoard() {
+      const pegs = this.game.pegs.list.map((p) => ({ x: p.ax, y: p.ay, type: p.type, ...p.type === "slider" && { arm: [p.dir, p.reach] } }));
+      if (!pegs.length) {
+        this.setMsg("The board is empty", true);
+        return;
+      }
+      const name = window.prompt("Layout name:", `Layout ${this.layouts.length + 1}`);
+      if (name === null) return;
+      this.layouts.push({ name: name.trim().slice(0, 40) || `Layout ${this.layouts.length + 1}`, pegs });
+      this.store();
+      this.setMsg("Layout saved");
+    }
+    load(l) {
+      const why = this.game.edit.loadLayout(l.pegs);
+      if (why) {
+        this.setMsg(why, true);
+        return;
+      }
+      this.onChange();
+      this.setMsg(`Loaded ${l.name}`);
+      this.render();
+    }
+    clear() {
+      if (!this.game.pegs.list.length) return;
+      if (!confirm("Pick up every peg on the board (each is refunded)?")) return;
+      const why = this.game.edit.clearAll();
+      if (why) {
+        this.setMsg(why, true);
+        return;
+      }
+      this.onChange();
+      this.setMsg("Board cleared");
+      this.render();
+    }
+    rename(i) {
+      const name = window.prompt("New name:", this.layouts[i].name);
+      if (!name?.trim()) return;
+      this.layouts[i].name = name.trim().slice(0, 40);
+      this.store();
+    }
+    remove(i) {
+      if (!confirm(`Delete ${this.layouts[i].name}?`)) return;
+      this.layouts.splice(i, 1);
+      this.store();
+    }
+    exportCode(l) {
+      const code = layoutCode(l), fallback = () => window.prompt("Copy this code (Ctrl+C):", code);
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(code).then(() => this.setMsg("Layout code copied"), fallback);
+      else fallback();
+    }
+    importCode() {
+      const code = window.prompt("Paste a layout code:");
+      if (!code) return;
+      const l = readLayoutCode(code);
+      if (!l) {
+        this.setMsg("That is not a layout code", true);
+        return;
+      }
+      this.layouts.push(l);
+      this.store();
+      this.setMsg(`Imported ${l.name}`);
+    }
+  };
+
+  // src/ui/Prefs.ts
+  var PREFS_KEY = "neonpegs.prefs";
+  function loadPrefs() {
+    const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+    const prefs = { closeOnPower: true, autoFullscreen: false, liftDrag: touch };
+    try {
+      Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS_KEY) || "null") || {});
+    } catch {
+    }
+    return prefs;
+  }
+  function savePrefs(prefs) {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    } catch {
+    }
+  }
+
   // src/ui/PowersView.ts
   var PowersView = class {
-    // onUsed: a power was launched
-    constructor(game, onUsed) {
+    // onUsed: a power without a zone was used; onTarget: a zone power is ready to be placed
+    constructor(game, onUsed, onTarget) {
       __publicField(this, "game");
       __publicField(this, "onUsed");
+      __publicField(this, "onTarget");
       __publicField(this, "list");
       __publicField(this, "cards");
       __publicField(this, "order");
       this.game = game;
       this.onUsed = onUsed;
+      this.onTarget = onTarget;
       this.list = byId("powList");
       this.cards = POWERS.map((pw) => this.makeCard(pw));
     }
@@ -8346,19 +9703,21 @@
       const ref = makeCard(pw, costCol(pw.costs));
       ref.btn.addEventListener("click", () => this.use(pw));
       if (pw.danger) ref.btn.classList.add("danger");
-      if (pw.act) ref.btn.style.setProperty("--act", pw.act);
+      else ref.btn.style.setProperty("--act", pw.color);
       this.list.appendChild(ref.el);
       return ref;
     }
     use(pw) {
-      if (!this.game.economy.usePower(pw)) return false;
-      this.onUsed();
-      return true;
+      if (pw.zone) {
+        if (this.game.economy.ready(pw)) this.onTarget(pw);
+        return;
+      }
+      if (this.game.economy.usePower(pw)) this.onUsed();
     }
-    // updates every card; returns whether one can be launched right now
+    // updates every card
     refresh() {
       const game = this.game, p = game.progress;
-      let order = "", canUse = false;
+      let order = "";
       for (const c of this.cards) {
         const pw = c.u, unlocked = p.isUnlocked(pw);
         c.unlocked = unlocked;
@@ -8369,13 +9728,11 @@
           continue;
         }
         setText(c.n, pw.name);
-        setText(c.lvl, pw.status ? pw.status() : "");
         setHtml(c.desc, iconHtml(pw.desc));
         setHtml(c.stat, iconHtml(pw.stat()));
         const tm = game.economy.timer(pw.id), ok = !tm && p.has(pw.costs);
-        if (ok) canUse = true;
         setText(c.bl, "");
-        if (tm) setText(c.bc, tm.text || `${tm.s}s`);
+        if (tm) setText(c.bc, `${tm.s}s`);
         else setHtml(c.bc, priceHtml(pw.costs));
         c.btn.classList.toggle("active", !!tm?.active);
         c.btn.classList.toggle("cant", !ok && !tm?.active);
@@ -8384,14 +9741,13 @@
         this.order = order;
         sortCards(this.cards, this.list);
       }
-      return canUse;
     }
   };
 
   // src/ui/SettingsView.ts
   var SettingsView = class {
-    // onSystem: the System row was tapped
-    constructor(modes, onSystem) {
+    // onLayouts / onSystem: that row was tapped
+    constructor(modes, onLayouts, onSystem) {
       __publicField(this, "rows");
       const list = byId("settingsList");
       this.rows = modes.map((mode) => {
@@ -8402,13 +9758,17 @@
         el.addEventListener("click", () => mode.toggle());
         return { mode, el, sw };
       });
-      const sys = this.row(list, "System");
-      sys.classList.add("nav");
-      const chev = document.createElement("span");
+      this.nav(list, "Layouts", onLayouts).classList.add("nav");
+      this.nav(list, "System", onSystem);
+    }
+    // a row that opens another screen: its label and a chevron
+    nav(list, text, open) {
+      const el = this.row(list, text), chev = document.createElement("span");
       chev.className = "chev";
       chev.textContent = "\u203A";
-      sys.append(chev);
-      sys.addEventListener("click", onSystem);
+      el.append(chev);
+      el.addEventListener("click", open);
+      return el;
     }
     // a row with its label, added to list
     row(list, text) {
@@ -8432,19 +9792,19 @@
 
   // src/ui/ShopView.ts
   var ShopView = class {
-    // tab: whose upgrades ('money' or 'research'); listId: the list element; onChange: something was bought (the whole UI refreshes)
-    constructor(game, tab, listId, onChange) {
+    // tab: whose upgrades ('money' or 'research'); listId: the list element; onBuy: u was bought (the whole UI refreshes)
+    constructor(game, tab, listId, onBuy) {
       __publicField(this, "game");
-      __publicField(this, "onChange");
+      __publicField(this, "onBuy");
       __publicField(this, "list");
       __publicField(this, "cards");
       __publicField(this, "order");
       __publicField(this, "headers");
       this.game = game;
-      this.onChange = onChange;
+      this.onBuy = onBuy;
       this.list = byId(listId);
       this.headers = { locked: this.header(LOCKED_SECTION) };
-      for (const s of SECTIONS) this.headers[s.section] = this.header(s);
+      for (const s2 of SECTIONS) this.headers[s2.section] = this.header(s2);
       this.cards = UPGRADES.filter((u) => u.tab === tab).map((u) => this.makeCard(u));
     }
     makeCard(u) {
@@ -8489,7 +9849,7 @@
     // each section's available cards under its title (in section order), then every locked card under "Locked";
     // a title with no cards under it is hidden
     arrange() {
-      const groups = SECTIONS.map((s) => [this.headers[s.section], this.cards.filter((c) => c.unlocked && c.u.section === s.section)]);
+      const groups = SECTIONS.map((s2) => [this.headers[s2.section], this.cards.filter((c) => c.unlocked && c.u.section === s2.section)]);
       groups.push([this.headers.locked, this.cards.filter((c) => !c.unlocked)]);
       for (const [header, cards] of groups) {
         header.hidden = !cards.length;
@@ -8499,13 +9859,29 @@
     }
     buy(u) {
       if (!this.game.economy.buy(u)) return false;
-      this.onChange();
+      this.onBuy(u);
       return true;
     }
-    // updates every card; returns whether something can be bought
+    // the available cards that need upgrade `id`
+    unlockedBy(id) {
+      return this.cards.filter((c) => c.unlocked && c.u.required?.some((r) => r.id === id));
+    }
+    // scrolls the first card to the middle of the list and flashes them all (call once the list is arranged)
+    highlight(cards) {
+      const list = this.list, el = cards[0].el;
+      const top = list.scrollTop + el.getBoundingClientRect().top - list.getBoundingClientRect().top - (list.clientHeight - el.offsetHeight) / 2;
+      list.scrollTo({ top, behavior: "smooth" });
+      for (const c of cards) {
+        c.el.classList.remove("flash");
+        void c.el.offsetWidth;
+        c.el.classList.add("flash");
+        c.el.addEventListener("animationend", () => c.el.classList.remove("flash"), { once: true });
+      }
+    }
+    // updates every card
     refresh() {
       const p = this.game.progress;
-      let order = "", canAfford = false;
+      let order = "";
       for (const c of this.cards) {
         const u = c.u, unlocked = p.isUnlocked(u), maxed = p.isMaxed(u), l = p.L(u.id);
         c.unlocked = unlocked;
@@ -8521,7 +9897,6 @@
         setHtml(c.desc, iconHtml(u.desc));
         setHtml(c.stat, iconHtml(once ? u.stat(1) : maxed ? u.stat(l) : `${u.stat(l)}  \u2192  ${u.stat(l + 1)}`));
         const afford = !maxed && p.canAfford(u);
-        if (afford) canAfford = true;
         setText(c.bl, maxed ? once ? "OWNED" : "MAXED" : "");
         setHtml(c.bc, maxed ? "\u2713" : priceHtml(p.price(u)));
         c.btn.classList.toggle("cant", !afford && !maxed);
@@ -8531,7 +9906,6 @@
         this.order = order;
         this.arrange();
       }
-      return canAfford;
     }
   };
 
@@ -8588,46 +9962,30 @@
       this.prefs = prefs;
       this.list = byId("sysList");
       this.msg = byId("sysMsg");
+      const set = (k) => () => {
+        prefs[k] = !prefs[k];
+        savePrefs(prefs);
+        return prefs[k];
+      };
+      this.section("Display");
       this.fullscreen = new Fullscreen(() => prefs.autoFullscreen);
       const fsOk = this.fullscreen.supported;
-      const fsCard = settingRow(this.list, COLORS.system.fullscreen, "Auto fullscreen", fsOk ? "Any tap goes back to fullscreen when you are not in it (hides the browser bars)." : "This browser does not allow fullscreen.", []).el;
-      fsCard.classList.add("sw");
-      const fs = makeSwitch("Auto fullscreen");
-      fs.disabled = !fsOk;
-      child(fsCard, ".acts").append(fs);
-      this.fullscreen.skip = fs;
-      setSwitch(fs, fsOk && prefs.autoFullscreen);
-      fs.addEventListener("click", () => {
-        prefs.autoFullscreen = !prefs.autoFullscreen;
-        savePrefs(prefs);
-        setSwitch(fs, prefs.autoFullscreen);
-        if (prefs.autoFullscreen) this.fullscreen.enter();
+      const fs = this.switchRow("Auto fullscreen", fsOk ? "" : "Not allowed by this browser", fsOk && prefs.autoFullscreen, () => {
+        const on = set("autoFullscreen")();
+        if (on) this.fullscreen.enter();
+        return on;
       });
-      const pow = this.row(
-        COLORS.system.powers,
-        "Powers",
-        "Close the Powers screen after launching a power, so you can watch it work.",
-        [["b", "", () => {
-          prefs.closeOnPower = !prefs.closeOnPower;
-          savePrefs(prefs);
-          powUpdate();
-        }]]
-      ).b;
-      const powUpdate = () => setText(child(pow, ".bc"), prefs.closeOnPower ? "CLOSE AFTER LAUNCH: ON" : "CLOSE AFTER LAUNCH: OFF");
-      powUpdate();
-      this.row(COLORS.system.exportSave, "Export save", "Download your progress as a file, or copy it as text, to keep it safe or move it to another device.", [
-        ["file", "DOWNLOAD", () => this.exportFile()],
-        ["copy", "COPY", () => this.exportCopy()]
-      ]);
-      this.row(COLORS.system.importSave, "Import save", "Replace your current progress with a saved file or with copied text.", [
-        ["file", "FROM FILE", () => this.fileInput.click()],
-        ["paste", "PASTE", () => this.importPaste()]
-      ]);
-      this.row(COLORS.system.reset, "Reset game data", "Erase all progress and start over.", [
-        ["reset", "RESET", () => {
-          if (confirm("Erase all progress and start over?")) store.reset();
-        }]
-      ]);
+      fs.disabled = !fsOk;
+      this.fullscreen.skip = fs;
+      this.section("Controls");
+      this.switchRow("Lift dragged peg", "Touch: the peg sits above your finger", prefs.liftDrag, set("liftDrag"));
+      this.switchRow("Close Powers after launch", "", prefs.closeOnPower, set("closeOnPower"));
+      this.section("Save data");
+      this.actionRow("Export", [["FILE", () => this.exportFile()], ["COPY", () => this.exportCopy()]]);
+      this.actionRow("Import", [["FILE", () => this.fileInput.click()], ["PASTE", () => this.importPaste()]]);
+      this.actionRow("Reset all progress", [["RESET", () => {
+        if (confirm("Erase all progress and start over?")) store.reset();
+      }]], true);
       this.fileInput = document.createElement("input");
       this.fileInput.type = "file";
       this.fileInput.accept = ".json,.txt,application/json,text/plain";
@@ -8637,9 +9995,21 @@
         if (file) file.text().then((t) => this.importText(t), () => this.setMsg("Could not read that file", true));
       });
     }
-    // a setting card in this screen; returns its buttons by id
-    row(color, name, desc, buttons) {
-      return settingRow(this.list, color, name, desc, buttons).btns;
+    section(name) {
+      plainSection(this.list, name, COLORS.system.accent);
+    }
+    // a switch row (the whole row switches); toggle returns the new state
+    switchRow(label, note, on, toggle) {
+      const el = plainRow(this.list, label, note, COLORS.system.accent), sw = makeSwitch(label);
+      setSwitch(sw, on);
+      el.append(sw);
+      el.addEventListener("click", () => {
+        if (!sw.disabled) setSwitch(sw, toggle());
+      });
+      return sw;
+    }
+    actionRow(label, buttons, danger = false) {
+      miniButtons(plainRow(this.list, label, "", COLORS.system.accent), buttons, danger);
     }
     // feedback line at the top of the system screen (the hint under the board is hidden while a screen is open)
     setMsg(text, err = false) {
@@ -8730,6 +10100,7 @@
       __publicField(this, "powers");
       __publicField(this, "settings");
       __publicField(this, "system");
+      __publicField(this, "layouts");
       __publicField(this, "toaster");
       __publicField(this, "hudH");
       __publicField(this, "screen");
@@ -8765,28 +10136,48 @@
       this.prefs = loadPrefs();
       this.edit = new EditPanel(game, renderer);
       this.shop = new ShopView(game, "money", "list", () => this.refresh());
-      this.research = new ShopView(game, "research", "resList", () => this.refresh());
-      this.powers = new PowersView(game, () => {
-        if (this.prefs.closeOnPower) this.showScreen(null);
-        else this.refresh();
-      });
-      this.settings = new SettingsView(this.modeList(), () => this.showScreen("system"));
+      this.research = new ShopView(game, "research", "resList", (u) => this.researched(u));
+      this.powers = new PowersView(
+        game,
+        () => {
+          if (this.prefs.closeOnPower) this.showScreen(null);
+          else this.refresh();
+        },
+        (pw) => {
+          this.showScreen(null);
+          game.zones.target(pw);
+          this.refresh();
+        }
+      );
+      this.settings = new SettingsView(this.modeList(), () => this.showScreen("layouts"), () => this.showScreen("system"));
       this.system = new SystemView(store, this.prefs);
+      this.layouts = new LayoutsView(game, () => {
+        this.refresh();
+        store.save();
+      });
       this.toaster = new Toast();
       this.hudH = -1;
       this.screen = null;
       const d = this.d;
       d.upBtn.addEventListener("click", () => this.toggleScreen("shop"));
       d.researchBtn.addEventListener("click", () => this.toggleScreen("research"));
-      d.settingsBtn.addEventListener("click", () => this.showScreen(this.settingsOpen || this.systemOpen ? null : "settings"));
-      d.powersBtn.addEventListener("click", () => this.toggleScreen("powers"));
+      d.settingsBtn.addEventListener("click", () => this.showScreen(this.settingsOpen || this.systemOpen || this.screen === "layouts" ? null : "settings"));
+      d.powersBtn.addEventListener("click", () => {
+        if (game.zones.targeting) {
+          game.zones.cancel();
+          this.refresh();
+        } else this.toggleScreen("powers");
+      });
       d.editBtn.addEventListener("click", () => this.toggleEdit());
       d.doneBtn.addEventListener("click", () => this.toggleEdit());
       if (DEBUG) this.debugResources();
       window.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
           if (game.editing) this.toggleEdit();
-          else this.showScreen(null);
+          else if (game.zones.targeting) {
+            game.zones.cancel();
+            this.refresh();
+          } else this.showScreen(null);
         } else if ((e.key === "e" || e.key === "E") && !e.repeat) this.setEvil(!game.evilOn);
         else if (e.code === "Space" && !e.repeat && !game.editing) {
           e.preventDefault();
@@ -8860,6 +10251,7 @@
     // one screen at a time over the board (null closes it); the screens stop above the button bar
     showScreen(name) {
       const d = this.d;
+      if (name) this.game.zones.cancel();
       this.screen = name;
       for (const sc of SCREEN_LIST) {
         const el = d[SCREENS[sc]], on = sc === name;
@@ -8869,13 +10261,23 @@
       d.app.classList.toggle("ov", !!name);
       if (name) d.app.style.setProperty("--barH", `${d.bar.offsetHeight}px`);
       if (name === "system") this.system.clearMsg();
+      if (name === "layouts") this.layouts.render();
       this.refresh();
     }
     toggleScreen(name) {
       this.showScreen(this.screen === name ? null : name);
     }
+    // after a research: jump to the shop upgrades it unlocked, if any
+    researched(u) {
+      this.refresh();
+      const cards = this.shop.unlockedBy(u.id);
+      if (!cards.length) return;
+      this.showScreen("shop");
+      this.shop.highlight(cards);
+    }
     launch() {
       if (this.game.ballSystem.launch()) return;
+      if (this.game.temps.running("laser")) return;
       this.toast(this.game.ballSystem.maxBalls() === 1 ? "A ball is already in play" : "All balls are in play");
     }
     toast(t, ms = 1600) {
@@ -8885,14 +10287,14 @@
     toggleEdit() {
       const game = this.game, d = this.d;
       if (game.editing) {
+        this.showScreen(null);
         game.edit.exit();
         this.edit.showTip(null);
         d.app.classList.remove("edit");
         this.store.save();
       } else {
         this.showScreen(null);
-        const refund = game.edit.enter();
-        if (Object.keys(refund).length) this.toast(`Special ball cleared: +${costText(refund)}`, 2400);
+        game.edit.enter();
         d.app.classList.add("edit");
       }
       this.refresh();
@@ -8925,24 +10327,26 @@
       d.evilBox.classList.toggle("on", hasEvil);
       if (hasEvil) setText(d.evilNum, evFmt(Math.floor(p.evil * 100) / 100));
       this.settings.refresh();
-      d.settingsBtn.classList.toggle("on", this.settingsOpen || this.systemOpen);
+      d.settingsBtn.classList.toggle("on", this.settingsOpen || this.systemOpen || this.screen === "layouts");
       d.powersBtn.classList.toggle("locked", !hasGoo);
-      d.powersBtn.classList.toggle("on", this.powersOpen);
+      d.powersBtn.classList.toggle("on", this.powersOpen || !!game.zones.targeting);
       d.researchBtn.classList.toggle("locked", !hasRp);
       d.researchBtn.classList.toggle("on", this.researchOpen);
       setText(d.stBalls, `${fmt(game.ballSystem.load())}/${game.ballSystem.maxBalls()}`);
       setText(d.stPegs, `${pegs.used()}/${p.slots()}`);
-      const canBuy = this.shop.refresh(), canResearch = this.research.refresh(), canUse = this.powers.refresh();
-      d.powersBtn.classList.toggle("alert", canUse && !this.powersOpen);
-      d.researchBtn.classList.toggle("alert", hasRp && canResearch && !this.researchOpen);
-      const open = this.shopOpen;
-      d.upBtn.classList.toggle("alert", canBuy && !open);
-      d.upBtn.classList.toggle("on", open);
+      this.shop.refresh();
+      this.research.refresh();
+      this.powers.refresh();
+      d.upBtn.classList.toggle("on", this.shopOpen);
       let h = "", pulse = false;
-      const freeSlots = p.slots() - pegs.used(), canPay = p.has(PEG_KINDS.basic.costs) || Object.values(p.freePegs).some((n) => n > 0);
+      const freeSlots = p.slots() - pegs.used(), canPay = p.has(PEG_KINDS.basic.costs);
       const toast = this.toaster.current();
+      const aim = game.zones.targeting;
       if (toast !== null) h = toast;
-      else if (game.editing) h = "Tap: place \xB7 tap a peg: remove \xB7 drag: move";
+      else if (aim) {
+        h = game.zones.outside ? "Let go to cancel" : "Drag, let go to place \xB7 off the board cancels";
+        pulse = true;
+      } else if (game.editing) h = "Tap: place \xB7 tap a peg: remove \xB7 drag: move";
       else if (pegs.list.length === 0) {
         h = canPay ? "Tap \u270E to place your first peg" : "Tap to launch when the cannon is over the bucket";
         pulse = true;
@@ -8980,15 +10384,23 @@
       this.renderer.icons = currencyImages();
       this.scene = new GameRenderer(this.renderer, this.game);
       this.ui = new Ui(this.game, this.camera, this.store, this.scene);
-      const input = this.input = new Input(this.renderer.canvas, this.camera, new BoardControls(this.game, this.ui, this.store));
+      const controls = new BoardControls(this.game, this.ui, this.store);
+      const input = this.input = new Input(this.renderer.canvas, this.camera, controls);
       const edit = this.ui.edit;
-      this.scene.view = { get hover() {
-        return input.hover;
-      }, get dragging() {
-        return input.dragging;
-      }, get editType() {
-        return edit.selected;
-      } };
+      this.scene.view = {
+        get hover() {
+          return input.hover;
+        },
+        get dragging() {
+          return input.dragging;
+        },
+        get editType() {
+          return edit.selected;
+        },
+        get lift() {
+          return controls.lift;
+        }
+      };
       this.store.autosave();
       window.addEventListener("resize", () => this.resize());
       window.addEventListener("orientationchange", () => setTimeout(() => this.resize(), 150));

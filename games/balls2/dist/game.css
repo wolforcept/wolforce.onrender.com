@@ -243,9 +243,6 @@ canvas#game {
   white-space: nowrap;
   color: var(--theme-money);
 }
-.chip .pp.free {
-  color: var(--ui-positive);
-}
 .chip.sel {
   border-color: var(--k);
   background: color-mix(in srgb, var(--k) 14%, color-mix(in srgb, var(--ui-panel) 85%, transparent));
@@ -395,22 +392,9 @@ canvas#game {
 #editBtn {
   --k: var(--button-edit) ;
 }
-#upBtn.alert::after,
-#researchBtn.alert::after,
-#powersBtn.alert::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--ui-positive);
-  box-shadow: 0 0 10px var(--ui-positive);
-  animation: pulse 1s ease-in-out infinite;
-}
 #overlay,
 #research,
+#layouts,
 #system,
 #powers,
 #settings {
@@ -430,6 +414,7 @@ canvas#game {
 }
 #overlay.open,
 #research.open,
+#layouts.open,
 #system.open,
 #powers.open,
 #settings.open {
@@ -439,6 +424,7 @@ canvas#game {
 }
 #list,
 #resList,
+#layList,
 #sysList,
 #powList,
 #settingsList {
@@ -498,6 +484,15 @@ canvas#game {
   font-weight: 700;
   color: var(--ui-strong);
   margin-top: 5px;
+}
+.card.flash {
+  animation: flash .7s ease-in-out .25s 2;
+}
+@keyframes flash {
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 26px var(--c);
+  }
 }
 .card.locked {
   --c: var(--ui-locked);
@@ -616,6 +611,7 @@ canvas#game {
   }
 }
 #resTitle,
+#layTitle,
 #sysTitle,
 #powTitle,
 #settingsTitle {
@@ -624,6 +620,7 @@ canvas#game {
   letter-spacing: 3px;
   color: var(--ui-label);
 }
+#layMsg,
 #sysMsg {
   min-height: 24px;
   padding: 8px 14px 0;
@@ -632,6 +629,7 @@ canvas#game {
   color: var(--ui-positive);
   text-shadow: 0 0 8px color-mix(in srgb, var(--ui-positive) 50%, transparent);
 }
+#layMsg.err,
 #sysMsg.err {
   color: var(--ui-error);
   text-shadow: 0 0 8px color-mix(in srgb, var(--ui-error) 50%, transparent);
@@ -685,11 +683,57 @@ canvas#game {
 .mode.nav {
   margin-top: 14px;
 }
+.mode .note.why {
+  color: var(--ui-error);
+}
+.mini.dim,
+.mini:disabled {
+  opacity: .35;
+  cursor: default;
+}
 .mode .chev {
   color: var(--ui-label);
   font-size: 22px;
   font-weight: 700;
   line-height: 1;
+}
+.mode .note {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ui-description);
+}
+.mode.act {
+  cursor: default;
+}
+.mode.stack {
+  flex-wrap: wrap;
+}
+.mode.stack .minis {
+  flex-basis: 100%;
+}
+.minis {
+  display: flex;
+  gap: 6px;
+}
+.mini {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--ui-strong) 22%, transparent);
+  background: transparent;
+  color: var(--ui-text);
+  font: 700 11px/1 system-ui, sans-serif;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.mini:active {
+  background: color-mix(in srgb, var(--ui-strong) 10%, transparent);
+}
+.mini.danger {
+  color: var(--system-danger);
+  border-color: color-mix(in srgb, var(--system-danger) 45%, transparent);
 }
 .switch {
   flex: none;
@@ -728,6 +772,7 @@ canvas#game {
 }
 #list,
 #resList,
+#layList,
 #sysList,
 #powList,
 #settingsList {
@@ -737,6 +782,7 @@ canvas#game {
 }
 #app.evil #list,
 #app.evil #resList,
+#app.evil #layList,
 #app.evil #sysList,
 #app.evil #powList,
 #app.evil #settingsList {
@@ -745,6 +791,7 @@ canvas#game {
 @supports selector(::-webkit-scrollbar) {
   #list,
   #resList,
+  #layList,
   #sysList,
   #powList,
   #settingsList {
@@ -753,6 +800,7 @@ canvas#game {
   }
   #list::-webkit-scrollbar,
   #resList::-webkit-scrollbar,
+  #layList::-webkit-scrollbar,
   #sysList::-webkit-scrollbar,
   #powList::-webkit-scrollbar,
   #settingsList::-webkit-scrollbar {
@@ -760,6 +808,7 @@ canvas#game {
   }
   #list::-webkit-scrollbar-track,
   #resList::-webkit-scrollbar-track,
+  #layList::-webkit-scrollbar-track,
   #sysList::-webkit-scrollbar-track,
   #powList::-webkit-scrollbar-track,
   #settingsList::-webkit-scrollbar-track {
@@ -768,6 +817,7 @@ canvas#game {
   }
   #list::-webkit-scrollbar-thumb,
   #resList::-webkit-scrollbar-thumb,
+  #layList::-webkit-scrollbar-thumb,
   #sysList::-webkit-scrollbar-thumb,
   #powList::-webkit-scrollbar-thumb,
   #settingsList::-webkit-scrollbar-thumb {
@@ -778,11 +828,13 @@ canvas#game {
   }
   #list::-webkit-scrollbar-thumb:hover,
   #resList::-webkit-scrollbar-thumb:hover,
+  #layList::-webkit-scrollbar-thumb:hover,
   #sysList::-webkit-scrollbar-thumb:hover,
   #powList::-webkit-scrollbar-thumb:hover,
   #settingsList::-webkit-scrollbar-thumb:hover,
   #list::-webkit-scrollbar-thumb:active,
   #resList::-webkit-scrollbar-thumb:active,
+  #layList::-webkit-scrollbar-thumb:active,
   #sysList::-webkit-scrollbar-thumb:active,
   #powList::-webkit-scrollbar-thumb:active,
   #settingsList::-webkit-scrollbar-thumb:active {
@@ -791,6 +843,7 @@ canvas#game {
   }
   #list::-webkit-scrollbar-corner,
   #resList::-webkit-scrollbar-corner,
+  #layList::-webkit-scrollbar-corner,
   #sysList::-webkit-scrollbar-corner,
   #powList::-webkit-scrollbar-corner,
   #settingsList::-webkit-scrollbar-corner {
