@@ -485,7 +485,8 @@ canvas#game {
   color: var(--ui-strong);
   margin-top: 5px;
 }
-.card.flash {
+.card.flash,
+.mode.flash {
   animation: flash .7s ease-in-out .25s 2;
 }
 @keyframes flash {
@@ -717,6 +718,9 @@ canvas#game {
   display: flex;
   gap: 6px;
 }
+.mode.choice .mini {
+  flex: 1;
+}
 .mini {
   height: 28px;
   padding: 0 12px;
@@ -730,6 +734,11 @@ canvas#game {
 }
 .mini:active {
   background: color-mix(in srgb, var(--ui-strong) 10%, transparent);
+}
+.mini.on {
+  color: var(--c, var(--ui-strong));
+  border-color: var(--c, var(--ui-strong));
+  background: color-mix(in srgb, var(--c, var(--ui-strong)) 14%, transparent);
 }
 .mini.danger {
   color: var(--system-danger);
